@@ -35,6 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^3.4.3
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +48,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  freezed: ^4.0.2
+  json_serializable: ^6.14.1
+  build_runner: ^2.16.2
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -57,6 +64,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/fixtures/library.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

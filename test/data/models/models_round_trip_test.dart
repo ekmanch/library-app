@@ -1,0 +1,185 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/models/book_format.dart';
+import 'package:library_app/data/models/entry.dart';
+import 'package:library_app/data/models/entry_status.dart';
+import 'package:library_app/data/models/library.dart';
+import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/plan.dart';
+import 'package:library_app/data/models/plan_item.dart';
+import 'package:library_app/data/models/released.dart';
+import 'package:library_app/data/models/tag_category.dart';
+import 'package:library_app/data/models/track.dart';
+
+import '../../helpers/sample_library.dart';
+
+void main() {
+  group('Entry', () {
+    final json = <String, Object?>{
+      'id': 'movies/the-mummy-1999',
+      'type': 'movies',
+      'title': 'The Mummy',
+      'released': '1999',
+      'creator': 'Stephen Sommers',
+      'status': 'in_progress',
+      'rating': null,
+      'tags': ['adventure'],
+      'note': '',
+      'description': '',
+      'seasonal_only': false,
+      'added': '2026-10-01',
+    };
+
+    test('round-trips the common fields, writing null rating', () {
+      final entry = Entry.fromJson(json);
+      expect(entry.status, EntryStatus.inProgress);
+      expect(entry.released, const Released(1999));
+      expect(entry.added, DateTime(2026, 10, 1));
+      expect(entry.toJson(), json);
+      expect(entry.toJson().keys.toList(), json.keys.toList());
+    });
+
+    test('omits type-specific fields when absent and keeps them when set', () {
+      final plain = Entry.fromJson(json).toJson();
+      expect(plain.containsKey('platform'), isFalse);
+      expect(plain.containsKey('tracks'), isFalse);
+
+      final book = Entry.fromJson({
+        ...json,
+        'id': 'books/dracula-1897',
+        'type': 'books',
+        'formats': ['audiobook', 'physical'],
+      });
+      expect(book.formats, [BookFormat.audiobook, BookFormat.physical]);
+      expect(book.toJson()['formats'], ['audiobook', 'physical']);
+
+      expect(dirt.toJson()['kind'], 'album');
+      expect(dirt.toJson()['tracks'], [
+        {'title': 'Rooster', 'id': 'mb:1', 'rating': 10},
+      ]);
+      expect(Entry.fromJson(dirt.toJson()), dirt);
+    });
+
+    test('copyWith can clear nullable fields', () {
+      expect(mummy.copyWith(rating: null).rating, isNull);
+      expect(mummy.copyWith(released: null).released, isNull);
+      expect(
+        dirt.copyWith(tracks: null).toJson().containsKey('tracks'),
+        isFalse,
+      );
+    });
+
+    test('derives year and release state', () {
+      expect(mummy.year, 1999);
+      expect(mummy.isReleasedOn(DateTime(2026, 10, 10)), isTrue);
+      final coming = mummy.copyWith(released: const Released(2027, 10));
+      expect(coming.isReleasedOn(DateTime(2027, 10, 15)), isFalse);
+      expect(
+        mummy.copyWith(released: null).isReleasedOn(DateTime(2026)),
+        isTrue,
+      );
+    });
+  });
+
+  test('Track omits a missing id', () {
+    const track = Track(title: 'Time', rating: 10);
+    expect(track.toJson(), {'title': 'Time', 'rating': 10});
+    expect(Track.fromJson(track.toJson()), track);
+  });
+
+  group('PlanItem', () {
+    test('round-trips with a period and with no when', () {
+      final json = {
+        'entry': 'movies/the-mummy-1999',
+        'done': false,
+        'repeat': true,
+        'note': '',
+        'when': {'from': '2026-10-19', 'to': '2026-10-31'},
+      };
+      final item = PlanItem.fromJson(json);
+      expect(item.when!.isSingleDay, isFalse);
+      expect(item.toJson(), json);
+
+      final bare = PlanItem.fromJson({...json, 'when': null});
+      expect(bare.when, isNull);
+      expect(bare.toJson()['when'], isNull);
+      expect(bare.toJson().containsKey('when'), isTrue);
+    });
+
+    test('a single day has equal from and to', () {
+      final when = PlanWhen(
+        from: DateTime(2026, 10, 3),
+        to: DateTime(2026, 10, 3),
+      );
+      expect(when.isSingleDay, isTrue);
+    });
+  });
+
+  test('Plan round-trips', () {
+    final json = halloweenPlan.toJson();
+    expect(json['seasonal_theme'], isTrue);
+    expect(json.keys.toList(), [
+      'id',
+      'name',
+      'year',
+      'tags',
+      'timeline',
+      'seasonal_theme',
+      'items',
+    ]);
+    expect(Plan.fromJson(json), halloweenPlan);
+    expect(halloweenPlan.itemFor(mummy.id)?.repeat, isTrue);
+    expect(halloweenPlan.itemFor('nope'), isNull);
+  });
+
+  group('Library', () {
+    test('round-trips with enum-keyed tag categories', () {
+      final library = sampleLibrary();
+      final json = library.toJson();
+      expect(json['version'], 2);
+      expect((json['tags'] as Map).keys, ['Genre', 'Mood', 'Season']);
+      expect(Library.fromJson(json), library);
+    });
+
+    test('looks up entries and plans', () {
+      final library = sampleLibrary();
+      expect(library.entryById(dirt.id), dirt);
+      expect(library.entryById('x'), isNull);
+      expect(library.planById('halloween-2026'), halloweenPlan);
+      expect(library.entriesOfType(MediaType.music), [dirt]);
+    });
+
+    test('prunes tags used by nothing but keeps tags used only by a plan', () {
+      final pruned = sampleLibrary().withUnusedTagsRemoved();
+      expect(pruned.tags[TagCategory.genre], ['adventure', 'grunge']);
+      expect(pruned.tags[TagCategory.season], ['halloween', 'christmas']);
+      expect(pruned.tags[TagCategory.mood], ['lighthearted']);
+    });
+
+    test('drops a category left empty', () {
+      final library = sampleLibrary().copyWith(
+        tags: const {
+          TagCategory.genre: ['adventure', 'grunge'],
+          TagCategory.other: ['unused'],
+        },
+      );
+      expect(
+        library.withUnusedTagsRemoved().tags.containsKey(TagCategory.other),
+        isFalse,
+      );
+    });
+  });
+
+  test('enums use the JSON names from DESIGN.md', () {
+    final json = Entry.fromJson({
+      ...mummy.toJson(),
+      'status': 'dnf',
+      'type': 'anime',
+    }).toJson();
+    expect(json['status'], 'dnf');
+    expect(json['type'], 'anime');
+    expect(
+      mummy.copyWith(status: EntryStatus.inProgress).toJson()['status'],
+      'in_progress',
+    );
+  });
+}

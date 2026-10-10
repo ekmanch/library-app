@@ -15,11 +15,13 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 - When a task is done, end your reply with a **suggested commit message** in a code block so I can use it myself.
 - Commit message style: short imperative subject, no trailing period, e.g. `Add artist list with alphabet rail`. One logical change per commit. Add a body only when the why is not obvious.
 - Never touch the `ekmanch/library` data repo from this project except through the app's own sync code, and never during development unless I ask. Use the fixture file for testing.
+- Phases 0 and 1 never write to the data repo. Switching `ekmanch/library` from Markdown to JSON as the source of truth, including reversing its pre-commit hook so Markdown is generated from JSON, happens on a feature branch in that repo at the start of the wiring phase (TODO.md phase 3), and not before.
 
 ## Working rules
 
 - Tick off items in `TODO.md` as they are completed. Add new items there when you find missing work, instead of doing unplanned work silently.
 - Phase 1 is UI only, on fixture data. Do not add networking, GitHub access or file writing before the phase that calls for it.
+- Linux desktop is a dev and test target only, not a shipping platform. Use it for `flutter test integration_test -d linux`; never add Linux-only features.
 - Ask before adding a package. Say what it is for and what the alternative is.
 - Ask before changing anything that DESIGN.md marks as settled. Proposals are welcome; silent changes are not.
 - UI text uses American spelling ("color", "favorite") and sentence case.
@@ -42,7 +44,10 @@ flutter test
 - State management: Riverpod. Navigation: Flutter's built-in Navigator; no routing package unless I ask.
 - Feature-first folders: `lib/features/<feature>/` with widgets and state together; shared widgets in `lib/widgets/`; models in `lib/data/models/`.
 - All reading and writing of the library goes through one `LibraryRepository` interface. Phase 1 uses a fixture implementation; the GitHub implementation comes later. Widgets never know which one they have.
-- Models are immutable. Every change to the library is expressed as a small operation ("set status", "add entry", "rate track") so it can be re-applied after a sync conflict.
+- Models are immutable, built with freezed and json_serializable. The generated `*.freezed.dart` and `*.g.dart` files are committed so the repo builds without a generation step; after changing a model run `dart run build_runner build` and commit the output.
+- Every change to the library is expressed as a small operation ("set status", "add entry", "rate track") so it can be re-applied after a sync conflict. Operations never reorder existing entries or plans.
+- All `library.json` text goes through `lib/data/library_codec.dart`, so that a save produces a minimal git diff. After editing the fixture by hand, run `dart run tool/format_fixture.dart` to restore the canonical form.
 - Display preferences (theme, accent, view per type, sort) are stored on the device, never in `library.json`.
 - Touch targets are at least 44 px. Every icon-only button has a tooltip or semantic label.
 - Write widget tests for anything with logic (filtering, sorting, similar-tag check, replace dialogs) and unit tests for the models and operations.
+- Write a widget test for each screen as it is built, not in a later pass.

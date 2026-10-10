@@ -10,9 +10,13 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  errors:
+    # freezed puts @JsonKey on factory parameters; the lint does not know that.
+    invalid_annotation_target: ignore
   exclude:
     - build/**
     - android/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

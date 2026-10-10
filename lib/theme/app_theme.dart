@@ -9,7 +9,7 @@
 
 import 'package:flutter/material.dart';
 
-enum MediaType { movies, shows, books, games, music, anime }
+import '../data/models/media_type.dart';
 
 /// One selectable accent color. [dark] is used on the dark theme. [ink] is the
 /// darker variant used on the light theme, where the pastel would be too faint.
@@ -21,7 +21,11 @@ class AccentOption {
 }
 
 class Accents {
-  static const hotPink = AccentOption('Hot pink', Color(0xFFFF7AB6), Color(0xFFC2185B));
+  static const hotPink = AccentOption(
+    'Hot pink',
+    Color(0xFFFF7AB6),
+    Color(0xFFC2185B),
+  );
 
   static const vivid = <AccentOption>[
     AccentOption('Violet', Color(0xFFA78BFA), Color(0xFF6D3FD1)),
@@ -99,13 +103,13 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
   final List<BoxShadow> cardShadow;
 
   Color forType(MediaType t) => switch (t) {
-        MediaType.movies => movies,
-        MediaType.shows => shows,
-        MediaType.books => books,
-        MediaType.games => games,
-        MediaType.music => music,
-        MediaType.anime => anime,
-      };
+    MediaType.movies => movies,
+    MediaType.shows => shows,
+    MediaType.books => books,
+    MediaType.games => games,
+    MediaType.music => music,
+    MediaType.anime => anime,
+  };
 
   static LibraryColors of(BuildContext context) =>
       Theme.of(context).extension<LibraryColors>()!;
@@ -194,16 +198,20 @@ ThemeData buildTheme({
     scrim: ext.scrim,
   );
 
-  final body = (isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme)
-      .apply(fontFamily: 'Figtree', bodyColor: text, displayColor: text);
+  final body =
+      (isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme).apply(
+        fontFamily: 'Figtree',
+        bodyColor: text,
+        displayColor: text,
+      );
 
   TextStyle title(double size) => TextStyle(
-        fontFamily: 'Bricolage Grotesque',
-        fontSize: size,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.02 * size,
-        color: text,
-      );
+    fontFamily: 'Bricolage Grotesque',
+    fontSize: size,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.02 * size,
+    color: text,
+  );
 
   final textTheme = body.copyWith(
     // Screen titles: 34 on top-level screens, 28 with a back arrow, 26 in sheets.
@@ -211,7 +219,10 @@ ThemeData buildTheme({
     headlineMedium: title(28),
     headlineSmall: title(26),
     // Row title.
-    titleMedium: body.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+    titleMedium: body.titleMedium?.copyWith(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    ),
     // Row subtitle: use with FontStyle.italic and LibraryColors.muted.
     bodySmall: body.bodySmall?.copyWith(fontSize: 13.5, color: ext.muted),
     bodyMedium: body.bodyMedium?.copyWith(fontSize: 15.5, height: 1.45),
@@ -222,7 +233,10 @@ ThemeData buildTheme({
       letterSpacing: 1.04,
       color: ext.muted,
     ),
-    labelLarge: body.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+    labelLarge: body.labelLarge?.copyWith(
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+    ),
   );
 
   return ThemeData(

@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('the app starts on the fixture with the app theme', (
+    tester,
+  ) async {
+    // Read synchronously: real file I/O never completes in the test zone.
+    final text = File(FixtureLibraryRepository.assetPath).readAsStringSync();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(loadJson: () async => text),
+          ),
+        ],
+        child: const LibraryApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Library'), findsOneWidget);
+    expect(find.textContaining('entries'), findsOneWidget);
+    expect(find.textContaining('Could not load'), findsNothing);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final title = tester.widget<Text>(find.text('Library'));
+    expect(title.style?.fontFamily, 'Bricolage Grotesque');
+    expect(
+      Theme.of(tester.element(find.text('Library'))).brightness,
+      Brightness.dark,
+    );
   });
 }

@@ -194,6 +194,13 @@ Field rules:
 
 Not in the file: covers, track lists, view choices, theme, sort order. Those are caches or device preferences.
 
+Rules settled during phase 0:
+
+- A partial `released` counts as released only after its period ends: `"2026-12-25"` on that day, `"2026-12"` from 2027-01-01, `"2027"` from 2028-01-01. A game "coming in 2027" stays "Not released yet" all year. No `released` at all counts as released.
+- The file is written in one canonical form so that a save is a minimal git diff: two-space indent, one trailing newline, keys in the order of the sample above, entries and plans never reordered by an edit. Common entry fields are always written, including `"rating": null`; the type-specific fields are omitted when absent. Decoding and re-encoding a canonical file gives back the same bytes.
+- Entry ids are slugs frozen at creation: lowercase, diacritics folded to ASCII, runs of other characters become one hyphen; `<type>/<title>-<year>`, or `music/<title>-<artist>`. A collision gets `-2`, `-3`. Editing a title never changes the id, so plan items keep pointing at the right entry.
+- A tag disappears from `tags` only when no entry **and no plan** uses it, so a new plan tagged `halloween` keeps the tag alive before any entry has it.
+
 Migration from version 1 (`catalog.<type>` plus `seasonal.<season>.<type>.{plans, coming_later, favorites}`; 659 entries, 425 of them music):
 
 - `dropped` becomes `dnf`; `year` becomes `released`.

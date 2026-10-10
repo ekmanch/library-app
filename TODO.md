@@ -6,13 +6,14 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 ## Phase 0: Project setup
 
-- [ ] Create the Flutter project (Android first; keep Linux desktop possible)
-- [ ] Add `lib/theme/app_theme.dart`, the fonts (Bricolage Grotesque, Figtree) and check that it compiles
-- [ ] Add Riverpod
-- [ ] Define the models from DESIGN.md section 6 (Entry, Track, Plan, PlanItem, tag categories)
-- [ ] Define the `LibraryRepository` interface
-- [ ] Create `assets/fixtures/library.json` in the v2 format with realistic data for all six types, a Halloween and a Christmas plan, and music with albums, songs and rated tracks
-- [ ] `FixtureLibraryRepository`: loads the fixture, keeps changes in memory only
+- [x] Create the Flutter project (Android first; Linux desktop as a dev and test target only)
+- [x] Add `lib/theme/app_theme.dart`, the fonts (Bricolage Grotesque, Figtree) and check that it compiles
+- [x] Add Riverpod
+- [x] Define the models from DESIGN.md section 8 (Entry, Track, Plan, PlanItem, tag categories) with freezed, plus the canonical JSON codec
+- [x] Define the `LibraryRepository` interface and the starter set of operations
+- [x] Create `assets/fixtures/library.json` in the v2 format with realistic data for all six types, a Halloween and a Christmas plan, and music with albums, songs and rated tracks
+- [x] `FixtureLibraryRepository`: loads the fixture, keeps changes in memory only
+- [x] Set up `integration_test` with a smoke test and run it on Linux
 
 ## Phase 1: UI on fixture data
 
@@ -84,7 +85,10 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
 
+- [ ] On a feature branch in `ekmanch/library`, reverse the pre-commit hook so JSON is the source and Markdown is generated from it
 - [ ] Script that converts today's `library.json` (v1) to v2: flat entries, `dropped` becomes `dnf`, `year` becomes `released`, "Compilations" becomes "Various Artists", plan rows become `want` entries tagged with their season, seasonal favorites merge into entries
+- [ ] The migration script writes the file in the app's canonical encoding (see DESIGN.md section 8), so the app's first save is not a full rewrite
+- [ ] Check the id scheme for books, games, shows and anime against today's ids before migrating
 - [ ] Generate the Markdown files and PDFs from the JSON (GitHub Action), instead of the other way around
 - [ ] Verify nothing was lost: entry counts per type before and after
 
