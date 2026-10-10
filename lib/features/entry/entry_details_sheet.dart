@@ -9,16 +9,16 @@ import '../../data/operations/operations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/chips.dart';
-import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
 import '../../widgets/sheet_frame.dart';
-import '../library/cover_placeholder.dart';
 import '../plans/plan_progress.dart';
 import '../settings/display_preferences.dart';
 import '../settings/entry_view.dart';
+import '../../widgets/bordered_row.dart';
 import 'add_to_plan_sheet.dart';
+import 'entry_header.dart';
 import 'delete_entry_dialog.dart';
 import 'entry_form_screen.dart';
 import 'lookup_matches.dart';
@@ -65,7 +65,6 @@ class EntryDetailsSheet extends ConsumerWidget {
         ref.watch(displayPreferencesProvider).viewForEntry(entry) !=
         EntryView.text;
     final isAlbum = entry.kind == MusicKind.album;
-    final typeColor = colors.forType(entry.type);
 
     Future<void> pickRating() async {
       final choice = await showRatingSheet(
@@ -116,49 +115,7 @@ class EntryDetailsSheet extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (showCover) ...[
-                CoverPlaceholder(entry: entry, width: 84, fontSize: 10),
-                const SizedBox(width: 14),
-              ],
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _kindLine(entry),
-                        style: theme.textTheme.labelSmall!.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: typeColor,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(entry.title, style: theme.textTheme.headlineSmall),
-                      if (entry.creator case final creator?
-                          when creator.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          entry.kind != null && entry.album != null
-                              ? '$creator · ${entry.album}'
-                              : creator,
-                          style: theme.textTheme.bodyMedium!.copyWith(
-                            fontSize: 14.5,
-                            height: 1.2,
-                            color: colors.muted,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          EntryHeader(entry: entry, showCover: showCover),
           const SizedBox(height: 13),
           const SectionHeading('Status', padding: EdgeInsets.zero),
           const SizedBox(height: 6),
@@ -175,7 +132,7 @@ class EntryDetailsSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 13),
-          _BorderedRow(
+          BorderedRow(
             onTap: pickRating,
             semanticsLabel: 'Rating, ${ratingLabel(entry.rating)}',
             minHeight: 48,
@@ -226,7 +183,7 @@ class EntryDetailsSheet extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 13),
-          _BorderedRow(
+          BorderedRow(
             onTap: () => showAddToPlanSheet(context, entry.id),
             semanticsLabel: 'Add to plan',
             minHeight: 52,
@@ -277,60 +234,6 @@ class EntryDetailsSheet extends ConsumerWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  /// "MOVIE · 1999", "SONG · 1981", or just the kind without a date.
-  static String _kindLine(Entry entry) {
-    final year = entry.year;
-    return [
-      entryKindLabel(entry),
-      if (year != null) '$year',
-    ].join(' · ').toUpperCase();
-  }
-}
-
-/// A tappable row between two hairlines: the rating and plans rows of A6.
-class _BorderedRow extends StatelessWidget {
-  const _BorderedRow({
-    required this.onTap,
-    required this.leading,
-    required this.trailing,
-    required this.minHeight,
-    this.semanticsLabel,
-  });
-
-  final VoidCallback onTap;
-  final Widget leading;
-  final Widget trailing;
-  final double minHeight;
-  final String? semanticsLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = LibraryColors.of(context);
-    return Semantics(
-      button: true,
-      label: semanticsLabel,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: BoxConstraints(minHeight: minHeight),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.symmetric(
-              horizontal: BorderSide(color: colors.surfaceHigh),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(child: leading),
-              const SizedBox(width: 12),
-              trailing,
-            ],
-          ),
-        ),
       ),
     );
   }

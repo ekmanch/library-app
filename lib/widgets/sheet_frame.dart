@@ -79,16 +79,22 @@ class SheetFrame extends StatelessWidget {
 }
 
 /// Opens a modal bottom sheet styled by the theme, on the root navigator so
-/// it covers the floating navigation.
+/// it covers the floating navigation. With [inheritTheme] the sheet keeps
+/// the opener's theme, e.g. the seasonal accent inside a plan (S7, D2).
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
+  bool inheritTheme = false,
 }) {
+  final theme = Theme.of(context);
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) => SafeArea(top: false, child: builder(context)),
+    builder: (context) {
+      final child = SafeArea(top: false, child: builder(context));
+      return inheritTheme ? Theme(data: theme, child: child) : child;
+    },
   );
 }

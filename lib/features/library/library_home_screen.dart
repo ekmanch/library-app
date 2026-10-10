@@ -6,6 +6,7 @@ import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
+import '../../data/models/plan.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/chips.dart';
@@ -18,9 +19,11 @@ import '../../widgets/segmented_control.dart';
 import '../music/artist_screen.dart';
 import '../music/music_type_body.dart';
 import '../plans/plan_progress.dart';
+import '../plans/plan_screen.dart';
 import '../settings/display_preferences.dart';
 import '../settings/entry_view.dart';
 import '../shell/app_shell.dart';
+import '../shell/floating_nav_bar.dart';
 import 'active_plan_card.dart';
 import 'entry_list_body.dart';
 import 'entry_sections.dart';
@@ -49,7 +52,9 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
 
   final void Function(Entry entry)? onOpenEntry;
   final VoidCallback? onOpenSettings;
-  final VoidCallback? onOpenPlan;
+
+  /// Opens the active plan; by default inside this tab.
+  final void Function(Plan plan)? onOpenPlan;
 
   /// Starts a new entry, for the picked [type] and with a [title] already
   /// typed (from search).
@@ -225,7 +230,12 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
         if (plan != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: ActivePlanCard(plan: plan, onTap: widget.onOpenPlan),
+            child: ActivePlanCard(
+              plan: plan,
+              onTap: () => widget.onOpenPlan != null
+                  ? widget.onOpenPlan!(plan)
+                  : openPlanScreen(context, plan.id, tab: ShellTab.library),
+            ),
           ),
         if (sections.isEmpty)
           const EmptyState(

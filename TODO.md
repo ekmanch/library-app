@@ -56,15 +56,18 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] D12 and D13 Replace dialogs
 
 ### 1e. Plans
-- [ ] S5 Plans overview
-- [ ] S1 Plan checklist, grouped by type
-- [ ] S2 Timeline view (left rail, fills to today)
-- [ ] S4 All entries for a plan's tags: add, edit, remove
-- [ ] S7 and S8 Entry details inside a plan (with and without "When")
-- [ ] D2 When picker: a day or a period
-- [ ] D3 Plan menu, S9 Edit plan, S10 New plan (including copy to a new year); then the "New plan" link at the end of A7
-- [ ] D4 Remove from plan or delete everywhere, D5 Delete plan
-- [ ] S11 and S12 Seasonal themes (Halloween, Christmas): strip, title icon, progress marker, seasonal accent
+- [x] S5 Plans overview
+- [x] S1 Plan checklist, grouped by type
+- [x] S2 Timeline view (left rail, fills to today)
+- [x] S4 All entries for a plan's tags: add, edit, remove
+- [x] S7 and S8 Entry details inside a plan (with and without "When")
+- [x] D2 When picker: a day or a period
+- [x] D3 Plan menu, S9 Edit plan, S10 New plan (including copy to a new year); then the "New plan" link at the end of A7
+- [x] D4 Remove from plan or delete everywhere, D5 Delete plan
+- [x] S11 and S12 Seasonal themes (Halloween, Christmas): strip, title icon, progress marker, seasonal accent
+- [x] Year chip on the plan header: switch between plans with the same name, "New year…" copies the plan (added after the canvas revision)
+- [x] "This plan / All #tag" tabs on the plan screen; S4 rows get Add / In year, and Edit entry, Remove #tag, Delete behind "⋮"; the "+" button changes with the tab (added after the canvas revision)
+- [x] S10 "Start with: Empty / Copy a plan", S5 "Next up" on the active card, a plan note editor from S7 and S8 (added after the canvas revision)
 
 ### 1f. Settings and states
 - [ ] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version)

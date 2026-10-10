@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/sheet_frame.dart';
+import '../plans/plan_form_screen.dart';
 import '../plans/plan_progress.dart';
 
 /// Add to plan (A7): one row per plan with a check. Toggling applies at
@@ -97,6 +98,27 @@ class AddToPlanSheet extends ConsumerWidget {
               on: plan.itemFor(entry.id) != null,
               onToggle: (on) => toggle(plan, on),
             ),
+          TextButton(
+            onPressed: () => openNewPlanForm(context),
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              alignment: Alignment.centerLeft,
+              foregroundColor: theme.colorScheme.primary,
+              padding: EdgeInsets.zero,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StrokeIcon(
+                  AppIcons.plus,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                const Text('New plan'),
+              ],
+            ),
+          ),
         ],
       ),
     );

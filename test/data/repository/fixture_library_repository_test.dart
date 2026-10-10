@@ -27,7 +27,11 @@ void main() {
       library.entries.map((e) => e.id).toSet().length,
       library.entries.length,
     );
-    expect(library.plans.map((p) => p.name), ['Halloween', 'Christmas']);
+    expect(library.plans.map((p) => p.id), [
+      'halloween-2026',
+      'christmas-2026',
+      'halloween-2025',
+    ]);
 
     final music = library.entriesOfType(MediaType.music);
     expect(

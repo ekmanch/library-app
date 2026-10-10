@@ -18,10 +18,15 @@ Future<Entry?> openNewEntryScreen(
   BuildContext context, {
   MediaType? type,
   String? title,
+  List<String> tags = const [],
 }) {
   return Navigator.of(context, rootNavigator: true).push<Entry>(
     MaterialPageRoute(
-      builder: (_) => NewEntryScreen(initialType: type, initialTitle: title),
+      builder: (_) => NewEntryScreen(
+        initialType: type,
+        initialTitle: title,
+        initialTags: tags,
+      ),
     ),
   );
 }
@@ -30,10 +35,16 @@ Future<Entry?> openNewEntryScreen(
 /// match opens the form prefilled, "Fill in the details myself" opens it
 /// with just the title and type.
 class NewEntryScreen extends StatefulWidget {
-  const NewEntryScreen({super.key, this.initialType, this.initialTitle});
+  const NewEntryScreen({
+    super.key,
+    this.initialType,
+    this.initialTitle,
+    this.initialTags = const [],
+  });
 
   final MediaType? initialType;
   final String? initialTitle;
+  final List<String> initialTags;
 
   @override
   State<NewEntryScreen> createState() => _NewEntryScreenState();
@@ -55,6 +66,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
       type: _type,
       title: _query.text.trim(),
       match: match,
+      tags: widget.initialTags,
     );
     if (saved != null && mounted) Navigator.pop(context, saved);
   }

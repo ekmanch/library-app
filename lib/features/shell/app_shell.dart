@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../entry/entry_details_sheet.dart';
 import '../entry/new_entry_screen.dart';
+import '../plans/plan_form_screen.dart';
 import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
 import '../plans/plans_screen.dart';
+import 'fab_action.dart';
 import 'floating_nav_bar.dart';
 
 /// The app frame: one navigator per tab, the floating pill navigation and
@@ -79,7 +81,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           openNewEntryScreen(context, type: ref.read(homeTypeProvider));
         }
       case ShellTab.plans:
-        widget.onAddPlan?.call(context);
+        if (widget.onAddPlan case final onAdd?) {
+          onAdd(context);
+        } else {
+          openNewPlanForm(context);
+        }
     }
   }
 
@@ -129,11 +135,20 @@ class _AppShellState extends ConsumerState<AppShell> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   FloatingNavBar(selected: _tab, onSelect: _select),
-                  AddButton(
-                    label: _tab == ShellTab.library
-                        ? newEntryLabel(ref.watch(homeTypeProvider))
-                        : 'New plan',
-                    onPressed: _add,
+                  Builder(
+                    builder: (context) {
+                      // A screen inside the tab may claim the button (S1, S4).
+                      final fab = ref.watch(fabActionProvider);
+                      final claimed = fab != null && fab.tab == _tab;
+                      return AddButton(
+                        label: claimed
+                            ? fab.label
+                            : _tab == ShellTab.library
+                            ? newEntryLabel(ref.watch(homeTypeProvider))
+                            : 'New plan',
+                        onPressed: claimed ? fab.onPressed : _add,
+                      );
+                    },
                   ),
                 ],
               ),

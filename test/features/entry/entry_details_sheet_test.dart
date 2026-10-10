@@ -237,6 +237,7 @@ void main() {
       repo(container).current!.planById('halloween-2026')!.itemFor(_mummy),
       isNull,
     );
+    expect(find.text('New plan'), findsOneWidget); // The A7 link.
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
     expect(find.text('Christmas 2026'), findsOneWidget); // Now in the sheet.

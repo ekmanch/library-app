@@ -175,6 +175,16 @@ class AppIcons {
     ],
   );
 
+  /// Three dots: a menu for the thing on this screen (D3).
+  static const more = StrokeIconData(
+    strokeWidth: 3,
+    polylines: [
+      [Offset(12, 5), Offset(12, 5.01)],
+      [Offset(12, 12), Offset(12, 12.01)],
+      [Offset(12, 19), Offset(12, 19.01)],
+    ],
+  );
+
   /// A bin, for Delete.
   static const trash = StrokeIconData(
     polylines: [

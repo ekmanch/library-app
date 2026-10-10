@@ -1426,6 +1426,39 @@
           "when": null
         }
       ]
+    },
+    {
+      "id": "halloween-2025",
+      "name": "Halloween",
+      "year": 2025,
+      "tags": [
+        "halloween"
+      ],
+      "timeline": false,
+      "seasonal_theme": true,
+      "items": [
+        {
+          "entry": "shows/the-haunting-of-hill-house-2018",
+          "done": true,
+          "repeat": false,
+          "note": "Opened the season with it.",
+          "when": null
+        },
+        {
+          "entry": "movies/the-thing-1982",
+          "done": true,
+          "repeat": false,
+          "note": "",
+          "when": null
+        },
+        {
+          "entry": "books/dracula-1897",
+          "done": true,
+          "repeat": false,
+          "note": "",
+          "when": null
+        }
+      ]
     }
   ]
 }

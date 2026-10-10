@@ -35,11 +35,16 @@ Future<Entry?> openNewEntryForm(
   MediaType? type,
   String? title,
   LookupMatch? match,
+  List<String> tags = const [],
 }) {
   return Navigator.of(context, rootNavigator: true).push<Entry>(
     MaterialPageRoute(
-      builder: (_) =>
-          EntryFormScreen.create(type: type, title: title, match: match),
+      builder: (_) => EntryFormScreen.create(
+        type: type,
+        title: title,
+        match: match,
+        tags: tags,
+      ),
     ),
   );
 }
@@ -61,15 +66,24 @@ class EntryFormScreen extends ConsumerStatefulWidget {
   const EntryFormScreen.edit(Entry this.entry, {super.key})
     : type = null,
       title = null,
-      match = null;
+      match = null,
+      tags = const [];
 
-  const EntryFormScreen.create({super.key, this.type, this.title, this.match})
-    : entry = null;
+  const EntryFormScreen.create({
+    super.key,
+    this.type,
+    this.title,
+    this.match,
+    this.tags = const [],
+  }) : entry = null;
 
   final Entry? entry;
   final MediaType? type;
   final String? title;
   final LookupMatch? match;
+
+  /// Tags a new entry starts with, e.g. a plan's tags from its pool (S4).
+  final List<String> tags;
 
   bool get isEditing => entry != null;
 
@@ -145,7 +159,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     _album = TextEditingController(text: entry?.album ?? match?.album ?? '');
     _status = entry?.status ?? EntryStatus.want;
     _rating = entry?.rating;
-    _tags = [...?entry?.tags];
+    _tags = [...?entry?.tags, ...widget.tags];
     _formats = {...?entry?.formats};
     _seasonalOnly = entry?.seasonalOnly ?? false;
     _description = entry?.description ?? match?.description ?? '';

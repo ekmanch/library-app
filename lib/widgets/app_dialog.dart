@@ -97,10 +97,14 @@ class AppDialog extends StatelessWidget {
 Future<T?> showAppDialog<T>(
   BuildContext context, {
   required WidgetBuilder builder,
+  bool inheritTheme = false,
 }) {
+  final theme = Theme.of(context);
   return showDialog<T>(
     context: context,
     useRootNavigator: true,
-    builder: builder,
+    builder: (context) => inheritTheme
+        ? Theme(data: theme, child: builder(context))
+        : builder(context),
   );
 }

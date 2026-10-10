@@ -22,6 +22,8 @@ class DisplayPreferences {
     this.sortByType = const {},
     this.filteredSort = LibrarySort.newestAdded,
     this.artistSort = LibrarySort.yearOldest,
+    this.timelineDefault = false,
+    this.seasonalThemeDefault = true,
   });
 
   final ThemeMode themeMode;
@@ -42,6 +44,11 @@ class DisplayPreferences {
 
   /// Order of the albums and songs on an artist's screen (A15).
   final LibrarySort artistSort;
+
+  /// What a new plan's Timeline and Seasonal theme switches start as (S10);
+  /// set in Settings (S6).
+  final bool timelineDefault;
+  final bool seasonalThemeDefault;
 
   EntryView viewFor(MediaType type) => viewByType[type] ?? EntryView.text;
 
@@ -67,6 +74,8 @@ class DisplayPreferences {
     Map<MediaType, LibrarySort>? sortByType,
     LibrarySort? filteredSort,
     LibrarySort? artistSort,
+    bool? timelineDefault,
+    bool? seasonalThemeDefault,
   }) => DisplayPreferences(
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
@@ -75,6 +84,8 @@ class DisplayPreferences {
     sortByType: sortByType ?? this.sortByType,
     filteredSort: filteredSort ?? this.filteredSort,
     artistSort: artistSort ?? this.artistSort,
+    timelineDefault: timelineDefault ?? this.timelineDefault,
+    seasonalThemeDefault: seasonalThemeDefault ?? this.seasonalThemeDefault,
   );
 
   @override
@@ -86,7 +97,9 @@ class DisplayPreferences {
       mapEquals(other.musicViewByTab, musicViewByTab) &&
       mapEquals(other.sortByType, sortByType) &&
       other.filteredSort == filteredSort &&
-      other.artistSort == artistSort;
+      other.artistSort == artistSort &&
+      other.timelineDefault == timelineDefault &&
+      other.seasonalThemeDefault == seasonalThemeDefault;
 
   @override
   int get hashCode => Object.hash(
@@ -99,6 +112,8 @@ class DisplayPreferences {
     Object.hashAllUnordered(sortByType.entries.map((e) => (e.key, e.value))),
     filteredSort,
     artistSort,
+    timelineDefault,
+    seasonalThemeDefault,
   );
 }
 
@@ -116,6 +131,12 @@ class DisplayPreferencesNotifier extends Notifier<DisplayPreferences> {
   void setMusicView(MusicTab tab, EntryView view) => state = state.copyWith(
     musicViewByTab: {...state.musicViewByTab, tab: view},
   );
+
+  void setTimelineDefault(bool on) =>
+      state = state.copyWith(timelineDefault: on);
+
+  void setSeasonalThemeDefault(bool on) =>
+      state = state.copyWith(seasonalThemeDefault: on);
 
   void setArtistSort(LibrarySort sort) =>
       state = state.copyWith(artistSort: sort);

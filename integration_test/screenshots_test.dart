@@ -20,6 +20,7 @@ import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
 import 'package:library_app/features/library/library_sort.dart';
+import 'package:library_app/features/plans/plan_entry_sheet.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/main.dart';
@@ -273,6 +274,109 @@ void main() {
         .setThemeMode(ThemeMode.light);
     await tester.pumpAndSettle();
     await capture(tester, 'd8-home-light');
+  });
+
+  testWidgets('plans: overview, checklist, timeline, pool, dialogs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's5-plans');
+
+    // S11 and S2: the Halloween plan has the timeline on.
+    await tester.tap(find.text('Halloween 2026'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's2-s11-halloween-timeline');
+    await tester.tap(find.bySemanticsLabel('Choose year'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's1-year-menu');
+    await tester.tap(find.text('2025'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's1-s11-halloween-checklist');
+    await tester.tap(find.byTooltip('Plan options'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd3-plan-menu');
+    await tester.tap(find.text('Delete plan'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd5-delete-plan');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All Halloween'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('More actions: Hereditary'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's4-pool');
+    await tester.tap(find.text('This plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Choose year'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2026'));
+    await tester.pumpAndSettle();
+
+    // S7, D2, D4 from an item on the timeline.
+    await tester.tap(find.text('The Mummy'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's7-plan-entry');
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PlanEntrySheet),
+        matching: find.text('Oct 19–31'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await capture(tester, 'd2-when');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Remove'));
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd4-remove');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(195, 30));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Plans'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // S12 and S1: the Christmas checklist; S9 and S10.
+    await tester.tap(find.text('Christmas 2026'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's1-s12-christmas-checklist');
+    await tester.tap(find.byTooltip('Plan options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit plan'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's9-edit-plan');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Plans'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy a plan'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's10-new-plan');
   });
 
   testWidgets('long lists with the rail and the grid thumb', (tester) async {

@@ -96,6 +96,16 @@ void main() {
     expect(find.text('ACTIVE PLAN'), findsOneWidget);
   });
 
+  testWidgets('the active plan card opens the plan in this tab', (
+    tester,
+  ) async {
+    await pumpApp(tester, const LibraryHomeScreen());
+    await tester.tap(find.text('Halloween 2026'));
+    await tester.pumpAndSettle();
+    expect(find.text('This plan'), findsOneWidget);
+    expect(find.text('2 of 8 done'), findsOneWidget);
+  });
+
   testWidgets('a type heading opens that type, like its chip', (tester) async {
     final container = await pumpApp(tester, const LibraryHomeScreen());
     await tester.tap(find.bySemanticsLabel('Show all movies'));
