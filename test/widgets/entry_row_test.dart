@@ -80,7 +80,12 @@ void main() {
     );
     expect(find.text('The Mummy'), findsOneWidget);
     final subtitle = tester.widget<Text>(find.text('1999'));
-    expect(subtitle.style?.fontStyle, FontStyle.italic);
+    TextSpan? yearSpan;
+    subtitle.textSpan!.visitChildren((span) {
+      if (span is TextSpan && span.text == '1999') yearSpan = span;
+      return true;
+    });
+    expect(yearSpan?.style?.fontStyle, FontStyle.italic);
     expect(
       find.byWidgetPredicate(
         (w) => w is StrokeIcon && w.semanticLabel == 'Done',

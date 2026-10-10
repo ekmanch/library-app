@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+
+import '../../data/models/entry.dart';
+import '../../data/models/media_type.dart';
+import '../../widgets/entry_row.dart';
+import '../settings/entry_view.dart';
+import 'cover_grid_tile.dart';
+import 'cover_placeholder.dart';
+
+/// Row heights and grid metrics, shared with the jump rail so that section
+/// offsets can be computed without measuring.
+abstract final class EntryListMetrics {
+  static const textRowHeight = 56.0;
+  static const coverRowHeight = 76.0;
+  static const headerHeight = 40.0;
+  static const gridColumns = 3;
+  static const gridCrossSpacing = 12.0;
+  static const gridMainSpacing = 16.0;
+  static const gridTopPadding = 10.0;
+
+  /// Text under a grid cover: a gap, one title line, a gap, one caption
+  /// line. The line heights are fixed in [CoverGridTile], so this does not
+  /// depend on font metrics or the device's text scale.
+  static const gridCaptionHeight =
+      6 + CoverGridTile.titleLineHeight + 1 + CoverGridTile.captionLineHeight;
+
+  static double rowHeight(EntryView view) =>
+      view == EntryView.listWithPhotos ? coverRowHeight : textRowHeight;
+
+  static double gridTileWidth(double width) =>
+      (width - gridCrossSpacing * (gridColumns - 1)) / gridColumns;
+
+  /// Exact height of one grid tile for a list of [width].
+  static double gridTileExtent(double width, MediaType type) =>
+      gridTileWidth(width) / CoverPlaceholder.aspectRatio(type) +
+      gridCaptionHeight;
+
+  /// Height of one grid row (tile plus spacing) for a list of [width].
+  static double gridRowExtent(double width, MediaType type) =>
+      gridTileExtent(width, type) + gridMainSpacing;
+}
+
+/// The slivers for a list of entries in the chosen view: text rows, rows
+/// with covers (A20) or a three-column grid (A21).
+List<Widget> entryListSlivers({
+  required List<Entry> entries,
+  required EntryView view,
+  required void Function(Entry entry) onTap,
+  DateTime? today,
+}) {
+  switch (view) {
+    case EntryView.text:
+      return [
+        SliverList.builder(
+          itemCount: entries.length,
+          itemBuilder: (context, i) => EntryRow.forEntry(
+            entries[i],
+            today: today,
+            onTap: () => onTap(entries[i]),
+          ),
+        ),
+      ];
+    case EntryView.listWithPhotos:
+      return [
+        SliverList.builder(
+          itemCount: entries.length,
+          itemBuilder: (context, i) => EntryRow.forEntry(
+            entries[i],
+            today: today,
+            onTap: () => onTap(entries[i]),
+            leading: CoverPlaceholder(entry: entries[i], width: 40),
+          ),
+        ),
+      ];
+    case EntryView.grid:
+      // One type per list, so one cover shape; mixed lists use the poster.
+      final type = entries.isEmpty ? MediaType.movies : entries.first.type;
+      return [
+        SliverPadding(
+          padding: const EdgeInsets.only(top: EntryListMetrics.gridTopPadding),
+          sliver: SliverLayoutBuilder(
+            builder: (context, constraints) => SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: EntryListMetrics.gridColumns,
+                crossAxisSpacing: EntryListMetrics.gridCrossSpacing,
+                mainAxisSpacing: EntryListMetrics.gridMainSpacing,
+                mainAxisExtent: EntryListMetrics.gridTileExtent(
+                  constraints.crossAxisExtent,
+                  type,
+                ),
+              ),
+              itemCount: entries.length,
+              itemBuilder: (context, i) => CoverGridTile(
+                entry: entries[i],
+                today: today,
+                onTap: () => onTap(entries[i]),
+              ),
+            ),
+          ),
+        ),
+      ];
+  }
+}

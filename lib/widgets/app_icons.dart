@@ -7,11 +7,13 @@ class StrokeIconData {
   const StrokeIconData({
     this.polylines = const [],
     this.circles = const [],
+    this.rects = const [],
     this.strokeWidth = 2,
   });
 
   final List<List<Offset>> polylines;
   final List<StrokeCircle> circles;
+  final List<Rect> rects;
 
   /// In grid units; scaled with the icon.
   final double strokeWidth;
@@ -79,7 +81,70 @@ class AppIcons {
 
   static const back = StrokeIconData(
     polylines: [
-      [Offset(15, 18), Offset(9, 12), Offset(15, 6)],
+      [Offset(15, 5), Offset(8, 12), Offset(15, 19)],
+    ],
+  );
+
+  static const chevronRight = StrokeIconData(
+    polylines: [
+      [Offset(9, 5), Offset(16, 12), Offset(9, 19)],
+    ],
+  );
+
+  /// The heavier chevron after a tappable section heading (A1).
+  static const chevronRightBold = StrokeIconData(
+    strokeWidth: 2.5,
+    polylines: [
+      [Offset(9, 6), Offset(15, 12), Offset(9, 18)],
+    ],
+  );
+
+  static const close = StrokeIconData(
+    polylines: [
+      [Offset(6, 6), Offset(18, 18)],
+      [Offset(18, 6), Offset(6, 18)],
+    ],
+  );
+
+  /// Heavier cross for the small remove button on a chip.
+  static const closeBold = StrokeIconData(
+    strokeWidth: 2.5,
+    polylines: [
+      [Offset(6, 6), Offset(18, 18)],
+      [Offset(18, 6), Offset(6, 18)],
+    ],
+  );
+
+  /// Three lines: the text view.
+  static const textView = StrokeIconData(
+    polylines: [
+      [Offset(4, 6), Offset(20, 6)],
+      [Offset(4, 12), Offset(20, 12)],
+      [Offset(4, 18), Offset(20, 18)],
+    ],
+  );
+
+  /// Small squares with lines: the list with photos.
+  static const listView = StrokeIconData(
+    rects: [
+      Rect.fromLTWH(4, 4, 4, 4),
+      Rect.fromLTWH(4, 10, 4, 4),
+      Rect.fromLTWH(4, 16, 4, 4),
+    ],
+    polylines: [
+      [Offset(12, 6), Offset(20, 6)],
+      [Offset(12, 12), Offset(20, 12)],
+      [Offset(12, 18), Offset(20, 18)],
+    ],
+  );
+
+  /// Four squares: the grid.
+  static const gridView = StrokeIconData(
+    rects: [
+      Rect.fromLTWH(4, 4, 6, 6),
+      Rect.fromLTWH(14, 4, 6, 6),
+      Rect.fromLTWH(4, 14, 6, 6),
+      Rect.fromLTWH(14, 14, 6, 6),
     ],
   );
 
@@ -163,6 +228,17 @@ class _StrokeIconPainter extends CustomPainter {
     }
     for (final circle in data.circles) {
       canvas.drawCircle(circle.center * scale, circle.radius * scale, paint);
+    }
+    for (final rect in data.rects) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          rect.left * scale,
+          rect.top * scale,
+          rect.width * scale,
+          rect.height * scale,
+        ),
+        paint,
+      );
     }
   }
 

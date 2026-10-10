@@ -1,4 +1,4 @@
-// Theme for the Library app.
+// Theme for Libri.
 //
 // Colors and fonts come from the design canvas (design/canvas.html) and
 // docs/DESIGN.md. Widgets read colors from Theme.of(context) or from
@@ -178,6 +178,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.anime,
     required this.cardShadow,
     required this.navShadow,
+    required this.coverPlaceholders,
+    required this.coverBadge,
   });
 
   /// Raised fill: tag chips, the floating navigation pill, sheet buttons.
@@ -221,6 +223,12 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
   /// Shadow under the floating navigation and the "+" button.
   final List<BoxShadow> navShadow;
 
+  /// Fills for cover placeholders until real images arrive (phase 5).
+  final List<Color> coverPlaceholders;
+
+  /// Round badge over a cover, e.g. behind the Done check in the grid.
+  final Color coverBadge;
+
   Color forType(MediaType t) => switch (t) {
     MediaType.movies => movies,
     MediaType.shows => shows,
@@ -256,6 +264,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     navShadow: [
       BoxShadow(color: Color(0x80000000), blurRadius: 24, offset: Offset(0, 8)),
     ],
+    coverPlaceholders: _coverPlaceholders,
+    coverBadge: Color(0xD9131416),
   );
 
   // Values from the light mockups D8 and S6. The type colors are settled.
@@ -290,7 +300,16 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
         offset: Offset(0, 10),
       ),
     ],
+    coverPlaceholders: _coverPlaceholders,
+    coverBadge: Color(0xD9FFFFFF),
   );
+
+  static const _coverPlaceholders = [
+    Color(0xFF4B5F8A),
+    Color(0xFF8A6E3F),
+    Color(0xFF3F6B8A),
+    Color(0xFF8A553F),
+  ];
 
   @override
   LibraryColors copyWith() => this;
@@ -425,6 +444,8 @@ ThemeData buildTheme({
       style: FilledButton.styleFrom(
         backgroundColor: accentFill,
         foregroundColor: onFill,
+        disabledBackgroundColor: ext.surfaceHigh,
+        disabledForegroundColor: ext.muted,
         minimumSize: const Size.fromHeight(48),
         shape: const StadiumBorder(),
         textStyle: textTheme.labelLarge,
@@ -460,6 +481,31 @@ ThemeData buildTheme({
     progressIndicatorTheme: ProgressIndicatorThemeData(
       color: accentFill,
       linearTrackColor: ext.selectedFill,
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: isDark ? ext.surfaceHigh : ext.dialog,
+      elevation: 12,
+      shadowColor: const Color(0x99000000),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: ext.navBorder),
+      ),
+      textStyle: textTheme.titleMedium,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? onFill : ext.muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? accentFill : ext.divider,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+    ),
+    badgeTheme: BadgeThemeData(
+      backgroundColor: accentFill,
+      textColor: onFill,
+      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

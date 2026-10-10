@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'app_icons.dart';
 
 /// How a selected [PillChip] is shown.
 enum PillChipStyle {
@@ -20,6 +21,7 @@ class PillChip extends StatelessWidget {
     required this.onTap,
     this.style = PillChipStyle.neutral,
     this.dotColor,
+    this.horizontalPadding = 14,
   });
 
   final String label;
@@ -27,6 +29,10 @@ class PillChip extends StatelessWidget {
   final VoidCallback onTap;
   final PillChipStyle style;
   final Color? dotColor;
+
+  /// Smaller in tight grids, like the six "Released" chips in the filter
+  /// sheet. With a bounded width the chip fills it and centers its label.
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +60,10 @@ class PillChip extends StatelessWidget {
           customBorder: const StadiumBorder(),
           child: Container(
             height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (dotColor != null) ...[
                   Container(
@@ -69,10 +76,15 @@ class PillChip extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label,
-                  style: theme.textTheme.labelMedium!.copyWith(
-                    color: foreground,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium!.copyWith(
+                      color: foreground,
+                    ),
                   ),
                 ),
               ],
@@ -104,6 +116,56 @@ class TagChip extends StatelessWidget {
         style: theme.textTheme.bodySmall!.copyWith(
           color: theme.colorScheme.onSurface,
           fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+/// A 44 px chip for an active filter, with a cross that removes it.
+class RemovableChip extends StatelessWidget {
+  const RemovableChip({super.key, required this.label, required this.onRemove});
+
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: 'Remove $label',
+      excludeSemantics: true,
+      child: Material(
+        color: LibraryColors.of(context).selectedFill,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          onTap: onRemove,
+          customBorder: const StadiumBorder(),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.only(left: 14, right: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                StrokeIcon(
+                  AppIcons.closeBold,
+                  size: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

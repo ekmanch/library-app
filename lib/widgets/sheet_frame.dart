@@ -9,6 +9,7 @@ class SheetFrame extends StatelessWidget {
     this.title,
     this.action,
     required this.child,
+    this.footer,
     this.scrollable = false,
   });
 
@@ -17,6 +18,9 @@ class SheetFrame extends StatelessWidget {
   /// Trailing widget on the title row, e.g. a "Reset" text button.
   final Widget? action;
   final Widget child;
+
+  /// Pinned under the content, e.g. the "Show N entries" button.
+  final Widget? footer;
 
   /// True when the content may be taller than the screen.
   final bool scrollable;
@@ -47,25 +51,35 @@ class SheetFrame extends StatelessWidget {
               ],
             ),
           );
-    final body = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [grabber, ?header, const SizedBox(height: 12), child],
-    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      child: scrollable ? SingleChildScrollView(child: body) : body,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          grabber,
+          ?header,
+          const SizedBox(height: 12),
+          if (scrollable)
+            Flexible(child: SingleChildScrollView(child: child))
+          else
+            child,
+          if (footer != null) ...[const SizedBox(height: 12), footer!],
+        ],
+      ),
     );
   }
 }
 
-/// Opens a modal bottom sheet styled by the theme.
+/// Opens a modal bottom sheet styled by the theme, on the root navigator so
+/// it covers the floating navigation.
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
 }) {
   return showModalBottomSheet<T>(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     builder: (context) => SafeArea(top: false, child: builder(context)),

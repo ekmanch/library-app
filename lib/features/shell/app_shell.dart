@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
 import '../plans/plans_screen.dart';
 import 'floating_nav_bar.dart';
@@ -10,7 +12,7 @@ import 'floating_nav_bar.dart';
 ///
 /// Screens inside a tab keep the pill visible (A4), so lists add
 /// [contentBottomPadding] at the end to scroll clear of it.
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({
     super.key,
     this.libraryHome,
@@ -31,10 +33,10 @@ class AppShell extends StatefulWidget {
   static const contentBottomPadding = 96.0;
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   ShellTab _tab = ShellTab.library;
   final _keys = {
     ShellTab.library: GlobalKey<NavigatorState>(),
@@ -112,7 +114,9 @@ class _AppShellState extends State<AppShell> {
                 children: [
                   FloatingNavBar(selected: _tab, onSelect: _select),
                   AddButton(
-                    label: _tab == ShellTab.library ? 'New entry' : 'New plan',
+                    label: _tab == ShellTab.library
+                        ? newEntryLabel(ref.watch(homeTypeProvider))
+                        : 'New plan',
                     onPressed: _add,
                   ),
                 ],

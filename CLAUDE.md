@@ -1,4 +1,4 @@
-# Library app
+# Libri
 
 Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may come later) that is the front end for my personal media library: movies, shows, books, games, music and anime. The data lives in a separate private GitHub repo, `ekmanch/library`, as `library.json`.
 
@@ -23,6 +23,8 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 - Phase 1 is UI only, on fixture data. Do not add networking, GitHub access or file writing before the phase that calls for it.
 - Linux desktop is a dev and test target only, not a shipping platform. Use it for `flutter test integration_test -d linux`; never add Linux-only features.
 - To look at a screen, run `flutter test integration_test/screenshots_test.dart -d linux`; it writes PNGs to `screenshots/` (git-ignored) from inside the app. Never capture the desktop with a system screenshot tool.
+- The fixture is small. To try long lists (the jump rail and the grid's fast scroll) on a device, run with `--dart-define=LONG_LISTS=true`; `lib/dev/long_lists.dart` then pads every type with generated entries. Development only, never on by default.
+- The fixture is small. To try long lists (the jump rail and the grid's fast scroll) on a device, run with `--dart-define=LONG_LISTS=true`; `lib/dev/long_lists.dart` then pads every type with generated entries. Development only, never on by default.
 - Ask before adding a package. Say what it is for and what the alternative is.
 - Ask before changing anything that DESIGN.md marks as settled. Proposals are welcome; silent changes are not.
 - UI text uses American spelling ("color", "favorite") and sentence case.

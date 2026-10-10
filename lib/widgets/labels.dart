@@ -9,6 +9,10 @@ extension EntryStatusLabel on EntryStatus {
     EntryStatus.done => 'Done',
     EntryStatus.dnf => 'DNF',
   };
+
+  /// Mid-sentence form: "want", "in progress", "done", "DNF".
+  String get lowerLabel =>
+      this == EntryStatus.dnf ? label : label.toLowerCase();
 }
 
 extension MediaTypeLabel on MediaType {
@@ -31,4 +35,18 @@ extension MediaTypeLabel on MediaType {
     MediaType.music => 'Music',
     MediaType.anime => 'Anime',
   };
+}
+
+/// "7 movies", "1 book", "3 anime". Music gets "entries" until the artist
+/// screens of phase 1d replace its list.
+String countLabel(MediaType type, int count) {
+  final (one, many) = switch (type) {
+    MediaType.movies => ('movie', 'movies'),
+    MediaType.shows => ('show', 'shows'),
+    MediaType.books => ('book', 'books'),
+    MediaType.games => ('game', 'games'),
+    MediaType.music => ('entry', 'entries'),
+    MediaType.anime => ('anime', 'anime'),
+  };
+  return '$count ${count == 1 ? one : many}';
 }

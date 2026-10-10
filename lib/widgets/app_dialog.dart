@@ -86,10 +86,15 @@ class AppDialog extends StatelessWidget {
   }
 }
 
-/// Opens a dialog styled by the theme.
+/// Opens a dialog styled by the theme, on the root navigator so it covers
+/// the floating navigation.
 Future<T?> showAppDialog<T>(
   BuildContext context, {
   required WidgetBuilder builder,
 }) {
-  return showDialog<T>(context: context, builder: builder);
+  return showDialog<T>(
+    context: context,
+    useRootNavigator: true,
+    builder: builder,
+  );
 }

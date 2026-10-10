@@ -1,6 +1,6 @@
 # TODO
 
-Build order for the Library app. Screen IDs (A1, S5, D12 …) refer to artboards in `design/canvas.html`; decisions are in `docs/DESIGN.md`.
+Build order for Libri. Screen IDs (A1, S5, D12 …) refer to artboards in `design/canvas.html`; decisions are in `docs/DESIGN.md`.
 
 Phase 1 builds the whole UI on fixture data, with nothing saved and no network. Functionality is wired up from phase 2.
 
@@ -23,15 +23,17 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] Theme switching (dark, light) and accent switching, live (state only; the Settings UI is 1f)
 
 ### 1b. Library
-- [ ] A1 Library home: type chips, active plan card, two entries per type
-- [ ] A4 See all, one type: status segments, count, sort, view button
-- [ ] D1 Sort menu
-- [ ] A20, A21 List with covers and grid with covers (placeholder images)
-- [ ] View menu (as A16) and remembering the view per type
-- [ ] A2 Filter sheet: type, status, released, tags in collapsible groups, "Include seasonal-only" switch
-- [ ] A3 Filtered results with removable chips
-- [ ] A5 Search
-- [ ] A10 Empty states
+- [x] A1 Library home: type chips, active plan card, two entries per type under headings with counts
+- [x] A4 Type picked: the home becomes the type's list in place, with status segments, count, sort, view button
+- [x] D1 Sort menu
+- [x] A20, A21 List with covers and grid with covers (placeholder images)
+- [x] View menu (as A16) and remembering the view per type
+- [x] A2 Filter sheet: type, status, released, tags in collapsible groups, "Include seasonal-only" switch
+- [x] A3 Filtered results with removable chips
+- [x] A5 Search
+- [x] A10 Empty states
+- [x] A23, A24, A25 Long lists: section headers (decade, month added, letter) with a jump rail on the right in the text and list views, shown when the list is three screens tall or more and has two sections or more
+- [x] A26 Long grid: draggable thumb with a label bubble instead of headers, same rule
 
 ### 1c. Entry details and editing
 - [ ] A6 Entry details sheet: cover spot, status, rating row, note, about, tags, plans, edit, delete
@@ -71,6 +73,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 ### 1g. Phase 1 wrap-up
 - [ ] Walk through every artboard next to the app and list the differences
+- [x] Reconsider the "See all" link: it jumps to a different screen (A4) and that was not intuitive. A clearer label or a different affordance. (Resolved by the canvas revision of 2026-10-10: the type view is the home with a chip picked.)
 - [ ] Accessibility pass: contrast, touch targets, screen reader labels, large font scale
 - [ ] Widget tests for filtering, sorting, the similar-tag check and the replace dialogs
 

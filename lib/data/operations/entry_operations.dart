@@ -24,6 +24,13 @@ class SetStatus extends LibraryOperation {
   Library apply(Library library) {
     final entry = library.entryById(entryId);
     if (entry == null) return library;
+    if (!EntryStatus.optionsForEntry(entry).contains(status)) {
+      throw ArgumentError.value(
+        status,
+        'status',
+        'not allowed for ${entry.type.name}',
+      );
+    }
     return _replaceEntry(library, entry.copyWith(status: status));
   }
 }

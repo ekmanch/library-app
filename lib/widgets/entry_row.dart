@@ -30,6 +30,13 @@ String entrySubtitle(Entry entry, {DateTime? today}) {
   ].where((part) => part != null && part.isNotEmpty).join(' · ');
 }
 
+/// "Movie", "Album", "Song" and so on for one entry.
+String entryKindLabel(Entry entry) => switch (entry.kind) {
+  MusicKind.album => 'Album',
+  MusicKind.song => 'Song',
+  null => entry.type.singular,
+};
+
 /// One entry in a list: title, italic subtitle and a status mark. No tags.
 class EntryRow extends StatelessWidget {
   const EntryRow({
@@ -38,31 +45,54 @@ class EntryRow extends StatelessWidget {
     required this.subtitle,
     required this.status,
     this.onTap,
+    this.leading,
+    this.typeLabel,
+    this.typeColor,
   });
 
-  EntryRow.forEntry(Entry entry, {super.key, this.onTap, DateTime? today})
-    : title = entry.title,
-      subtitle = entrySubtitle(entry, today: today),
-      status = entry.status;
+  /// [showType] adds the type word in its color before the subtitle, as in
+  /// search results: "Show · 2021".
+  EntryRow.forEntry(
+    Entry entry, {
+    super.key,
+    this.onTap,
+    this.leading,
+    DateTime? today,
+    bool showType = false,
+    LibraryColors? colors,
+  }) : title = entry.title,
+       subtitle = entrySubtitle(entry, today: today),
+       status = entry.status,
+       typeLabel = showType ? entryKindLabel(entry) : null,
+       typeColor = showType ? colors?.forType(entry.type) : null;
 
   final String title;
   final String subtitle;
   final EntryStatus status;
   final VoidCallback? onTap;
 
+  /// A cover or photo before the text. Rows with one are 76 px tall.
+  final Widget? leading;
+  final String? typeLabel;
+  final Color? typeColor;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
+    final subtitleStyle = theme.textTheme.bodySmall!.copyWith(
+      fontStyle: FontStyle.italic,
+    );
     return InkWell(
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 56),
+        constraints: BoxConstraints(minHeight: leading == null ? 56 : 76),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: colors.divider)),
         ),
         child: Row(
           children: [
+            if (leading != null) ...[leading!, const SizedBox(width: 12)],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,12 +104,23 @@ class EntryRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (subtitle.isNotEmpty) ...[
+                  if (subtitle.isNotEmpty || typeLabel != null) ...[
                     const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall!.copyWith(
-                        fontStyle: FontStyle.italic,
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          if (typeLabel != null)
+                            TextSpan(
+                              text: typeLabel,
+                              style: theme.textTheme.bodySmall!.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: typeColor,
+                              ),
+                            ),
+                          if (typeLabel != null && subtitle.isNotEmpty)
+                            TextSpan(text: ' · ', style: subtitleStyle),
+                          TextSpan(text: subtitle, style: subtitleStyle),
+                        ],
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

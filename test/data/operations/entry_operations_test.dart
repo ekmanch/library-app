@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/models/track.dart';
 import 'package:library_app/data/operations/operations.dart';
@@ -20,6 +21,34 @@ void main() {
     expect(const SetRating('nope', 5).apply(library), library);
     expect(const DeleteEntry('nope').apply(library), library);
     expect(UpdateEntry(mummy.copyWith(id: 'nope')).apply(library), library);
+  });
+
+  test('music cannot be set to DNF, and a song not to In progress', () {
+    expect(EntryStatus.optionsFor(MediaType.music), [
+      EntryStatus.want,
+      EntryStatus.inProgress,
+      EntryStatus.done,
+    ]);
+    expect(EntryStatus.optionsFor(MediaType.music, kind: MusicKind.song), [
+      EntryStatus.want,
+      EntryStatus.done,
+    ]);
+    expect(EntryStatus.optionsFor(MediaType.movies), EntryStatus.values);
+    expect(
+      () => SetStatus(dirt.id, EntryStatus.dnf).apply(sampleLibrary()),
+      throwsArgumentError,
+    );
+    final song = dirt.copyWith(kind: MusicKind.song, tracks: null);
+    final withSong = sampleLibrary().copyWith(entries: [mummy, song]);
+    expect(
+      () => SetStatus(song.id, EntryStatus.inProgress).apply(withSong),
+      throwsArgumentError,
+    );
+    final album = SetStatus(
+      dirt.id,
+      EntryStatus.inProgress,
+    ).apply(sampleLibrary()).entryById(dirt.id)!;
+    expect(album.status, EntryStatus.inProgress);
   });
 
   test('SetRating sets and clears', () {

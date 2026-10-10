@@ -26,7 +26,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Library'), findsNWidgets(2)); // Title and nav item.
-    expect(find.textContaining('entries'), findsOneWidget);
+    expect(find.text('ACTIVE PLAN'), findsOneWidget);
     expect(find.textContaining('Could not load'), findsNothing);
 
     final title = tester.widget<Text>(find.text('Library').first);

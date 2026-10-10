@@ -31,6 +31,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.kind = AppButtonKind.primary,
     this.icon,
+    this.compact = false,
   });
 
   final String label;
@@ -39,6 +40,9 @@ class AppButton extends StatelessWidget {
 
   /// Shown before the label at 18 px.
   final Widget? icon;
+
+  /// 44 px tall and only as wide as its label, e.g. "Done" on a sheet.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -57,34 +61,60 @@ class AppButton extends StatelessWidget {
               Text(label),
             ],
           );
+    final compactStyle = compact
+        ? const ButtonStyle(
+            minimumSize: WidgetStatePropertyAll(Size(0, 44)),
+            padding: WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 18),
+            ),
+          )
+        : null;
+    ButtonStyle? style(ButtonStyle? kindStyle) => compactStyle == null
+        ? kindStyle
+        : (kindStyle ?? const ButtonStyle()).merge(compactStyle);
     return switch (kind) {
-      AppButtonKind.primary => FilledButton(onPressed: onPressed, child: child),
+      AppButtonKind.primary => FilledButton(
+        onPressed: onPressed,
+        style: style(null),
+        child: child,
+      ),
       AppButtonKind.outline => OutlinedButton(
         onPressed: onPressed,
+        style: style(null),
         child: child,
       ),
       AppButtonKind.neutral => FilledButton(
         onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: colors.neutralFill,
-          foregroundColor: scheme.onSurface,
+        style: style(
+          FilledButton.styleFrom(
+            backgroundColor: colors.neutralFill,
+            foregroundColor: scheme.onSurface,
+          ),
         ),
         child: child,
       ),
       AppButtonKind.destructive => FilledButton(
         onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: colors.neutralFill,
-          foregroundColor: colors.dangerText,
+        style: style(
+          FilledButton.styleFrom(
+            backgroundColor: colors.neutralFill,
+            foregroundColor: colors.dangerText,
+          ),
         ),
         child: child,
       ),
       AppButtonKind.destructiveOutline => OutlinedButton(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(foregroundColor: colors.dangerText),
+        style: style(
+          OutlinedButton.styleFrom(foregroundColor: colors.dangerText),
+        ),
         child: child,
       ),
-      AppButtonKind.text => TextButton(onPressed: onPressed, child: child),
+      AppButtonKind.text => TextButton(
+        onPressed: onPressed,
+        style: style(null),
+        child: child,
+      ),
     };
   }
 }

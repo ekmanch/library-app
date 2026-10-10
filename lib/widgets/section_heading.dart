@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import 'app_icons.dart';
+
 /// Uppercase section label, in the type color on the library home, muted
-/// elsewhere. An optional trailing link such as "See all".
+/// elsewhere. Optional [trailing] text on the right, such as a count. With
+/// [onTap] the heading is a 44 px button with a chevron after the label.
 class SectionHeading extends StatelessWidget {
   const SectionHeading(
     this.label, {
     super.key,
     this.color,
     this.trailing,
-    this.onTrailingTap,
+    this.onTap,
+    this.semanticsLabel,
     this.padding = const EdgeInsets.fromLTRB(0, 14, 0, 2),
   });
 
@@ -17,33 +22,62 @@ class SectionHeading extends StatelessWidget {
   /// Defaults to the muted label color.
   final Color? color;
   final String? trailing;
-  final VoidCallback? onTrailingTap;
+  final VoidCallback? onTap;
+
+  /// Screen reader label for the button, e.g. "Show all movies".
+  final String? semanticsLabel;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = LibraryColors.of(context);
     final style = theme.textTheme.labelSmall!.copyWith(color: color);
-    return Padding(
-      padding: padding,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(child: Text(label.toUpperCase(), style: style)),
-          if (trailing != null)
-            TextButton(
-              onPressed: onTrailingTap,
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurfaceVariant,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                textStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
+    final text = Text(
+      label.toUpperCase(),
+      style: style,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final row = Row(
+      children: [
+        Expanded(
+          child: onTap == null
+              ? text
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(child: text),
+                    const SizedBox(width: 4),
+                    StrokeIcon(
+                      AppIcons.chevronRightBold,
+                      size: 16,
+                      color: color ?? colors.muted,
+                    ),
+                  ],
                 ),
-              ),
-              child: Text(trailing!),
-            ),
-        ],
+        ),
+        if (trailing != null)
+          Text(
+            trailing!,
+            style: theme.textTheme.bodySmall!.copyWith(fontSize: 13),
+          ),
+      ],
+    );
+    if (onTap == null) return Padding(padding: padding, child: row);
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      onTap: onTap,
+      excludeSemantics: semanticsLabel != null,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: padding,
+          alignment: Alignment.centerLeft,
+          child: row,
+        ),
       ),
     );
   }

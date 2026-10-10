@@ -55,6 +55,13 @@ void main() {
       library.entries.map((e) => e.status).toSet(),
       EntryStatus.values.toSet(),
     );
+    for (final entry in library.entries) {
+      expect(
+        EntryStatus.optionsForEntry(entry),
+        contains(entry.status),
+        reason: entry.id,
+      );
+    }
 
     for (final plan in library.plans) {
       expect(plan.items, isNotEmpty);

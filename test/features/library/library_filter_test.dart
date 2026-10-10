@@ -1,0 +1,170 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/models/entry_status.dart';
+import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/released.dart';
+import 'package:library_app/features/library/library_filter.dart';
+import 'package:library_app/features/library/library_sort.dart';
+
+import '../../helpers/pump_app.dart';
+import '../../helpers/sample_library.dart';
+
+void main() {
+  final fixture = loadFixture();
+
+  group('Decade', () {
+    test('buckets years, with everything before 1960 as Older', () {
+      expect(Decade.of(null), isNull);
+      expect(Decade.of(1959), const Decade.older());
+      expect(Decade.of(1960), const Decade(1960));
+      expect(Decade.of(1999), const Decade(1990));
+      expect(Decade.of(2027), const Decade(2020));
+      expect(const Decade(1980).label, '1980s');
+      expect(const Decade.older().label, 'Older');
+    });
+
+    test('options span the library, gaps filled, Older only when needed', () {
+      expect(Decade.optionsFor([1965, 1999, null, 2027]).map((d) => d.label), [
+        '1960s',
+        '1970s',
+        '1980s',
+        '1990s',
+        '2000s',
+        '2010s',
+        '2020s',
+      ]);
+      expect(Decade.optionsFor([1954, 2031]).map((d) => d.label), [
+        'Older',
+        '2030s',
+      ]);
+      expect(Decade.optionsFor([1950, 1955]).map((d) => d.label), ['Older']);
+      expect(Decade.optionsFor([null]), isEmpty);
+      expect(Decade.optionsFor(const []), isEmpty);
+    });
+  });
+
+  group('LibraryFilter', () {
+    test('empty filter only hides seasonal-only entries', () {
+      const filter = LibraryFilter.none;
+      expect(filter.isEmpty, isTrue);
+      expect(filter.count, 0);
+      final shown = filter.apply(fixture.entries);
+      expect(shown.any((e) => e.seasonalOnly), isFalse);
+      expect(
+        shown.length,
+        fixture.entries.where((e) => !e.seasonalOnly).length,
+      );
+      final withSeasonal = const LibraryFilter(includeSeasonalOnly: true)
+          .apply(fixture.entries);
+      expect(withSeasonal.length, fixture.entries.length);
+    });
+
+    test('any choice matches within type, status and released', () {
+      final filter = LibraryFilter(
+        types: const {MediaType.movies, MediaType.shows},
+        statuses: const {EntryStatus.want},
+        decades: {const Decade(2010), const Decade(2020)},
+      );
+      final shown = filter.apply(fixture.entries);
+      expect(shown, isNotEmpty);
+      for (final e in shown) {
+        expect([MediaType.movies, MediaType.shows], contains(e.type));
+        expect(e.status, EntryStatus.want);
+        expect(e.year, greaterThanOrEqualTo(2010));
+      }
+      expect(filter.count, 5);
+    });
+
+    test('every chosen tag must be present', () {
+      final one = const LibraryFilter(tags: {'horror'}).apply(fixture.entries);
+      final both = const LibraryFilter(tags: {'horror', 'halloween'})
+          .apply(fixture.entries);
+      expect(both.length, lessThan(one.length));
+      expect(both.every((e) => e.tags.contains('halloween')), isTrue);
+      expect(both.every((e) => e.tags.contains('horror')), isTrue);
+    });
+
+    test('entries without a year never match a decade', () {
+      final undated = mummy.copyWith(released: null);
+      expect(
+        LibraryFilter(decades: {const Decade.older()}).matches(undated),
+        isFalse,
+      );
+      expect(LibraryFilter.none.matches(undated), isTrue);
+    });
+
+    test('toggles and chips', () {
+      var filter = LibraryFilter.none
+          .toggleType(MediaType.books)
+          .toggleTag('cozy');
+      filter = filter
+          .toggleStatus(EntryStatus.done)
+          .copyWith(includeSeasonalOnly: true);
+      expect(filter.chips.map((c) => c.label), [
+        'Books',
+        'Done',
+        '#cozy',
+        'Seasonal-only included',
+      ]);
+      filter = filter.chips[0].remove(filter);
+      expect(filter.types, isEmpty);
+      filter = filter.chips.last.remove(filter);
+      expect(filter.includeSeasonalOnly, isFalse);
+      expect(filter.toggleTag('cozy').tags, isEmpty);
+      expect(LibraryFilter.none == const LibraryFilter(), isTrue);
+    });
+  });
+
+  group('sortEntries', () {
+    test('newest added first, then by title', () {
+      final sorted = sortEntries(fixture.entries, LibrarySort.newestAdded);
+      for (var i = 1; i < sorted.length; i++) {
+        expect(sorted[i - 1].added.isBefore(sorted[i].added), isFalse);
+      }
+    });
+
+    test('title A to Z ignores case', () {
+      final sorted = sortEntries([
+        mummy.copyWith(title: 'b'),
+        mummy.copyWith(title: 'A'),
+        mummy.copyWith(title: 'c'),
+      ], LibrarySort.titleAz);
+      expect(sorted.map((e) => e.title), ['A', 'b', 'c']);
+    });
+
+    test('year orders put undated entries last', () {
+      final entries = [
+        mummy.copyWith(title: 'none', released: null),
+        mummy.copyWith(title: 'old', released: const Released(1980)),
+        mummy.copyWith(title: 'new', released: const Released(2020)),
+      ];
+      expect(sortEntries(entries, LibrarySort.yearNewest).map((e) => e.title), [
+        'new',
+        'old',
+        'none',
+      ]);
+      expect(sortEntries(entries, LibrarySort.yearOldest).map((e) => e.title), [
+        'old',
+        'new',
+        'none',
+      ]);
+    });
+  });
+
+  test('homeOrder: in progress, want, done, dnf; newest added first', () {
+    final ordered = homeOrder(fixture.entriesOfType(MediaType.movies));
+    final statuses = ordered.map((e) => e.status).toList();
+    int rank(EntryStatus s) => const {
+      EntryStatus.inProgress: 0,
+      EntryStatus.want: 1,
+      EntryStatus.done: 2,
+      EntryStatus.dnf: 3,
+    }[s]!;
+    for (var i = 1; i < statuses.length; i++) {
+      expect(rank(statuses[i - 1]) <= rank(statuses[i]), isTrue);
+      if (statuses[i - 1] == statuses[i]) {
+        expect(ordered[i - 1].added.isBefore(ordered[i].added), isFalse);
+      }
+    }
+    expect(statuses.first, EntryStatus.inProgress);
+  });
+}

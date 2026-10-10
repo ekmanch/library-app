@@ -38,6 +38,22 @@ void main() {
     expect(picked, EntryStatus.done);
   });
 
+  test('segment widths share the leftover space, or split evenly', () {
+    final widths = SegmentedControl.segmentWidths(
+      labels: ['All', 'In progress'],
+      available: 204,
+      measure: (l) => l.length * 10.0,
+    );
+    // Usable 200: contents 46 and 126, leftover 28 shared as 14 each.
+    expect(widths, [60, 140]);
+    final tight = SegmentedControl.segmentWidths(
+      labels: ['Abcdefghij', 'Klmnopqrst'],
+      available: 104,
+      measure: (l) => l.length * 10.0,
+    );
+    expect(tight, [50, 50]);
+  });
+
   testWidgets('segments are 44 px tall and fill the row evenly', (
     tester,
   ) async {
