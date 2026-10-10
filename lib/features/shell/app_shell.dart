@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../entry/entry_details_sheet.dart';
+import '../entry/new_entry_screen.dart';
 import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
 import '../plans/plans_screen.dart';
@@ -26,6 +28,7 @@ class AppShell extends ConsumerStatefulWidget {
   final Widget? plansHome;
 
   /// Called with the Library tab's navigator context when "+" is pressed.
+  /// By default "+" starts the new-entry flow (A13).
   final void Function(BuildContext context)? onAddEntry;
   final void Function(BuildContext context)? onAddPlan;
 
@@ -70,7 +73,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     final context = _current?.context ?? this.context;
     switch (_tab) {
       case ShellTab.library:
-        widget.onAddEntry?.call(context);
+        if (widget.onAddEntry case final onAdd?) {
+          onAdd(context);
+        } else {
+          openNewEntryScreen(context, type: ref.read(homeTypeProvider));
+        }
       case ShellTab.plans:
         widget.onAddPlan?.call(context);
     }
@@ -97,7 +104,16 @@ class _AppShellState extends ConsumerState<AppShell> {
               children: [
                 _tabNavigator(
                   ShellTab.library,
-                  widget.libraryHome ?? const LibraryHomeScreen(),
+                  widget.libraryHome ??
+                      LibraryHomeScreen(
+                        onOpenEntry: (entry) =>
+                            showEntryDetailsSheet(context, entry.id),
+                        onAddEntry: ({type, title}) => openNewEntryScreen(
+                          context,
+                          type: type,
+                          title: title,
+                        ),
+                      ),
                 ),
                 _tabNavigator(
                   ShellTab.plans,

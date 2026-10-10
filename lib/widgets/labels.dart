@@ -1,5 +1,6 @@
 import '../data/models/entry_status.dart';
 import '../data/models/media_type.dart';
+import '../data/models/tag_category.dart';
 
 /// UI words for the enums. American spelling, sentence case.
 extension EntryStatusLabel on EntryStatus {
@@ -50,3 +51,29 @@ String countLabel(MediaType type, int count) {
   };
   return '$count ${count == 1 ? one : many}';
 }
+
+extension TagCategoryLabel on TagCategory {
+  String get label => switch (this) {
+    TagCategory.genre => 'Genre',
+    TagCategory.animationStyle => 'Animation style',
+    TagCategory.gameGenre => 'Game genre',
+    TagCategory.mood => 'Mood',
+    TagCategory.season => 'Season',
+    TagCategory.creators => 'Creators',
+    TagCategory.other => 'Other',
+  };
+}
+
+/// The label of the one `creator` field, by type (DESIGN.md section 8).
+String creatorLabel(MediaType type) => switch (type) {
+  MediaType.movies => 'Director',
+  MediaType.shows => 'Creator',
+  MediaType.books => 'Author',
+  MediaType.games => 'Studio',
+  MediaType.music => 'Artist',
+  MediaType.anime => 'Studio',
+};
+
+/// "8 / 10", or "Not rated".
+String ratingLabel(int? rating) =>
+    rating == null ? 'Not rated' : '$rating / 10';

@@ -48,7 +48,10 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
   final void Function(Entry entry)? onOpenEntry;
   final VoidCallback? onOpenSettings;
   final VoidCallback? onOpenPlan;
-  final VoidCallback? onAddEntry;
+
+  /// Starts a new entry, for the picked [type] and with a [title] already
+  /// typed (from search).
+  final void Function({MediaType? type, String? title})? onAddEntry;
 
   @override
   ConsumerState<LibraryHomeScreen> createState() => _LibraryHomeScreenState();
@@ -81,8 +84,14 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     // Full screen, above the floating navigation (A5 has none).
     final tag = await Navigator.of(context, rootNavigator: true).push<String>(
       MaterialPageRoute(
-        builder: (_) =>
-            SearchScreen(type: type, onOpenEntry: widget.onOpenEntry),
+        builder: (searchContext) => SearchScreen(
+          type: type,
+          onOpenEntry: widget.onOpenEntry,
+          onAddEntry: (title) {
+            Navigator.pop(searchContext);
+            widget.onAddEntry?.call(type: type, title: title);
+          },
+        ),
       ),
     );
     if (tag != null && mounted) {
@@ -252,7 +261,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
             ? 'Albums and songs you add will show up here.'
             : '${type.label} you add will show up here.',
         actionLabel: 'Add ${type.singular.toLowerCase()}',
-        onAction: widget.onAddEntry,
+        onAction: () => widget.onAddEntry?.call(type: type),
       );
     }
     final shown = sortEntries(

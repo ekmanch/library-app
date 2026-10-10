@@ -21,6 +21,7 @@ import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
 import 'package:library_app/features/library/library_sort.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
+import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
 
@@ -99,6 +100,74 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'a5-search');
     await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // A6, D11, A7, A9: the details sheet and what opens from it.
+    await tester.tap(find.widgetWithText(PillChip, 'Movies'));
+    await tester.pumpAndSettle();
+    // Movies is still in the grid view, so the sheet shows the cover spot.
+    // A tile carries the title twice: on the placeholder and as the caption.
+    await tester.ensureVisible(find.text('The Mummy').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('The Mummy').last);
+    await tester.pumpAndSettle();
+    await capture(tester, 'a6-entry-details');
+    await tester.tap(find.text('9 / 10'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd11-rating');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add to plan'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a7-add-to-plan');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a9-delete');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // A8 edit, the tag picker, D9 and D10.
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-edit-entry');
+    await tester.ensureVisible(find.text('#adventure'));
+    await tester.tap(find.text('#adventure'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-tag-picker');
+    await tester.enterText(find.byType(TextField).last, 'sci-fi');
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Create #sci-fi'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd9-similar-tag');
+    await tester.tap(find.text('Create #sci-fi anyway'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd10-new-tag');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(195, 30)); // Close the sheet.
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PillChip, 'All'));
+    await tester.pumpAndSettle();
+
+    // A13: a new entry, picking a match.
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Carrie');
+    await tester.pumpAndSettle();
+    await capture(tester, 'a13-new-entry');
+    await tester.tap(find.text('BOOK · 1974'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-new-entry');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
     // D8: home in light.

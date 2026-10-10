@@ -5,13 +5,13 @@ import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/tag_category.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
-import '../../widgets/app_icons.dart';
+import '../../widgets/chip_grid.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/sheet_frame.dart';
+import '../../widgets/tag_group.dart';
 import 'library_filter.dart';
 
 /// Opens the filter sheet (A2). Resolves with the chosen filter, or null
@@ -25,18 +25,6 @@ Future<LibraryFilter?> showFilterSheet(
     context,
     builder: (context) => FilterSheet(library: library, initial: initial),
   );
-}
-
-extension TagCategoryLabel on TagCategory {
-  String get label => switch (this) {
-    TagCategory.genre => 'Genre',
-    TagCategory.animationStyle => 'Animation style',
-    TagCategory.gameGenre => 'Game genre',
-    TagCategory.mood => 'Mood',
-    TagCategory.season => 'Season',
-    TagCategory.creators => 'Creators',
-    TagCategory.other => 'Other',
-  };
 }
 
 class FilterSheet extends StatefulWidget {
@@ -69,7 +57,6 @@ class _FilterSheetState extends State<FilterSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = LibraryColors.of(context);
     final count = _matching.length;
     final query = _tagQuery.trim().toLowerCase();
 
@@ -97,7 +84,7 @@ class _FilterSheetState extends State<FilterSheet> {
         children: [
           SectionHeading('Type', padding: EdgeInsets.zero),
           const SizedBox(height: 8),
-          _ChipGrid(
+          ChipGrid(
             columns: 3,
             children: [
               for (final type in MediaType.values)
@@ -113,7 +100,7 @@ class _FilterSheetState extends State<FilterSheet> {
           const SizedBox(height: 12),
           SectionHeading('Status', padding: EdgeInsets.zero),
           const SizedBox(height: 8),
-          _ChipGrid(
+          ChipGrid(
             columns: 4,
             children: [
               for (final status in EntryStatus.values)
@@ -179,7 +166,7 @@ class _FilterSheetState extends State<FilterSheet> {
           ),
           for (final MapEntry(key: category, value: names)
               in widget.library.tags.entries)
-            _TagGroup(
+            TagGroup(
               label: category.label,
               tags: query.isEmpty
                   ? names
@@ -193,131 +180,6 @@ class _FilterSheetState extends State<FilterSheet> {
               ),
               onToggleTag: (tag) =>
                   setState(() => _draft = _draft.toggleTag(tag)),
-              divider: colors.divider,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Equal-width chips in rows, 6 px apart, like the CSS grids in A2.
-class _ChipGrid extends StatelessWidget {
-  const _ChipGrid({required this.columns, required this.children});
-
-  final int columns;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (var start = 0; start < children.length; start += columns) {
-      final row = children.sublist(
-        start,
-        (start + columns).clamp(0, children.length),
-      );
-      rows.add(
-        Row(
-          children: [
-            for (var i = 0; i < columns; i++) ...[
-              if (i > 0) const SizedBox(width: 6),
-              Expanded(child: i < row.length ? row[i] : const SizedBox()),
-            ],
-          ],
-        ),
-      );
-    }
-    return Column(
-      children: [
-        for (final (i, row) in rows.indexed) ...[
-          if (i > 0) const SizedBox(height: 6),
-          row,
-        ],
-      ],
-    );
-  }
-}
-
-class _TagGroup extends StatelessWidget {
-  const _TagGroup({
-    required this.label,
-    required this.tags,
-    required this.selected,
-    required this.open,
-    required this.onToggleOpen,
-    required this.onToggleTag,
-    required this.divider,
-  });
-
-  final String label;
-  final List<String> tags;
-  final Set<String> selected;
-  final bool open;
-  final VoidCallback onToggleOpen;
-  final ValueChanged<String> onToggleTag;
-  final Color divider;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final picked = tags.where(selected.contains).length;
-    if (tags.isEmpty) return const SizedBox.shrink();
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: divider)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Semantics(
-            button: true,
-            expanded: open,
-            child: InkWell(
-              onTap: onToggleOpen,
-              child: SizedBox(
-                height: 44,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(label, style: theme.textTheme.labelLarge),
-                    ),
-                    if (picked > 0)
-                      Text(
-                        '$picked selected',
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          fontSize: 13,
-                        ),
-                      ),
-                    const SizedBox(width: 8),
-                    RotatedBox(
-                      quarterTurns: open ? 2 : 0,
-                      child: StrokeIcon(
-                        AppIcons.chevronDown,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (open)
-            Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final tag in tags)
-                    PillChip(
-                      label: '#$tag',
-                      selected: selected.contains(tag),
-                      style: PillChipStyle.accent,
-                      onTap: () => onToggleTag(tag),
-                    ),
-                ],
-              ),
             ),
         ],
       ),

@@ -17,6 +17,7 @@ class AppDialog extends StatelessWidget {
     super.key,
     required this.title,
     this.body,
+    this.content,
     this.note,
     required this.actions,
     this.actionsLayout = DialogActionsLayout.row,
@@ -24,6 +25,10 @@ class AppDialog extends StatelessWidget {
 
   final String title;
   final String? body;
+
+  /// Anything between the body and the note: a rich-text body (D9) or the
+  /// category chips of D10.
+  final Widget? content;
 
   /// A quieter second paragraph, e.g. what happens in the GitHub history.
   final String? note;
@@ -49,6 +54,7 @@ class AppDialog extends StatelessWidget {
                 style: theme.textTheme.bodyMedium!.copyWith(color: colors.soft),
               ),
             ],
+            if (content != null) ...[const SizedBox(height: 12), content!],
             if (note != null) ...[
               const SizedBox(height: 12),
               Text(

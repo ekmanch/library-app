@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models/entry_status.dart';
 import '../data/models/media_type.dart';
+import '../data/models/music_kind.dart';
 import '../theme/app_theme.dart';
 import 'labels.dart';
 
@@ -179,13 +180,15 @@ class _Segment extends StatelessWidget {
 }
 
 /// The status segments. With [includeAll] a null selection means "All".
-/// [type] limits the choices, e.g. no DNF for music.
+/// [type] limits the choices, e.g. no DNF for music, and [kind] drops
+/// In progress for a song.
 class StatusSegmentedControl extends StatelessWidget {
   const StatusSegmentedControl({
     super.key,
     required this.selected,
     required this.onChanged,
     this.type,
+    this.kind,
     this.includeAll = false,
     this.style = SegmentedStyle.neutral,
     this.inset = false,
@@ -194,6 +197,7 @@ class StatusSegmentedControl extends StatelessWidget {
   final EntryStatus? selected;
   final ValueChanged<EntryStatus?> onChanged;
   final MediaType? type;
+  final MusicKind? kind;
   final bool includeAll;
   final SegmentedStyle style;
   final bool inset;
@@ -206,7 +210,7 @@ class StatusSegmentedControl extends StatelessWidget {
         for (final status
             in type == null
                 ? EntryStatus.values
-                : EntryStatus.optionsFor(type!))
+                : EntryStatus.optionsFor(type!, kind: kind))
           SegmentOption(status, status.label),
       ],
       selected: selected,

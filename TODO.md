@@ -37,13 +37,13 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] L5, L6 Long filtered results: sections by sort for one type, by type with a dot rail for several
 
 ### 1c. Entry details and editing
-- [ ] A6 Entry details sheet: cover spot, status, rating row, note, about, tags, plans, edit, delete
-- [ ] D11 Rating picker
-- [ ] A13 New entry: pick a match (static fixture results)
-- [ ] A8 Add / edit entry form, including the tag picker
-- [ ] D9 Similar tag warning and D10 New tag: confirm and pick a category
-- [ ] A7 Add to plan
-- [ ] A9 Delete confirmation
+- [x] A6 Entry details sheet: cover spot, status, rating row, note, about, tags, plans, edit, delete
+- [x] D11 Rating picker
+- [x] A13 New entry: pick a match (static fixture results)
+- [x] A8 Add / edit entry form, including the tag picker
+- [x] D9 Similar tag warning and D10 New tag: confirm and pick a category
+- [x] A7 Add to plan
+- [x] A9 Delete confirmation
 
 ### 1d. Music
 - [ ] A14 Artists list: Artists / Albums / Songs toggle, letter headers, alphabet rail, "Various Artists" pinned last, leading "The" ignored when sorting
@@ -61,7 +61,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [ ] S4 All entries for a plan's tags: add, edit, remove
 - [ ] S7 and S8 Entry details inside a plan (with and without "When")
 - [ ] D2 When picker: a day or a period
-- [ ] D3 Plan menu, S9 Edit plan, S10 New plan (including copy to a new year)
+- [ ] D3 Plan menu, S9 Edit plan, S10 New plan (including copy to a new year); then the "New plan" link at the end of A7
 - [ ] D4 Remove from plan or delete everywhere, D5 Delete plan
 - [ ] S11 and S12 Seasonal themes (Halloween, Christmas): strip, title icon, progress marker, seasonal accent
 
@@ -83,7 +83,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [ ] Persist the library to a local file through a `LocalLibraryRepository`, so changes survive a restart
 - [ ] Operations layer: every change is a small named operation with a human-readable summary
 - [ ] Store display preferences on the device
-- [ ] Rewatch detection: adding a Done entry to a plan marks the plan item as a repeat
+- [x] Rewatch detection: adding a Done entry to a plan marks the plan item as a repeat (done in A7, phase 1c)
 
 ## Phase 3: Migrating the data repo
 

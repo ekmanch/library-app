@@ -161,6 +161,17 @@ class AppIcons {
     ],
   );
 
+  /// A bin, for Delete.
+  static const trash = StrokeIconData(
+    polylines: [
+      [Offset(5, 7), Offset(19, 7)],
+      [Offset(10, 7), Offset(10, 5), Offset(14, 5), Offset(14, 7)],
+      [Offset(7, 7), Offset(8, 19), Offset(16, 19), Offset(17, 7)],
+      [Offset(10, 11), Offset(10, 16)],
+      [Offset(14, 11), Offset(14, 16)],
+    ],
+  );
+
   static const filters = StrokeIconData(
     polylines: [
       [Offset(4, 7), Offset(14, 7)],
