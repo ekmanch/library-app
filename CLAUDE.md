@@ -39,7 +39,7 @@ flutter test
 
 ## Code conventions
 
-- State management: Riverpod. Navigation: go_router. (Change only after asking.)
+- State management: Riverpod. Navigation: Flutter's built-in Navigator; no routing package unless I ask.
 - Feature-first folders: `lib/features/<feature>/` with widgets and state together; shared widgets in `lib/widgets/`; models in `lib/data/models/`.
 - All reading and writing of the library goes through one `LibraryRepository` interface. Phase 1 uses a fixture implementation; the GitHub implementation comes later. Widgets never know which one they have.
 - Models are immutable. Every change to the library is expressed as a small operation ("set status", "add entry", "rate track") so it can be re-applied after a sync conflict.
