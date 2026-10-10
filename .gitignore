@@ -33,3 +33,6 @@ doc/api/
 *.iml
 *.ipr
 *.iws
+
+# Screenshots from flutter drive
+screenshots/

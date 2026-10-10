@@ -10,7 +10,9 @@ void main() {
     app.main();
     await tester.pumpAndSettle();
 
-    expect(find.text('Library'), findsOneWidget);
+    // Title and the navigation item.
+    expect(find.text('Library'), findsNWidgets(2));
+    expect(find.text('Plans'), findsOneWidget);
     expect(find.textContaining('entries'), findsOneWidget);
   });
 }

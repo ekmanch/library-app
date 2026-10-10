@@ -25,14 +25,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Library'), findsOneWidget);
+    expect(find.text('Library'), findsNWidgets(2)); // Title and nav item.
     expect(find.textContaining('entries'), findsOneWidget);
     expect(find.textContaining('Could not load'), findsNothing);
 
-    final title = tester.widget<Text>(find.text('Library'));
+    final title = tester.widget<Text>(find.text('Library').first);
     expect(title.style?.fontFamily, 'Bricolage Grotesque');
     expect(
-      Theme.of(tester.element(find.text('Library'))).brightness,
+      Theme.of(tester.element(find.text('Library').first)).brightness,
       Brightness.dark,
     );
   });

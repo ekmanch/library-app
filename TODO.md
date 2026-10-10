@@ -18,9 +18,9 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 ## Phase 1: UI on fixture data
 
 ### 1a. Shell and shared pieces
-- [ ] App shell: floating pill navigation (Library, Plans) and round "+" button
-- [ ] Shared widgets: entry row (title, italic subtitle, status mark), section heading in type color, status segmented control, tag chip, bottom sheet frame, dialog frame, buttons (primary, outline, neutral, destructive = neutral fill with red text)
-- [ ] Theme switching (dark, light) and accent switching, live
+- [x] App shell: floating pill navigation (Library, Plans) and round "+" button
+- [x] Shared widgets: entry row (title, italic subtitle, status mark), section heading in type color, status segmented control, tag chip, bottom sheet frame, dialog frame, buttons (primary, outline, neutral, destructive = neutral fill with red text)
+- [x] Theme switching (dark, light) and accent switching, live (state only; the Settings UI is 1f)
 
 ### 1b. Library
 - [ ] A1 Library home: type chips, active plan card, two entries per type

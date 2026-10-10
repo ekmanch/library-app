@@ -1,8 +1,16 @@
 // Theme for the Library app.
 //
 // Colors and fonts come from the design canvas (design/canvas.html) and
-// docs/DESIGN.md. Widgets should read colors from Theme.of(context) or from
+// docs/DESIGN.md. Widgets read colors from Theme.of(context) or from
 // LibraryColors.of(context), never from literals.
+//
+// Accent mapping, from S6 and D8: the accent *fill* (the pastel color) is the
+// same on both themes and is used for filled surfaces: the "+" button, primary
+// buttons, progress bars. Accent *text, icons and outlines* use the fill on
+// the dark theme and the darker "ink" on the light theme, where the pastel
+// would be too faint. In Material terms:
+//   colorScheme.primary          = accent ink on light, accent fill on dark
+//   colorScheme.primaryContainer = accent fill, always
 //
 // Fonts are bundled: Bricolage Grotesque (Bold) and Figtree (Regular, Italic,
 // Medium, SemiBold, Bold) in assets/fonts/, declared in pubspec.yaml.
@@ -11,46 +19,133 @@ import 'package:flutter/material.dart';
 
 import '../data/models/media_type.dart';
 
-/// One selectable accent color. [dark] is used on the dark theme. [ink] is the
-/// darker variant used on the light theme, where the pastel would be too faint.
+enum AccentGroup { vivid, pastel }
+
+/// One selectable accent color. [fill] is used for filled surfaces on both
+/// themes. [ink] is the darker variant used for text, icons and outlines on
+/// the light theme.
 class AccentOption {
-  const AccentOption(this.name, this.dark, this.ink);
+  const AccentOption(this.group, this.name, this.fill, this.ink);
+
+  final AccentGroup group;
   final String name;
-  final Color dark;
+  final Color fill;
   final Color ink;
+
+  /// Stable id for device preferences, e.g. `vivid/Hot pink`. Names repeat
+  /// across groups (Blue, Green), so the group is part of it.
+  String get id => '${group.name}/$name';
 }
 
 class Accents {
   static const hotPink = AccentOption(
+    AccentGroup.vivid,
     'Hot pink',
     Color(0xFFFF7AB6),
-    Color(0xFFC2185B),
+    Color(0xFFD6337F),
   );
 
   static const vivid = <AccentOption>[
-    AccentOption('Violet', Color(0xFFA78BFA), Color(0xFF6D3FD1)),
+    AccentOption(
+      AccentGroup.vivid,
+      'Violet',
+      Color(0xFFA78BFA),
+      Color(0xFF7C5CE0),
+    ),
     hotPink,
-    AccentOption('Amber', Color(0xFFF2B544), Color(0xFF9A6A00)),
-    AccentOption('Green', Color(0xFF5EE08A), Color(0xFF1E7B34)),
-    AccentOption('Blue', Color(0xFF5AA9FF), Color(0xFF1D5FBF)),
+    AccentOption(
+      AccentGroup.vivid,
+      'Amber',
+      Color(0xFFF2B544),
+      Color(0xFFC27C0E),
+    ),
+    AccentOption(
+      AccentGroup.vivid,
+      'Green',
+      Color(0xFF5EE08A),
+      Color(0xFF15803D),
+    ),
+    AccentOption(
+      AccentGroup.vivid,
+      'Blue',
+      Color(0xFF5AA9FF),
+      Color(0xFF1D6FE0),
+    ),
   ];
 
-  // TODO: the ink values below are first guesses; check them against the
-  // light theme mockup (D8) and the Settings screen (S6).
   static const pastel = <AccentOption>[
-    AccentOption('Beige', Color(0xFFF9E2AF), Color(0xFF8A6A1F)),
-    AccentOption('Rosewater', Color(0xFFF5E0DC), Color(0xFF9C5A4E)),
-    AccentOption('Flamingo', Color(0xFFF2CDCD), Color(0xFFA14F4F)),
-    AccentOption('Pink', Color(0xFFF5C2E7), Color(0xFFA83E8C)),
-    AccentOption('Red', Color(0xFFF38BA8), Color(0xFFB3264E)),
-    AccentOption('Mauve', Color(0xFFCBA6F7), Color(0xFF7A3FC4)),
-    AccentOption('Lavender', Color(0xFFB4BEFE), Color(0xFF4A56C4)),
-    AccentOption('Blue', Color(0xFF89B4FA), Color(0xFF2A5FC0)),
-    AccentOption('Sky', Color(0xFF89DCEB), Color(0xFF0F7A8C)),
-    AccentOption('Green', Color(0xFFA6E3A1), Color(0xFF2E7D32)),
+    AccentOption(
+      AccentGroup.pastel,
+      'Beige',
+      Color(0xFFF9E2AF),
+      Color(0xFFDF8E1D),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Rosewater',
+      Color(0xFFF5E0DC),
+      Color(0xFFDC8A78),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Flamingo',
+      Color(0xFFF2CDCD),
+      Color(0xFFDD7878),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Pink',
+      Color(0xFFF5C2E7),
+      Color(0xFFEA76CB),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Red',
+      Color(0xFFF38BA8),
+      Color(0xFFD20F39),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Mauve',
+      Color(0xFFCBA6F7),
+      Color(0xFF8839EF),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Lavender',
+      Color(0xFFB4BEFE),
+      Color(0xFF7287FD),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Blue',
+      Color(0xFF89B4FA),
+      Color(0xFF1E66F5),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Sky',
+      Color(0xFF89DCEB),
+      Color(0xFF04A5E5),
+    ),
+    AccentOption(
+      AccentGroup.pastel,
+      'Green',
+      Color(0xFFA6E3A1),
+      Color(0xFF40A02B),
+    ),
   ];
+
+  static const all = <AccentOption>[...vivid, ...pastel];
 
   static const defaultAccent = hotPink;
+
+  static AccentOption? byId(String id) {
+    for (final accent in all) {
+      if (accent.id == id) return accent;
+    }
+    return null;
+  }
 }
 
 /// Seasonal accents, used only inside a plan with the seasonal theme on.
@@ -67,9 +162,13 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.dialog,
     required this.divider,
     required this.muted,
+    required this.soft,
     required this.placeholder,
     required this.dangerText,
     required this.neutralFill,
+    required this.selectedFill,
+    required this.navFill,
+    required this.navBorder,
     required this.scrim,
     required this.movies,
     required this.shows,
@@ -78,18 +177,35 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.music,
     required this.anime,
     required this.cardShadow,
+    required this.navShadow,
   });
 
+  /// Raised fill: tag chips, the floating navigation pill, sheet buttons.
   final Color surfaceHigh;
   final Color dialog;
   final Color divider;
+
+  /// Secondary text: subtitles, labels, unselected items.
   final Color muted;
+
+  /// Body text that is softer than the main text: dialog bodies, "About".
+  final Color soft;
   final Color placeholder;
 
   /// Destructive actions: red text only. Buttons use [neutralFill] behind it,
   /// never a red fill, and never sit next to an accent-colored button.
   final Color dangerText;
   final Color neutralFill;
+
+  /// Fill of a selected item in a neutral control: pill tabs, type chips,
+  /// the "In progress" status mark.
+  final Color selectedFill;
+
+  /// Fill of the floating navigation pill: raised on dark, white on light.
+  final Color navFill;
+
+  /// Border of the floating navigation pill; transparent on light.
+  final Color navBorder;
   final Color scrim;
 
   final Color movies;
@@ -101,6 +217,9 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
 
   /// Empty on dark (cards use a fill); a soft shadow on light.
   final List<BoxShadow> cardShadow;
+
+  /// Shadow under the floating navigation and the "+" button.
+  final List<BoxShadow> navShadow;
 
   Color forType(MediaType t) => switch (t) {
     MediaType.movies => movies,
@@ -119,10 +238,14 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     dialog: Color(0xFF26292D),
     divider: Color(0xFF26292D),
     muted: Color(0xFFA3A8AE),
+    soft: Color(0xFFD0D4D9),
     placeholder: Color(0xFF666B73),
     dangerText: Color(0xFFFF6B6B),
     neutralFill: Color(0xFF3A3E44),
-    scrim: Color(0xFF08090A),
+    selectedFill: Color(0x24FFFFFF),
+    navFill: Color(0xFF2A2D31),
+    navBorder: Color(0xFF3A3E44),
+    scrim: Color(0xCC08090A),
     movies: Color(0xFFF2B544),
     shows: Color(0xFF7FB7FF),
     books: Color(0xFF8FD694),
@@ -130,18 +253,24 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     music: Color(0xFFC4A7FF),
     anime: Color(0xFF5FD4C8),
     cardShadow: [],
+    navShadow: [
+      BoxShadow(color: Color(0x80000000), blurRadius: 24, offset: Offset(0, 8)),
+    ],
   );
 
-  // TODO: surfaces, muted, danger and shadow are first guesses; the type
-  // colors are settled. Check against the light theme mockup (D8).
+  // Values from the light mockups D8 and S6. The type colors are settled.
   static const light = LibraryColors(
-    surfaceHigh: Color(0xFFF1F2F4),
+    surfaceHigh: Color(0xFFE9EBEE),
     dialog: Color(0xFFFFFFFF),
-    divider: Color(0xFFE6E8EB),
-    muted: Color(0xFF5F656D),
+    divider: Color(0xFFE3E5E9),
+    muted: Color(0xFF5B616B),
+    soft: Color(0xFF3C424A),
     placeholder: Color(0xFF9AA0A8),
     dangerText: Color(0xFFC62828),
-    neutralFill: Color(0xFFE6E8EB),
+    neutralFill: Color(0xFFE9EBEE),
+    selectedFill: Color(0xFFE9EBEE),
+    navFill: Color(0xFFFFFFFF),
+    navBorder: Color(0x00000000),
     scrim: Color(0x99000000),
     movies: Color(0xFFC79400),
     shows: Color(0xFF1D5FBF),
@@ -150,7 +279,16 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     music: Color(0xFF6D3FD1),
     anime: Color(0xFF0F766E),
     cardShadow: [
-      BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4)),
+      BoxShadow(color: Color(0x1A14161C), blurRadius: 2, offset: Offset(0, 1)),
+      BoxShadow(color: Color(0x1A14161C), blurRadius: 18, offset: Offset(0, 6)),
+    ],
+    navShadow: [
+      BoxShadow(color: Color(0x1F14161C), blurRadius: 6, offset: Offset(0, 2)),
+      BoxShadow(
+        color: Color(0x2914161C),
+        blurRadius: 28,
+        offset: Offset(0, 10),
+      ),
     ],
   );
 
@@ -176,19 +314,23 @@ ThemeData buildTheme({
 
   final background = isDark ? const Color(0xFF131416) : const Color(0xFFFFFFFF);
   final surface = isDark ? const Color(0xFF1D1F22) : const Color(0xFFFFFFFF);
-  final outline = isDark ? const Color(0xFF3A3E44) : const Color(0xFFD5D8DC);
-  final text = isDark ? const Color(0xFFEEF0F2) : const Color(0xFF131416);
-  final primary = seasonal ?? (isDark ? accent.dark : accent.ink);
-  final onPrimary = isDark ? const Color(0xFF131416) : const Color(0xFFFFFFFF);
+  final outline = isDark ? const Color(0xFF3A3E44) : const Color(0xFFD5D9DE);
+  final text = isDark ? const Color(0xFFEEF0F2) : const Color(0xFF17181B);
+  final accentFill = seasonal ?? accent.fill;
+  final accentInk = seasonal ?? (isDark ? accent.fill : accent.ink);
+  final onFill = isDark ? const Color(0xFF131416) : const Color(0xFF17181B);
+  final onInk = isDark ? const Color(0xFF131416) : const Color(0xFFFFFFFF);
 
   final scheme = ColorScheme(
     brightness: brightness,
-    primary: primary,
-    onPrimary: onPrimary,
-    secondary: primary,
-    onSecondary: onPrimary,
+    primary: accentInk,
+    onPrimary: onInk,
+    primaryContainer: accentFill,
+    onPrimaryContainer: onFill,
+    secondary: accentInk,
+    onSecondary: onInk,
     error: ext.dangerText,
-    onError: onPrimary,
+    onError: onInk,
     surface: surface,
     onSurface: text,
     onSurfaceVariant: ext.muted,
@@ -205,11 +347,12 @@ ThemeData buildTheme({
         displayColor: text,
       );
 
-  TextStyle title(double size) => TextStyle(
+  TextStyle title(double size, {double? height}) => TextStyle(
     fontFamily: 'Bricolage Grotesque',
     fontSize: size,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.02 * size,
+    height: height,
     color: text,
   );
 
@@ -217,13 +360,15 @@ ThemeData buildTheme({
     // Screen titles: 34 on top-level screens, 28 with a back arrow, 26 in sheets.
     headlineLarge: title(34),
     headlineMedium: title(28),
-    headlineSmall: title(26),
+    headlineSmall: title(26, height: 1.15),
+    // Dialog titles and plan card titles.
+    titleLarge: title(22, height: 1.2),
     // Row title.
     titleMedium: body.titleMedium?.copyWith(
       fontSize: 16,
       fontWeight: FontWeight.w600,
     ),
-    // Row subtitle: use with FontStyle.italic and LibraryColors.muted.
+    // Row subtitle: use with FontStyle.italic.
     bodySmall: body.bodySmall?.copyWith(fontSize: 13.5, color: ext.muted),
     bodyMedium: body.bodyMedium?.copyWith(fontSize: 15.5, height: 1.45),
     // Section and field labels: uppercase, set in the widget.
@@ -233,6 +378,13 @@ ThemeData buildTheme({
       letterSpacing: 1.04,
       color: ext.muted,
     ),
+    // Chips, navigation items and small buttons.
+    labelMedium: body.labelMedium?.copyWith(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0,
+    ),
+    // Buttons.
     labelLarge: body.labelLarge?.copyWith(
       fontSize: 15,
       fontWeight: FontWeight.w600,
@@ -247,6 +399,7 @@ ThemeData buildTheme({
     scaffoldBackgroundColor: background,
     textTheme: textTheme,
     extensions: [ext],
+    splashFactory: InkSparkle.splashFactory,
     dividerTheme: DividerThemeData(color: ext.divider, thickness: 1, space: 1),
     appBarTheme: AppBarTheme(
       backgroundColor: background,
@@ -257,16 +410,21 @@ ThemeData buildTheme({
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: surface,
+      modalBarrierColor: ext.scrim,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: ext.dialog,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      barrierColor: ext.scrim,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        backgroundColor: accentFill,
+        foregroundColor: onFill,
         minimumSize: const Size.fromHeight(48),
         shape: const StadiumBorder(),
         textStyle: textTheme.labelLarge,
@@ -288,10 +446,20 @@ ThemeData buildTheme({
         textStyle: textTheme.labelLarge,
       ),
     ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(44, 44),
+        foregroundColor: ext.muted,
+      ),
+    ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: primary,
-      foregroundColor: onPrimary,
+      backgroundColor: accentFill,
+      foregroundColor: onFill,
       shape: const CircleBorder(),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: accentFill,
+      linearTrackColor: ext.selectedFill,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -302,14 +470,5 @@ ThemeData buildTheme({
         borderSide: BorderSide(color: outline),
       ),
     ),
-  );
-}
-
-/// Destructive button style: neutral fill with red text.
-ButtonStyle destructiveButtonStyle(BuildContext context) {
-  final c = LibraryColors.of(context);
-  return FilledButton.styleFrom(
-    backgroundColor: c.neutralFill,
-    foregroundColor: c.dangerText,
   );
 }

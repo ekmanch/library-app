@@ -22,6 +22,7 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 - Tick off items in `TODO.md` as they are completed. Add new items there when you find missing work, instead of doing unplanned work silently.
 - Phase 1 is UI only, on fixture data. Do not add networking, GitHub access or file writing before the phase that calls for it.
 - Linux desktop is a dev and test target only, not a shipping platform. Use it for `flutter test integration_test -d linux`; never add Linux-only features.
+- To look at a screen, run `flutter test integration_test/screenshots_test.dart -d linux`; it writes PNGs to `screenshots/` (git-ignored) from inside the app. Never capture the desktop with a system screenshot tool.
 - Ask before adding a package. Say what it is for and what the alternative is.
 - Ask before changing anything that DESIGN.md marks as settled. Proposals are welcome; silent changes are not.
 - UI text uses American spelling ("color", "favorite") and sentence case.
