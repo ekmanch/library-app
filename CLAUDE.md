@@ -13,7 +13,7 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 
 - **Never commit, amend, push, tag or create a branch unless I explicitly ask for it in that message.** Finishing a task is not a request to commit. A general instruction earlier in the conversation is not one either.
 - When a task is done, end your reply with a **suggested commit message** in a code block so I can use it myself.
-- Commit message style: short imperative subject, no trailing period, e.g. `Add artist list with alphabet rail`. One logical change per commit. Add a body only when the why is not obvious.
+- Commit message style: `type(scope): Subject (phase N)`. The type is one of feat, fix, doc, test, asset, git, chore; the scope names the area or file; the subject is short and imperative with no trailing period; the phase is the TODO.md phase the work belongs to, with its letter where there is one, e.g. `feat(music): Add artist list with alphabet rail (phase 1d)`. One logical change per commit. Add a body only when the why is not obvious.
 - Never touch the `ekmanch/library` data repo from this project except through the app's own sync code, and never during development unless I ask. Use the fixture file for testing.
 - Phases 0 and 1 never write to the data repo. Switching `ekmanch/library` from Markdown to JSON as the source of truth, including reversing its pre-commit hook so Markdown is generated from JSON, happens on a feature branch in that repo at the start of the wiring phase (TODO.md phase 3), and not before.
 
