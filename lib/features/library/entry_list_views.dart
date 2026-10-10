@@ -6,13 +6,14 @@ import '../../widgets/entry_row.dart';
 import '../settings/entry_view.dart';
 import 'cover_grid_tile.dart';
 import 'cover_placeholder.dart';
+import 'sectioned_list_body.dart';
 
 /// Row heights and grid metrics, shared with the jump rail so that section
 /// offsets can be computed without measuring.
 abstract final class EntryListMetrics {
   static const textRowHeight = 56.0;
   static const coverRowHeight = 76.0;
-  static const headerHeight = 40.0;
+  static const headerHeight = SectionedListBody.headerHeight;
   static const gridColumns = 3;
   static const gridCrossSpacing = 12.0;
   static const gridMainSpacing = 16.0;
@@ -47,6 +48,7 @@ List<Widget> entryListSlivers({
   required EntryView view,
   required void Function(Entry entry) onTap,
   DateTime? today,
+  String Function(Entry entry)? caption,
 }) {
   switch (view) {
     case EntryView.text:
@@ -93,6 +95,7 @@ List<Widget> entryListSlivers({
               itemBuilder: (context, i) => CoverGridTile(
                 entry: entries[i],
                 today: today,
+                caption: caption?.call(entries[i]),
                 onTap: () => onTap(entries[i]),
               ),
             ),

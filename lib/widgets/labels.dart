@@ -38,8 +38,8 @@ extension MediaTypeLabel on MediaType {
   };
 }
 
-/// "7 movies", "1 book", "3 anime". Music gets "entries" until the artist
-/// screens of phase 1d replace its list.
+/// "7 movies", "1 book", "3 anime". Music lists use [musicCountLabel]; in
+/// mixed contexts it falls back to "entries".
 String countLabel(MediaType type, int count) {
   final (one, many) = switch (type) {
     MediaType.movies => ('movie', 'movies'),
@@ -77,3 +77,23 @@ String creatorLabel(MediaType type) => switch (type) {
 /// "8 / 10", or "Not rated".
 String ratingLabel(int? rating) =>
     rating == null ? 'Not rated' : '$rating / 10';
+
+/// "3 albums, 2 songs", "1 song". Zero counts are left out; "0 albums" is
+/// returned only when both are zero.
+String albumsAndSongsLabel(int albums, int songs) {
+  final parts = [
+    if (albums > 0) '$albums ${albums == 1 ? 'album' : 'albums'}',
+    if (songs > 0) '$songs ${songs == 1 ? 'song' : 'songs'}',
+  ];
+  return parts.isEmpty ? '0 albums' : parts.join(', ');
+}
+
+/// The count line of the music list (A14): "17 artists, 13 albums, 5 songs".
+String musicCountLabel({
+  required int artists,
+  required int albums,
+  required int songs,
+}) =>
+    '$artists ${artists == 1 ? 'artist' : 'artists'}, '
+    '$albums ${albums == 1 ? 'album' : 'albums'}, '
+    '$songs ${songs == 1 ? 'song' : 'songs'}';

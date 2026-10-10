@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../data/models/entry.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/released.dart';
 
@@ -25,6 +26,44 @@ class LookupMatch {
   /// For a song: the album it is on.
   final String? album;
 }
+
+/// One track of an album's track list, as the lookup would return it.
+typedef TrackInfo = ({String id, String title});
+
+/// The cached track list of [album] (A22), or null when none is cached.
+/// Phase 5 fetches and caches these; until then two fixture albums have
+/// one, and the rest show only their rated tracks.
+List<TrackInfo>? fakeTrackList(Entry album) => _trackLists[album.id];
+
+const _trackLists = <String, List<TrackInfo>>{
+  'music/dirt-alice-in-chains': [
+    (id: 'mb:7c9a1', title: 'Them Bones'),
+    (id: 'mb:7c9a2', title: 'Dam That River'),
+    (id: 'mb:7c9a3', title: 'Rain When I Die'),
+    (id: 'mb:7c9a4', title: 'Down in a Hole'),
+    (id: 'mb:7c9a5', title: 'Sickman'),
+    (id: 'mb:7c9a7', title: 'Rooster'),
+    (id: 'mb:7c9a6', title: 'Junkhead'),
+    (id: 'mb:7c9a8', title: 'Dirt'),
+    (id: 'mb:7c9a9', title: 'God Smack'),
+    (id: 'mb:7c9a10', title: 'Iron Gland'),
+    (id: 'mb:7c9a11', title: 'Hate to Feel'),
+    (id: 'mb:7c9a12', title: 'Angry Chair'),
+    (id: 'mb:7c9a13', title: 'Would?'),
+  ],
+  'music/the-dark-side-of-the-moon-pink-floyd': [
+    (id: 'mb:dsotm01', title: 'Speak to Me'),
+    (id: 'mb:dsotm02', title: 'Breathe (In the Air)'),
+    (id: 'mb:dsotm03', title: 'On the Run'),
+    (id: 'mb:dsotm04', title: 'Time'),
+    (id: 'mb:dsotm05', title: 'The Great Gig in the Sky'),
+    (id: 'mb:dsotm06', title: 'Money'),
+    (id: 'mb:dsotm07', title: 'Us and Them'),
+    (id: 'mb:dsotm08', title: 'Any Colour You Like'),
+    (id: 'mb:dsotm09', title: 'Brain Damage'),
+    (id: 'mb:dsotm10', title: 'Eclipse'),
+  ],
+};
 
 /// Static matches for trying the new-entry flow without a network. Case
 /// does not matter; a query matches when the title contains it.

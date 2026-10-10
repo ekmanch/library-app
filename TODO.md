@@ -46,13 +46,14 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] A9 Delete confirmation
 
 ### 1d. Music
-- [ ] A14 Artists list: Artists / Albums / Songs toggle, letter headers, alphabet rail, "Various Artists" pinned last, leading "The" ignored when sorting
-- [ ] A16 View menu, A17 list with photos, A18 grid
-- [ ] A15 and A19 One artist: Albums and Songs sections, text and photo versions
-- [ ] Albums tab and Songs tab (flat lists)
-- [ ] A22 Album details with track ratings
-- [ ] Album / Song switch in the entry form, with the optional album field for songs
-- [ ] D12 and D13 Replace dialogs
+- [x] A14 Artists list: Artists / Albums / Songs toggle, letter headers, alphabet rail, "Various Artists" pinned last, leading "The" ignored when sorting
+- [x] A14 Music replaces the status segments and the sort link with the tab toggle and one count line ("17 artists, 13 albums, 5 songs"); the view choice is remembered per tab (added after the canvas revision)
+- [x] A16 View menu (shared since 1b), A17 list with photos, A18 grid
+- [x] A15 and A19 One artist: Albums and Songs sections, text and photo versions
+- [x] Albums tab and Songs tab (flat lists); the Songs tab lists song entries and rated tracks together
+- [x] A22 Album details with track ratings (static track lists for two fixture albums stand in for the lookup; other albums show only their rated tracks)
+- [x] Album / Song switch in the entry form, with the optional album field for songs
+- [x] D12 and D13 Replace dialogs
 
 ### 1e. Plans
 - [ ] S5 Plans overview

@@ -204,11 +204,14 @@ void main() {
     },
   );
 
-  testWidgets('music has no DNF segment', (tester) async {
+  testWidgets('music has artist tabs instead of status segments', (
+    tester,
+  ) async {
     await pumpApp(tester, const LibraryHomeScreen());
     await pickChip(tester, 'Music');
-    expect(inSegments('DNF'), findsNothing);
-    expect(inSegments('Done'), findsOneWidget);
+    expect(find.byType(StatusSegmentedControl), findsNothing);
+    expect(find.text('Artists'), findsOneWidget);
+    expect(find.text('Search music'), findsOneWidget);
   });
 
   testWidgets('an empty type shows its empty state', (tester) async {

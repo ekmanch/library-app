@@ -40,6 +40,29 @@ Future<void> capture(WidgetTester tester, String name) async {
   debugPrint('Wrote ${file.absolute.path}');
 }
 
+/// Scrolls the chip row (lazy, so a far chip is not built yet) and taps.
+Future<void> pickChip(WidgetTester tester, String label) async {
+  final chip = find.widgetWithText(PillChip, label);
+  final row = find.byWidgetPredicate(
+    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+  );
+  await tester.dragUntilVisible(
+    chip,
+    row,
+    Offset(label == 'All' ? 80 : -80, 0),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(chip);
+  await tester.pumpAndSettle();
+}
+
+Future<void> pickView(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('Change view'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -170,6 +193,65 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
+    // A14, A17, A18: the music tabs in the three views.
+    await pickChip(tester, 'Music');
+    await capture(tester, 'a14-music-artists');
+    await pickView(tester, 'List with photos');
+    await capture(tester, 'a17-music-list-photos');
+    await pickView(tester, 'Grid');
+    await capture(tester, 'a18-music-grid');
+    await pickView(tester, 'Text');
+
+    // A15: one artist; A22: an album with its tracks.
+    await tester.tap(find.text('Alice in Chains'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a15-artist');
+    await tester.tap(find.text('Dirt'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a22-album-details');
+    await tester.tapAt(const Offset(195, 30)); // Close the sheet.
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Albums'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a14-music-albums');
+    await tester.tap(find.text('Songs'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a14-music-songs');
+
+    // D12: saving an album whose song is already saved.
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fill in the details myself'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.hintText == 'Title',
+      ),
+      'Green River',
+    );
+    await tester.enterText(
+      find
+          .byWidgetPredicate(
+            (w) => w is TextField && w.decoration?.hintText == 'Optional',
+          )
+          .first,
+      'Creedence Clearwater Revival',
+    );
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-new-album');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd12-replace-songs');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
+
     // D8: home in light.
     final container = ProviderScope.containerOf(
       tester.element(find.text('Library').first),
@@ -249,5 +331,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('rail-dot-Shows')));
     await tester.pumpAndSettle();
     await capture(tester, 'l6-filtered-several-types');
+
+    // L3: the alphabet rail on a long artist list.
+    container.read(libraryFilterProvider.notifier).clear();
+    await tester.pumpAndSettle();
+    await pickChip(tester, 'Music');
+    await tester.tap(find.text('M'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'l3-rail-artists');
   });
 }

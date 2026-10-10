@@ -117,7 +117,7 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
 - Every artist with at least one album or song appears in the same list. The row says what is saved: "7 albums", "2 albums, 3 songs", "1 song".
 - Sorting ignores a leading "The" but displays the full name. Names starting with a digit go under "#".
 - "Various Artists" (today's "Compilations") is pinned at the very end, after Z.
-- An alphabet rail on the right jumps to a letter. It is present in all three views; the grid has no letter headers.
+- An alphabet rail on the right jumps to a letter, under the same rule as every long list (L1 to L6: three screens tall, two sections or more). The text and list views get letter headers; the grid has none and uses the fast-scroll thumb with its letter bubble instead.
 - **One artist** shows an Albums section, then a Songs section.
 - **A song entry** has an optional `album` text field, normally filled in by the lookup, shown as its subtitle ("Bad Music for Bad People · 1981").
 

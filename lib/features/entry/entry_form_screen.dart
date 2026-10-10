@@ -21,6 +21,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/segmented_control.dart';
 import 'lookup_matches.dart';
 import 'rating_sheet.dart';
+import 'replace_dialogs.dart';
 import 'tag_picker_sheet.dart';
 
 /// Opens the form (A8) for a new entry, prefilled from a lookup [match] or
@@ -50,7 +51,8 @@ Future<Entry?> openEditEntryForm(BuildContext context, Entry entry) {
 
 /// The add / edit entry form (A8). Saving applies [AddEntry] or
 /// [UpdateEntry], preceded by an [AddTag] for every tag created in the tag
-/// picker, and pops with the saved entry.
+/// picker, and pops with the saved entry. Saving an album whose songs are
+/// saved, or a song whose album is, asks first (D12, D13).
 class EntryFormScreen extends ConsumerStatefulWidget {
   const EntryFormScreen.edit(Entry this.entry, {super.key})
     : type = null,
@@ -238,10 +240,39 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     setState(() => _saving = true);
     final repository = ref.read(libraryRepositoryProvider);
     final library = await repository.load();
+    var entry = _buildEntry(library.entries.map((e) => e.id));
+    final replaced = <Entry>[];
+    if (entry.type == MediaType.music && mounted) {
+      final ReplaceChoice? choice;
+      if (entry.kind == MusicKind.song) {
+        final album = albumOfSong(library, entry);
+        choice = album == null
+            ? ReplaceChoice.keepBoth
+            : await showReplaceAlbumDialog(
+                context,
+                song: entry,
+                album: album,
+                adding: !widget.isEditing,
+              );
+        if (choice == ReplaceChoice.replace) replaced.add(album!);
+      } else {
+        final songs = songsFromAlbum(library, entry);
+        choice = songs.isEmpty
+            ? ReplaceChoice.keepBoth
+            : await showReplaceSongsDialog(context, album: entry, songs: songs);
+        if (choice == ReplaceChoice.replace) {
+          entry = absorbSongs(entry, songs);
+          replaced.addAll(songs);
+        }
+      }
+      if (choice == null) {
+        if (mounted) setState(() => _saving = false);
+        return;
+      }
+    }
     for (final MapEntry(key: name, value: category) in _newTags.entries) {
       if (_tags.contains(name)) await repository.apply(AddTag(name, category));
     }
-    final entry = _buildEntry(library.entries.map((e) => e.id));
     final Entry saved;
     if (widget.isEditing) {
       await repository.apply(UpdateEntry(entry));
@@ -249,6 +280,11 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     } else {
       final result = await repository.apply(AddEntry(entry));
       saved = result.entries.last;
+    }
+    // After the save, so tags shared with the replaced entries survive the
+    // pruning that a delete does.
+    for (final old in replaced) {
+      await repository.apply(DeleteEntry(old.id));
     }
     if (mounted) Navigator.pop(context, saved);
   }
@@ -302,6 +338,23 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                         ),
                     ],
                   ),
+                  if (_type == MediaType.music) ...[
+                    const SizedBox(height: 14),
+                    const FieldLabel('Album or song'),
+                    SegmentedControl<MusicKind>(
+                      segments: const [
+                        SegmentOption(MusicKind.album, 'Album'),
+                        SegmentOption(MusicKind.song, 'Song'),
+                      ],
+                      selected: _kind ?? MusicKind.album,
+                      onChanged: (kind) => setState(() {
+                        _kind = kind;
+                        if (!_statusOptions.contains(_status)) {
+                          _status = EntryStatus.want;
+                        }
+                      }),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

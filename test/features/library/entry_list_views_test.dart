@@ -9,16 +9,16 @@ import '../../helpers/sample_library.dart';
 void main() {
   test('grid captions and placeholder colors', () {
     final today = DateTime(2026);
-    expect(CoverGridTile.caption(mummy, today: today), '1999');
+    expect(CoverGridTile.statusCaption(mummy, today: today), '1999');
     expect(
-      CoverGridTile.caption(
+      CoverGridTile.statusCaption(
         mummy.copyWith(status: EntryStatus.want),
         today: today,
       ),
       'Want · 1999',
     );
     expect(
-      CoverGridTile.caption(
+      CoverGridTile.statusCaption(
         mummy.copyWith(status: EntryStatus.want, released: null),
         today: today,
       ),

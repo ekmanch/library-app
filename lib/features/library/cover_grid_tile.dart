@@ -11,11 +11,24 @@ import 'cover_placeholder.dart';
 /// One cell of the grid with covers (A21). A check badge on the cover means
 /// Done; other statuses are written under the title.
 class CoverGridTile extends StatelessWidget {
-  const CoverGridTile({super.key, required this.entry, this.onTap, this.today});
+  const CoverGridTile({
+    super.key,
+    required this.entry,
+    this.onTap,
+    this.today,
+    this.title,
+    this.caption,
+  });
 
   final Entry entry;
   final VoidCallback? onTap;
   final DateTime? today;
+
+  /// Shown instead of the entry's title, e.g. a rated track on its album.
+  final String? title;
+
+  /// Shown instead of the status caption, e.g. the artist for an album.
+  final String? caption;
 
   /// Fixed line boxes, so the grid can size its rows exactly whatever the
   /// platform's font metrics or text scale.
@@ -25,7 +38,7 @@ class CoverGridTile extends StatelessWidget {
   static const captionLineHeight = 16.0;
 
   /// "Want · 1999", "Want", or just "1999" when done.
-  static String caption(Entry entry, {DateTime? today}) {
+  static String statusCaption(Entry entry, {DateTime? today}) {
     final subtitle = entrySubtitle(entry, today: today);
     return [
       if (entry.status != EntryStatus.done) entry.status.label,
@@ -79,7 +92,7 @@ class CoverGridTile extends StatelessWidget {
             SizedBox(
               height: titleLineHeight,
               child: Text(
-                entry.title,
+                title ?? entry.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textScaler: TextScaler.noScaling,
@@ -93,7 +106,7 @@ class CoverGridTile extends StatelessWidget {
             SizedBox(
               height: captionLineHeight,
               child: Text(
-                caption(entry, today: today),
+                caption ?? statusCaption(entry, today: today),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textScaler: TextScaler.noScaling,

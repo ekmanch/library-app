@@ -99,6 +99,75 @@ void main() {
     expect(inSegments('DNF'), findsNothing);
   });
 
+  group('album tracks (A22)', () {
+    const dirt = 'music/dirt-alice-in-chains';
+
+    testWidgets('a cached track list is numbered, rated and collapsible', (
+      tester,
+    ) async {
+      final container = await open(tester, entryId: dirt);
+      expect(find.text('ALBUM · 1992'), findsOneWidget);
+      expect(find.text('Album rating'), findsOneWidget);
+      expect(find.text('TRACKS'), findsOneWidget);
+      expect(find.text('3 of 13 rated'), findsOneWidget);
+      expect(find.text('Them Bones'), findsOneWidget);
+      expect(
+        find.text('9 / 10'),
+        findsNWidgets(2),
+      ); // Them Bones, Down in a Hole.
+      expect(find.text('Rate'), findsNWidgets(3));
+      expect(find.text('Would?'), findsNothing);
+      await tester.ensureVisible(find.text('Show all 13 tracks'));
+      await tester.tap(find.text('Show all 13 tracks'));
+      await tester.pumpAndSettle();
+      expect(find.text('Would?'), findsOneWidget);
+      expect(find.text('Show all 13 tracks'), findsNothing);
+
+      await tester.ensureVisible(find.text('Dam That River'));
+      await tester.tap(find.text('Dam That River'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('5 out of 10'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      final tracks = repo(container).current!.entryById(dirt)!.tracks!;
+      expect(tracks.length, 4);
+      expect(tracks.last.title, 'Dam That River');
+      expect(tracks.last.id, 'mb:7c9a2');
+      expect(tracks.last.rating, 5);
+      expect(find.text('4 of 13 rated'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Rooster'));
+      await tester.tap(find.text('Rooster'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Clear rating'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(
+        repo(container).current!.entryById(dirt)!.tracks!.map((t) => t.title),
+        ['Them Bones', 'Down in a Hole', 'Dam That River'],
+      );
+    });
+
+    testWidgets('without a track list only the rated tracks show', (
+      tester,
+    ) async {
+      await open(tester, entryId: 'music/master-of-puppets-metallica');
+      expect(find.text('1 rated'), findsOneWidget);
+      expect(find.text('Master of Puppets'), findsNWidgets(2)); // Title, track.
+      expect(
+        find.text('The full track list needs a connection.'),
+        findsOneWidget,
+      );
+      expect(find.text('Rate'), findsNothing);
+    });
+
+    testWidgets('a song has no track list', (tester) async {
+      await open(tester, entryId: 'music/human-fly-the-cramps');
+      expect(find.text('TRACKS'), findsNothing);
+      expect(find.text('Rating'), findsOneWidget);
+    });
+  });
+
   testWidgets('changing the status applies at once', (tester) async {
     final container = await open(tester);
     await tester.tap(inSegments('Want'));

@@ -97,6 +97,24 @@ void main() {
     );
   });
 
+  testWidgets('music gets an Album / Song switch', (tester) async {
+    await pumpApp(tester, const EntryFormScreen.create(type: MediaType.music));
+    expect(find.text('Album or song'), findsOneWidget);
+    expect(find.text('Album'), findsOneWidget); // The segment only.
+    Finder inStatus(String label) => find.descendant(
+      of: find.byType(StatusSegmentedControl),
+      matching: find.text(label),
+    );
+    expect(inStatus('In progress'), findsOneWidget);
+    await tester.tap(find.text('Song'));
+    await tester.pumpAndSettle();
+    expect(find.text('Album'), findsNWidgets(2)); // Segment and field label.
+    expect(inStatus('In progress'), findsNothing);
+    await tester.tap(find.text('Movies'));
+    await tester.pumpAndSettle();
+    expect(find.text('Album or song'), findsNothing);
+  });
+
   testWidgets('a lookup match prefills the form and keeps its description', (
     tester,
   ) async {
@@ -120,7 +138,7 @@ void main() {
       tester,
       EntryFormScreen.create(match: fakeLookup('running up').single),
     );
-    expect(find.text('Album'), findsOneWidget);
+    expect(find.text('Album'), findsNWidgets(2)); // Segment and field label.
     expect(find.widgetWithText(TextField, 'Hounds of Love'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();

@@ -6,43 +6,21 @@ import '../../data/models/media_type.dart';
 import '../../widgets/labels.dart';
 import 'library_filter.dart';
 import 'library_sort.dart';
+import 'sectioned_list_body.dart';
 
-/// A run of consecutive entries in a sorted list that share a heading:
-/// a decade, a month added, or a first letter (A23 to A26).
-class EntrySection {
+/// A section of entries; see [ListSection].
+class EntrySection extends ListSection<Entry> {
   const EntrySection({
-    required this.label,
-    required this.railLabel,
-    required this.bubbleLabel,
-    required this.entries,
-    this.uppercaseHeader = true,
-    this.color,
-    this.dotColor,
-  });
+    required super.label,
+    required super.railLabel,
+    required super.bubbleLabel,
+    required List<Entry> entries,
+    super.uppercaseHeader,
+    super.color,
+    super.dotColor,
+  }) : super(items: entries);
 
-  /// The header above the rows: "2020s", "October 2026", "A".
-  final String label;
-
-  /// Headers are written in capitals like other section labels, except
-  /// decades: "1990S" reads wrong, so they stay "1990s".
-  final bool uppercaseHeader;
-
-  /// The header as shown.
-  String get headerText => uppercaseHeader ? label.toUpperCase() : label;
-
-  /// Header color; the list's type color when null.
-  final Color? color;
-
-  /// When set, the rail shows a dot of this color instead of [railLabel]
-  /// (L6: one dot per type in filtered results).
-  final Color? dotColor;
-
-  /// The short form on the rail: "20s", "Oct", "A".
-  final String railLabel;
-
-  /// The grid's drag label: "2020s", "Oct 2026", "A".
-  final String bubbleLabel;
-  final List<Entry> entries;
+  List<Entry> get entries => items;
 }
 
 const _months = [
@@ -130,11 +108,7 @@ EntrySection _keyOf(Entry entry, LibrarySort sort, DateTime now) {
         uppercaseHeader: decade.isOlder,
       );
     case LibrarySort.titleAz:
-      final slug = slugify(entry.title);
-      final first = slug.isEmpty ? '' : slug[0];
-      final letter = RegExp('[a-z]').hasMatch(first)
-          ? first.toUpperCase()
-          : '#';
+      final letter = titleLetter(entry.title);
       return EntrySection(
         label: letter,
         railLabel: letter,
@@ -171,4 +145,37 @@ List<EntrySection> sectionEntriesByType(
           dotColor: colorOf(type),
         ),
   ];
+}
+
+/// Sections by first letter of [titleOf], "#" for anything else, for an
+/// already title-sorted list. Used where the items are not all entries,
+/// like the Songs tab with its rated tracks.
+List<ListSection<T>> sectionsByTitle<T>(
+  List<T> sorted,
+  String Function(T item) titleOf,
+) {
+  final sections = <ListSection<T>>[];
+  ListSection<T>? open;
+  for (final item in sorted) {
+    final letter = titleLetter(titleOf(item));
+    if (open == null || open.label != letter) {
+      open = ListSection<T>(
+        label: letter,
+        railLabel: letter,
+        bubbleLabel: letter,
+        items: [],
+      );
+      sections.add(open);
+    }
+    open.items.add(item);
+  }
+  return sections;
+}
+
+/// "A" to "Z" for a title that starts with a letter once folded to ASCII,
+/// otherwise "#".
+String titleLetter(String title) {
+  final slug = slugify(title);
+  final first = slug.isEmpty ? '' : slug[0];
+  return RegExp('[a-z]').hasMatch(first) ? first.toUpperCase() : '#';
 }

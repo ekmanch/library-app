@@ -15,6 +15,8 @@ import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
+import '../music/artist_screen.dart';
+import '../music/music_type_body.dart';
 import '../plans/plan_progress.dart';
 import '../settings/display_preferences.dart';
 import '../settings/entry_view.dart';
@@ -34,8 +36,8 @@ import 'view_menu.dart';
 /// The library home (A1). On All it shows the active plan and two rows per
 /// type under tappable headings. With a type chip or heading picked it
 /// becomes that type's list in place (A4, A20, A21): status segments, count,
-/// sort and view. Also shows filtered results (A3) and the empty states of
-/// A10.
+/// sort and view; Music gets its artist, album and song tabs instead (A14).
+/// Also shows filtered results (A3) and the empty states of A10.
 class LibraryHomeScreen extends ConsumerStatefulWidget {
   const LibraryHomeScreen({
     super.key,
@@ -262,6 +264,14 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
             : '${type.label} you add will show up here.',
         actionLabel: 'Add ${type.singular.toLowerCase()}',
         onAction: () => widget.onAddEntry?.call(type: type),
+      );
+    }
+    if (type == MediaType.music) {
+      return MusicTypeBody(
+        entries: visible,
+        onOpenEntry: (entry) => widget.onOpenEntry?.call(entry),
+        onOpenArtist: (artist) =>
+            openArtistScreen(context, artist, onOpenEntry: widget.onOpenEntry),
       );
     }
     final shown = sortEntries(
