@@ -4,6 +4,7 @@ import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
 import 'package:library_app/features/library/cover_placeholder.dart';
+import 'package:library_app/features/library/entry_list_body.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
@@ -15,6 +16,8 @@ import 'package:library_app/widgets/chips.dart';
 import 'package:library_app/widgets/entry_row.dart';
 import 'package:library_app/widgets/section_heading.dart';
 import 'package:library_app/widgets/segmented_control.dart';
+
+import 'package:library_app/dev/long_lists.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/sample_library.dart';
@@ -366,5 +369,70 @@ void main() {
       find.bySemanticsLabel('Remove Seasonal-only included'),
       findsOneWidget,
     );
+  });
+
+  group('long filtered results', () {
+    final long = padForLongLists(fixture);
+
+    testWidgets('several types: type sections and a rail of dots', (
+      tester,
+    ) async {
+      final container = await pumpApp(
+        tester,
+        const LibraryHomeScreen(),
+        library: long,
+      );
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(const LibraryFilter(types: {MediaType.movies, MediaType.shows}));
+      await tester.pumpAndSettle();
+      expect(find.text('MOVIES'), findsOneWidget);
+      expect(find.byKey(EntryListBody.railKey), findsOneWidget);
+      expect(find.byKey(const ValueKey('rail-dot-Movies')), findsOneWidget);
+      expect(find.byKey(const ValueKey('rail-dot-Shows')), findsOneWidget);
+      expect(find.text('20s'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('rail-dot-Shows')));
+      await tester.pumpAndSettle();
+      expect(find.text('SHOWS'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('SHOWS')).dy, lessThan(400));
+    });
+
+    testWidgets('one type: sections follow the sort, rail of labels', (
+      tester,
+    ) async {
+      final container = await pumpApp(
+        tester,
+        const LibraryHomeScreen(),
+        library: long,
+      );
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(const LibraryFilter(types: {MediaType.movies}));
+      container
+          .read(displayPreferencesProvider.notifier)
+          .setFilteredSort(LibrarySort.yearNewest);
+      await tester.pumpAndSettle();
+      expect(find.text('MOVIES'), findsNothing);
+      expect(find.text('2020s'), findsOneWidget);
+      expect(find.text('20s'), findsOneWidget);
+      expect(find.byKey(const ValueKey('rail-dot-Movies')), findsNothing);
+      // With the chip row hidden, search is not scoped to a chip.
+      container.read(homeTypeProvider.notifier).set(MediaType.books);
+      await tester.pumpAndSettle();
+      expect(find.text('Search titles and tags'), findsOneWidget);
+    });
+
+    testWidgets('a short filtered list keeps type headings and no rail', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(const LibraryFilter(types: {MediaType.movies}));
+      await tester.pumpAndSettle();
+      expect(find.text('MOVIES'), findsOneWidget);
+      expect(find.byKey(EntryListBody.railKey), findsNothing);
+    });
   });
 }

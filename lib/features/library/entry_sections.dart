@@ -1,5 +1,9 @@
+import 'dart:ui' show Color;
+
 import '../../data/models/entry.dart';
 import '../../data/models/entry_id.dart';
+import '../../data/models/media_type.dart';
+import '../../widgets/labels.dart';
 import 'library_filter.dart';
 import 'library_sort.dart';
 
@@ -12,6 +16,8 @@ class EntrySection {
     required this.bubbleLabel,
     required this.entries,
     this.uppercaseHeader = true,
+    this.color,
+    this.dotColor,
   });
 
   /// The header above the rows: "2020s", "October 2026", "A".
@@ -23,6 +29,13 @@ class EntrySection {
 
   /// The header as shown.
   String get headerText => uppercaseHeader ? label.toUpperCase() : label;
+
+  /// Header color; the list's type color when null.
+  final Color? color;
+
+  /// When set, the rail shows a dot of this color instead of [railLabel]
+  /// (L6: one dot per type in filtered results).
+  final Color? dotColor;
 
   /// The short form on the rail: "20s", "Oct", "A".
   final String railLabel;
@@ -139,3 +152,23 @@ bool showJumpRail({
   required double contentHeight,
   required double viewportHeight,
 }) => sectionCount >= 2 && contentHeight >= 3 * viewportHeight;
+
+/// Filtered results with several types (A3, L6): one section per type, in
+/// type order, each with its color for the header and the rail dot.
+List<EntrySection> sectionEntriesByType(
+  List<Entry> sorted,
+  Color Function(MediaType type) colorOf,
+) {
+  return [
+    for (final type in MediaType.values)
+      if (sorted.any((e) => e.type == type))
+        EntrySection(
+          label: type.label,
+          railLabel: type.label,
+          bubbleLabel: type.label,
+          entries: sorted.where((e) => e.type == type).toList(),
+          color: colorOf(type),
+          dotColor: colorOf(type),
+        ),
+  ];
+}

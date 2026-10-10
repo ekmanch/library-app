@@ -28,6 +28,8 @@ class EntryListBody extends StatefulWidget {
     required this.onTap,
     this.today,
     this.bottomPadding = AppShell.contentBottomPadding,
+    this.railSections,
+    this.plainSections,
   });
 
   /// Already sorted by [sort].
@@ -42,6 +44,14 @@ class EntryListBody extends StatefulWidget {
 
   /// Space kept clear of the floating navigation; the rail ends above it.
   final double bottomPadding;
+
+  /// The sections behind the rail. By default they follow [sort]; filtered
+  /// results with several types pass one section per type (L6).
+  final List<EntrySection>? railSections;
+
+  /// Sections to show with headers when the list is too short for a rail
+  /// (A3 groups filtered results by type). Null means a flat list.
+  final List<EntrySection>? plainSections;
 
   static const thumbKey = Key('fast-scroll-thumb');
   static const railKey = Key('jump-rail');
@@ -146,11 +156,9 @@ class _EntryListBodyState extends State<EntryListBody> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth - 40;
-        final sections = sectionEntries(
-          widget.entries,
-          widget.sort,
-          today: widget.today,
-        );
+        final sections =
+            widget.railSections ??
+            sectionEntries(widget.entries, widget.sort, today: widget.today);
         final isGrid = widget.view == EntryView.grid;
         final count = widget.entries.length;
         final rowExtent = isGrid
@@ -172,14 +180,17 @@ class _EntryListBodyState extends State<EntryListBody> {
 
         if (!rail) {
           _sectionTops = const [];
+          final plain = widget.plainSections;
           return _scrollView(
             rightPadding: 20,
-            slivers: entryListSlivers(
-              entries: widget.entries,
-              view: widget.view,
-              onTap: widget.onTap,
-              today: widget.today,
-            ),
+            slivers: plain == null || isGrid
+                ? entryListSlivers(
+                    entries: widget.entries,
+                    view: widget.view,
+                    onTap: widget.onTap,
+                    today: widget.today,
+                  )
+                : _sectionedSlivers(plain, rowExtent),
           );
         }
 
@@ -211,31 +222,7 @@ class _EntryListBodyState extends State<EntryListBody> {
           children: [
             _scrollView(
               rightPadding: 48,
-              slivers: [
-                for (final section in sections) ...[
-                  SliverToBoxAdapter(
-                    child: _SectionHeader(
-                      section.headerText,
-                      color: widget.color,
-                    ),
-                  ),
-                  SliverFixedExtentList.builder(
-                    itemExtent: rowExtent,
-                    itemCount: section.entries.length,
-                    itemBuilder: (context, i) {
-                      final entry = section.entries[i];
-                      return EntryRow.forEntry(
-                        entry,
-                        today: widget.today,
-                        onTap: () => widget.onTap(entry),
-                        leading: widget.view == EntryView.listWithPhotos
-                            ? CoverPlaceholder(entry: entry, width: 40)
-                            : null,
-                      );
-                    },
-                  ),
-                ],
-              ],
+              slivers: _sectionedSlivers(sections, rowExtent),
             ),
             Positioned(
               top: 0,
@@ -248,6 +235,38 @@ class _EntryListBodyState extends State<EntryListBody> {
         );
       },
     );
+  }
+
+  /// A header and fixed-height rows per section.
+  List<Widget> _sectionedSlivers(
+    List<EntrySection> sections,
+    double rowExtent,
+  ) {
+    return [
+      for (final section in sections) ...[
+        SliverToBoxAdapter(
+          child: _SectionHeader(
+            section.headerText,
+            color: section.color ?? widget.color,
+          ),
+        ),
+        SliverFixedExtentList.builder(
+          itemExtent: rowExtent,
+          itemCount: section.entries.length,
+          itemBuilder: (context, i) {
+            final entry = section.entries[i];
+            return EntryRow.forEntry(
+              entry,
+              today: widget.today,
+              onTap: () => widget.onTap(entry),
+              leading: widget.view == EntryView.listWithPhotos
+                  ? CoverPlaceholder(entry: entry, width: 40)
+                  : null,
+            );
+          },
+        ),
+      ],
+    ];
   }
 
   List<double> _tops(
@@ -300,7 +319,6 @@ class _EntryListBodyState extends State<EntryListBody> {
   }
 
   Widget _rail(List<EntrySection> sections) {
-    final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -324,30 +342,21 @@ class _EntryListBodyState extends State<EntryListBody> {
               children: [
                 for (var i = 0; i < sections.length; i++)
                   Expanded(
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(minWidth: 28),
-                        height: pillHeight,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: i == _current
-                              ? colors.selectedFill
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: Text(
-                          sections[i].railLabel,
-                          maxLines: 1,
-                          softWrap: false,
-                          style: theme.textTheme.labelSmall!.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0,
+                    child: Semantics(
+                      label: sections[i].label,
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 28),
+                          height: pillHeight,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
                             color: i == _current
-                                ? theme.colorScheme.onSurface
-                                : colors.muted,
+                                ? colors.selectedFill
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(11),
                           ),
+                          child: _railCell(sections[i], i == _current),
                         ),
                       ),
                     ),
@@ -357,6 +366,33 @@ class _EntryListBodyState extends State<EntryListBody> {
           ),
         );
       },
+    );
+  }
+
+  /// A short label, or a type dot that grows a little when current (L6).
+  Widget _railCell(EntrySection section, bool current) {
+    final theme = Theme.of(context);
+    final colors = LibraryColors.of(context);
+    final dot = section.dotColor;
+    if (dot != null) {
+      final size = current ? 12.0 : 10.0;
+      return Container(
+        key: ValueKey('rail-dot-${section.label}'),
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+      );
+    }
+    return Text(
+      section.railLabel,
+      maxLines: 1,
+      softWrap: false,
+      style: theme.textTheme.labelSmall!.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0,
+        color: current ? theme.colorScheme.onSurface : colors.muted,
+      ),
     );
   }
 

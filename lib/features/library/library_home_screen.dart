@@ -17,9 +17,11 @@ import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
 import '../plans/plan_progress.dart';
 import '../settings/display_preferences.dart';
+import '../settings/entry_view.dart';
 import '../shell/app_shell.dart';
 import 'active_plan_card.dart';
 import 'entry_list_body.dart';
+import 'entry_sections.dart';
 import 'filter_sheet.dart';
 import 'home_type_provider.dart';
 import 'library_filter.dart';
@@ -71,7 +73,11 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
   }
 
   Future<void> _openSearch() async {
-    final type = ref.read(homeTypeProvider);
+    // The chip row is hidden while a filter is active, so search is scoped
+    // to the picked type only when the chip can be seen.
+    final type = ref.read(libraryFilterProvider).isActive
+        ? null
+        : ref.read(homeTypeProvider);
     // Full screen, above the floating navigation (A5 has none).
     final tag = await Navigator.of(context, rootNavigator: true).push<String>(
       MaterialPageRoute(
@@ -108,10 +114,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
         ),
       );
     } else if (filter.isActive) {
-      body = ListView(
-        padding: const EdgeInsets.only(bottom: AppShell.contentBottomPadding),
-        children: _filteredChildren(library, filter, prefs, colors),
-      );
+      body = _filtered(library, filter, prefs, colors);
     } else if (type == null) {
       body = _allTypes(library, filter, colors);
     } else {
@@ -133,7 +136,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
               child: _SearchRow(
-                hint: searchHint(type),
+                hint: searchHint(filter.isActive ? null : type),
                 filterCount: filter.count,
                 onSearch: _openSearch,
                 onFilters: library == null ? null : () => _openFilters(library),
@@ -321,7 +324,9 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     );
   }
 
-  List<Widget> _filteredChildren(
+  /// Filtered results (A3): removable chips and the count stay put, the
+  /// rows scroll. Grouped by type; a long list gets a rail (L5, L6).
+  Widget _filtered(
     Library library,
     LibraryFilter filter,
     DisplayPreferences prefs,
@@ -332,84 +337,85 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       filter.apply(library.entries),
       prefs.filteredSort,
     );
-    final sections = <Widget>[];
-    for (final type in MediaType.values) {
-      final entries = matching.where((e) => e.type == type).toList();
-      if (entries.isEmpty) continue;
-      sections.add(SectionHeading(type.label, color: colors.forType(type)));
-      for (final entry in entries) {
-        sections.add(
-          EntryRow.forEntry(
-            entry,
-            onTap: () => widget.onOpenEntry?.call(entry),
-          ),
-        );
-      }
-    }
+    final types = matching.map((e) => e.type).toSet();
+    final byType = sectionEntriesByType(matching, colors.forType);
 
-    return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            for (final chip in filter.chips)
-              RemovableChip(
-                label: chip.label,
-                onRemove: () =>
-                    ref.read(libraryFilterProvider.notifier).remove(chip),
-              ),
-            TextButton(
-              onPressed: () => ref.read(libraryFilterProvider.notifier).clear(),
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                textStyle: theme.textTheme.labelMedium,
-              ),
-              child: const Text('Clear all'),
-            ),
-          ],
-        ),
-      ),
-      if (matching.isEmpty)
-        EmptyState(
-          icon: AppIcons.filters,
-          title: 'Nothing matches these filters',
-          body: 'Remove a filter to see more.',
-          actionLabel: 'Clear filters',
-          onAction: () => ref.read(libraryFilterProvider.notifier).clear(),
-        )
-      else ...[
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(
-                child: Text(
-                  '${matching.length} ${matching.length == 1 ? 'entry' : 'entries'}',
-                  style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
+              for (final chip in filter.chips)
+                RemovableChip(
+                  label: chip.label,
+                  onRemove: () =>
+                      ref.read(libraryFilterProvider.notifier).remove(chip),
                 ),
-              ),
-              SortButton(
-                current: prefs.filteredSort,
-                onChanged: (sort) => ref
-                    .read(displayPreferencesProvider.notifier)
-                    .setFilteredSort(sort),
+              TextButton(
+                onPressed: () =>
+                    ref.read(libraryFilterProvider.notifier).clear(),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  textStyle: theme.textTheme.labelMedium,
+                ),
+                child: const Text('Clear all'),
               ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: sections,
+        if (matching.isEmpty)
+          EmptyState(
+            icon: AppIcons.filters,
+            title: 'Nothing matches these filters',
+            body: 'Remove a filter to see more.',
+            actionLabel: 'Clear filters',
+            onAction: () => ref.read(libraryFilterProvider.notifier).clear(),
+          )
+        else ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${matching.length} ${matching.length == 1 ? 'entry' : 'entries'}',
+                    style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
+                  ),
+                ),
+                SortButton(
+                  current: prefs.filteredSort,
+                  onChanged: (sort) => ref
+                      .read(displayPreferencesProvider.notifier)
+                      .setFilteredSort(sort),
+                ),
+              ],
+            ),
           ),
-        ),
+          Expanded(
+            child: EntryListBody(
+              key: ValueKey(filter),
+              entries: matching,
+              sort: prefs.filteredSort,
+              view: EntryView.text,
+              // One type: sections follow the sort in that type's color
+              // (L5). Several: one section per type with a dot rail (L6).
+              color: types.length == 1
+                  ? colors.forType(types.single)
+                  : colors.muted,
+              railSections: types.length == 1 ? null : byType,
+              plainSections: byType,
+              onTap: (entry) => widget.onOpenEntry?.call(entry),
+            ),
+          ),
+        ],
       ],
-    ];
+    );
   }
 }
 

@@ -37,7 +37,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 |---|---|---|
 | A1 | Library home | Type chips; active plan card; two entries per type under a heading that shows the type's count. Rows are ordered In progress, then Want (newest added), then Done, then DNF. Tapping a heading or a chip picks that type, and the home becomes the type's list in place (A4) with no separate screen: status segments, count, sort and view replace the plan card and the headings, and the search hint becomes "Search movies". Picking a type resets the status segment to All. The active plan is the first plan with items that are not all done; finished plans live on S5. Seasonal-only entries are hidden from the home, the type lists and filtered results unless the switch in A2 is on; search still finds them. |
 | A2 | Filter sheet | Type, Status, Released, Tags. Within Type, Status and Released any choice matches; all selected tags must match. Tags are in collapsible groups by category. Released is a scrolling row built from the library: one chip per decade from the earliest to the latest decade that has an entry, gaps filled in so the row never jumps, plus Older when anything is from before 1960. A new decade appears as soon as an entry from it exists. Has an "Include seasonal-only" switch; when on it counts as one active filter and shows as a removable chip. |
-| A3 | Filtered results | Removable chips for active filters |
+| A3 | Filtered results | Removable chips and the count stay put; the rows scroll, grouped by type. Long results get a rail (L5, L6). |
 | A4 | Type picked, text view | The home with a type chip picked: status segments, count, sort link, view button. A status with nothing in it shows one line, "Nothing marked want yet." |
 | A5 | Search | |
 | A6 | Entry details sheet | Cover spot, status, rating row, Note, About, tags, plans, Edit, Delete |
@@ -45,7 +45,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A8 | Add / edit entry | Rating row opens D11. Tag picker is the only place tags are created. |
 | A9 | Delete confirmation | |
 | A10 | Empty states | |
-| A11 | First-time setup | Connect to the GitHub repo |
+| A11 | First-time setup | Replaced by the F row |
 | A12 | Sync and errors | |
 | A13 | New entry: pick a match | A new entry starts here, then opens A8 prefilled. "Fill in the details myself" skips the lookup. |
 | A14 | Music by artist, text view | See section 5 |
@@ -57,8 +57,10 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A20 | Type picked, list with covers | |
 | A21 | Type picked, grid with covers | Check badge on the cover means Done; other statuses are written under the title |
 | A22 | Album details with track ratings | See section 5 |
-| A23, A24, A25 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
-| A26 | Long grid with fast scroll | Same rule. The grid keeps no headers; a thumb on the right appears while scrolling and can be dragged, and while dragging a bubble names the section at the top of the screen. |
+| L1, L2, L3 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
+| L4 | Long grid with fast scroll | Same rule. The grid keeps no headers; a thumb on the right appears while scrolling and can be dragged, and a bubble next to it names the section at the top of the screen. |
+| L5 | Filtered results, one type | Same rule. When every result is of one type, sections follow the sort, headers in that type's color, rail of short labels. |
+| L6 | Filtered results, several types | Same rule. One section per type in type order, headers in the type colors, and the rail shows one colored dot per type instead of labels; the current dot is a little larger. A short result list keeps its type headings and no rail. |
 
 ### Plans (S row)
 
@@ -70,7 +72,7 @@ A plan is a named list of entries, for example "Halloween 2026". Plans replace t
 | S2 | Timeline view | Chronological, with a rail on the left that fills up to today. No highlight on the last item. |
 | S4 | All entries matching the plan's tags | Add, edit, remove |
 | S5 | Plans overview | |
-| S6 | Settings | Theme, accent color, timeline default, seasonal theme default |
+| S6 | Settings | Theme, accent color, timeline default, seasonal theme default; an About row with the app name and version |
 | S7 | Entry details in a plan, timeline on | Has a "When" row (D2) and a plan note |
 | S8 | Entry details in a plan, timeline off | No "When" row |
 | S9 | Edit plan | |
@@ -104,6 +106,10 @@ Plan rules:
 | D12 | Saving an album when songs from it are saved |
 | D13 | Saving a song when its album is saved |
 
+### First run (F row)
+
+Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 Splash, F2 Welcome to Libri, F3 Connect GitHub, F4 Your library file: new or existing, F5 Create a new library, F6 Pick an existing file, F7 All set. They replace A11.
+
 ## 5. Music
 
 - Music is tracked at album level. A single song can also be an entry (`kind: "song"`).
@@ -135,7 +141,7 @@ Plan rules:
 - The choice is remembered per type, and for music per tab. It is stored on the device.
 - Artist photos are round. Covers are poster-shaped for movies, shows, books and anime, and square for albums. The games shape is open.
 - With the text view chosen, detail screens stay text-only (A15). With a photo view chosen, they show images (A19).
-- Long lists (three screens or more, two sections or more) get section headers and a jump rail, or a fast-scroll thumb in the grid; see A23 to A26.
+- Long lists (three screens or more, two sections or more) get section headers and a jump rail, or a fast-scroll thumb in the grid; see L1 to L6.
 
 ## 7. Tags
 

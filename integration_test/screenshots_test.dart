@@ -15,7 +15,11 @@ import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/dev/long_lists.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
+import 'package:library_app/features/library/library_filter.dart';
+import 'package:library_app/features/library/library_filter_provider.dart';
+import 'package:library_app/features/library/library_sort.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
@@ -128,7 +132,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(PillChip, 'Movies'));
     await tester.pumpAndSettle();
-    await capture(tester, 'a24-rail-newest-added');
+    await capture(tester, 'l2-rail-newest-added');
 
     await tester.tap(find.text('Newest added'));
     await tester.pumpAndSettle();
@@ -137,7 +141,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('90s'));
     await tester.pumpAndSettle();
-    await capture(tester, 'a23-rail-year');
+    await capture(tester, 'l1-rail-year');
 
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
@@ -147,8 +151,34 @@ void main() {
     await tester.pump();
     await gesture.moveTo(const Offset(372, 520));
     await tester.pump(const Duration(milliseconds: 250));
-    await capture(tester, 'a26-grid-thumb');
+    await capture(tester, 'l4-grid-thumb');
     await gesture.up();
     await tester.pumpAndSettle();
+
+    // L5 and L6: filtered results, one type and several types.
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Library').first),
+    );
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(const LibraryFilter(types: {MediaType.movies}));
+    container
+        .read(displayPreferencesProvider.notifier)
+        .setFilteredSort(LibrarySort.yearNewest);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('00s'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'l5-filtered-one-type');
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(const LibraryFilter(tags: {'halloween'}, types: {}));
+    await tester.pumpAndSettle();
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(const LibraryFilter(types: {MediaType.movies, MediaType.shows}));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('rail-dot-Shows')));
+    await tester.pumpAndSettle();
+    await capture(tester, 'l6-filtered-several-types');
   });
 }

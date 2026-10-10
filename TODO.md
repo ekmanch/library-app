@@ -32,8 +32,9 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] A3 Filtered results with removable chips
 - [x] A5 Search
 - [x] A10 Empty states
-- [x] A23, A24, A25 Long lists: section headers (decade, month added, letter) with a jump rail on the right in the text and list views, shown when the list is three screens tall or more and has two sections or more
-- [x] A26 Long grid: draggable thumb with a label bubble instead of headers, same rule
+- [x] L1, L2, L3 Long lists: section headers (decade, month added, letter) with a jump rail on the right in the text and list views, shown when the list is three screens tall or more and has two sections or more
+- [x] L4 Long grid: draggable thumb with a label bubble instead of headers, same rule
+- [x] L5, L6 Long filtered results: sections by sort for one type, by type with a dot rail for several
 
 ### 1c. Entry details and editing
 - [ ] A6 Entry details sheet: cover spot, status, rating row, note, about, tags, plans, edit, delete
@@ -65,9 +66,9 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [ ] S11 and S12 Seasonal themes (Halloween, Christmas): strip, title icon, progress marker, seasonal accent
 
 ### 1f. Settings and states
-- [ ] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default
+- [ ] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version)
 - [ ] D6 Library connection (UI only)
-- [ ] A11 First-time setup (UI only)
+- [ ] F1 to F7 First run (UI only): splash, welcome, connect GitHub, new or existing library file, create, pick, all set (replaces A11)
 - [ ] A12 Sync and error banners, D7 First load (driven by fake states)
 - [ ] D8 Light theme pass over every screen
 
@@ -97,7 +98,7 @@ Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
 
 ## Phase 4: GitHub sync
 
-- [ ] A11 First-time setup for real: token and repo, stored in secure storage
+- [ ] F3 to F6 First run for real: token and repo, stored in secure storage
 - [ ] `GitHubLibraryRepository`: read with a conditional request, always in raw format
 - [ ] Show cached data first, then refresh on open, on resume, on pull-to-refresh, and on tab switch after 5 minutes
 - [ ] Save: bundle edits for 2 to 3 seconds into one commit with a readable message ("Mark The Mummy as done")
