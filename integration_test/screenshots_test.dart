@@ -182,12 +182,24 @@ void main() {
     // A13: a new entry, picking a match.
     await tester.tap(find.byType(AddButton));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Carrie');
+    await tester.enterText(find.byType(TextField), 'The Last of Us');
     await tester.pumpAndSettle();
     await capture(tester, 'a13-new-entry');
-    await tester.tap(find.text('BOOK · 1974'));
+    await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
     await capture(tester, 'a8-new-entry');
+    await tester.scrollUntilVisible(
+      find.text('Suggested · tap to add'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-new-entry-tags');
+    await tester.tap(find.widgetWithText(TagChip, '#horror'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd14-tag-picker');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));

@@ -70,6 +70,17 @@ void main() {
     expect(rowTitled('Carrie'), findsNWidgets(4));
     expect(find.text('MOVIE · 1976'), findsOneWidget);
     expect(find.text('Brian De Palma'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Naughty Dog · PlayStation 3, PlayStation 4, PlayStation 5, PC',
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(find.byType(TextField), 'Carrie');
+    await tester.pumpAndSettle();
     expect(find.text('Not listed?'), findsOneWidget);
 
     await pickChip(tester, 'Books');
@@ -115,7 +126,7 @@ void main() {
     await tester.tap(find.text('Fill in the details myself'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Zelda'), findsOneWidget);
-    expect(find.text('Platform'), findsOneWidget);
+    expect(find.text('Platforms'), findsOneWidget);
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Fill in the details myself'), findsOneWidget);

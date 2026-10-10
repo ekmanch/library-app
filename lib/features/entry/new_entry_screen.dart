@@ -235,6 +235,7 @@ class _MatchRow extends StatelessWidget {
     final subtitle = [
       ?match.creator,
       ?match.album,
+      if (match.platforms.isNotEmpty) match.platforms.join(', '),
     ].where((s) => s.isNotEmpty).join(' · ');
     return InkWell(
       onTap: onTap,

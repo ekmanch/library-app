@@ -15,6 +15,9 @@ class LookupMatch {
     this.creator,
     this.description = '',
     this.album,
+    this.platforms = const [],
+    this.tags = const [],
+    this.source,
   });
 
   final MediaType type;
@@ -25,6 +28,16 @@ class LookupMatch {
 
   /// For a song: the album it is on.
   final String? album;
+
+  /// For a game: the platforms it is out on, as the lookup lists them.
+  final List<String> platforms;
+
+  /// Tag names the lookup suggests (genres, themes). The form matches them
+  /// to the library's tags and offers the rest as new ones.
+  final List<String> tags;
+
+  /// Where the details came from: "TMDB", "IGDB" and so on.
+  final String? source;
 }
 
 /// One track of an album's track list, as the lookup would return it.
@@ -81,11 +94,59 @@ List<LookupMatch> fakeLookup(String query, {MediaType? type}) {
 
 const _catalog = <LookupMatch>[
   LookupMatch(
+    type: MediaType.games,
+    title: 'The Last of Us',
+    released: Released(2013, 6, 14),
+    creator: 'Naughty Dog',
+    description: 'Joel and Ellie cross a ruined United States.',
+    platforms: ['PlayStation 3', 'PlayStation 4', 'PlayStation 5', 'PC'],
+    tags: [
+      'horror',
+      'adventure',
+      'post-apocalyptic',
+      'stealth',
+      'survival',
+      'zombies',
+    ],
+    source: 'IGDB',
+  ),
+  LookupMatch(
+    type: MediaType.games,
+    title: 'The Last of Us Part II',
+    released: Released(2020, 6, 19),
+    creator: 'Naughty Dog',
+    description: 'Five years on, Ellie sets out for Seattle.',
+    platforms: ['PlayStation 4', 'PlayStation 5', 'PC'],
+    tags: ['adventure', 'post-apocalyptic', 'stealth', 'survival'],
+    source: 'IGDB',
+  ),
+  LookupMatch(
+    type: MediaType.shows,
+    title: 'The Last of Us',
+    released: Released(2023),
+    creator: 'Craig Mazin, Neil Druckmann',
+    description: 'The HBO adaptation of the game.',
+    tags: ['drama', 'horror', 'post-apocalyptic'],
+    source: 'TMDB',
+  ),
+  LookupMatch(
+    type: MediaType.games,
+    title: 'The Last of Us: Left Behind',
+    released: Released(2014, 2, 14),
+    creator: 'Naughty Dog',
+    description: 'A standalone chapter about Ellie and Riley.',
+    platforms: ['PlayStation 3', 'PlayStation 4'],
+    tags: ['adventure', 'post-apocalyptic'],
+    source: 'IGDB',
+  ),
+  LookupMatch(
     type: MediaType.shows,
     title: 'Carrie',
     released: Released(2026),
     creator: 'Mike Flanagan',
     description: 'A limited series take on the Stephen King novel.',
+    tags: ['horror', 'drama'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -94,6 +155,8 @@ const _catalog = <LookupMatch>[
     creator: 'Kimberly Peirce',
     description:
         'A shy teenager with telekinetic powers is pushed too far at prom.',
+    tags: ['horror', 'drama'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -102,6 +165,8 @@ const _catalog = <LookupMatch>[
     creator: 'Brian De Palma',
     description:
         'A sheltered girl discovers her powers after a cruel prank at prom.',
+    tags: ['horror', 'classic'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.books,
@@ -111,6 +176,8 @@ const _catalog = <LookupMatch>[
     description:
         "Stephen King's first novel, told through clippings and "
         'testimony.',
+    tags: ['horror', 'stephen-king'],
+    source: 'Open Library',
   ),
   LookupMatch(
     type: MediaType.books,
@@ -118,6 +185,8 @@ const _catalog = <LookupMatch>[
     released: Released(1965),
     creator: 'Frank Herbert',
     description: 'Paul Atreides and the desert planet Arrakis.',
+    tags: ['sci-fi', 'epic', 'classic'],
+    source: 'Open Library',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -125,6 +194,8 @@ const _catalog = <LookupMatch>[
     released: Released(1984),
     creator: 'David Lynch',
     description: "David Lynch's adaptation of the Frank Herbert novel.",
+    tags: ['sci-fi', 'epic', 'cult'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -134,6 +205,8 @@ const _catalog = <LookupMatch>[
     description:
         'The first half of the novel, from Caladan to the deep '
         'desert.',
+    tags: ['sci-fi', 'epic', 'adventure'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.games,
@@ -141,6 +214,9 @@ const _catalog = <LookupMatch>[
     released: Released(2025, 6, 10),
     creator: 'Funcom',
     description: 'An open-world survival game set on Arrakis.',
+    platforms: ['PC'],
+    tags: ['survival', 'sci-fi', 'open-world'],
+    source: 'IGDB',
   ),
   LookupMatch(
     type: MediaType.anime,
@@ -148,6 +224,8 @@ const _catalog = <LookupMatch>[
     released: Released(1988),
     creator: 'Katsuhiro Otomo',
     description: 'A biker gang, a secret military project and Neo-Tokyo.',
+    tags: ['2d', 'scifi', 'cyberpunk', 'classic'],
+    source: 'AniList',
   ),
   LookupMatch(
     type: MediaType.books,
@@ -155,20 +233,8 @@ const _catalog = <LookupMatch>[
     released: Released(1982),
     creator: 'Katsuhiro Otomo',
     description: 'The manga the film was drawn from.',
-  ),
-  LookupMatch(
-    type: MediaType.games,
-    title: 'The Last of Us',
-    released: Released(2013),
-    creator: 'Naughty Dog',
-    description: 'Joel and Ellie cross a ruined United States.',
-  ),
-  LookupMatch(
-    type: MediaType.shows,
-    title: 'The Last of Us',
-    released: Released(2023),
-    creator: 'Craig Mazin',
-    description: 'The HBO adaptation of the game.',
+    tags: ['manga', 'scifi', 'cyberpunk'],
+    source: 'Open Library',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -176,6 +242,8 @@ const _catalog = <LookupMatch>[
     released: Released(1982),
     creator: 'Ridley Scott',
     description: 'A blade runner hunts four replicants in 2019 Los Angeles.',
+    tags: ['sci-fi', 'neo-noir', 'classic', 'dark'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.movies,
@@ -185,6 +253,8 @@ const _catalog = <LookupMatch>[
     description:
         'A new blade runner unearths a secret that could end '
         'everything.',
+    tags: ['sci-fi', 'neo-noir', 'melancholic'],
+    source: 'TMDB',
   ),
   LookupMatch(
     type: MediaType.anime,
@@ -192,6 +262,8 @@ const _catalog = <LookupMatch>[
     released: Released(1997),
     creator: 'Satoshi Kon',
     description: 'A pop idol turned actress loses her grip on what is real.',
+    tags: ['2d', 'thriller', 'psychological', 'dark'],
+    source: 'AniList',
   ),
   LookupMatch(
     type: MediaType.music,
@@ -199,6 +271,8 @@ const _catalog = <LookupMatch>[
     released: Released(1985),
     creator: 'Kate Bush',
     description: "Kate Bush's fifth studio album.",
+    tags: ['art-pop', 'pop', 'classic'],
+    source: 'MusicBrainz',
   ),
   LookupMatch(
     type: MediaType.music,
@@ -206,6 +280,8 @@ const _catalog = <LookupMatch>[
     released: Released(1985),
     creator: 'Kate Bush',
     album: 'Hounds of Love',
+    tags: ['art-pop', 'pop', 'synth'],
+    source: 'MusicBrainz',
   ),
   LookupMatch(
     type: MediaType.games,
@@ -213,5 +289,8 @@ const _catalog = <LookupMatch>[
     released: Released(2024, 10, 8),
     creator: 'Bloober Team',
     description: 'The remake of the 2001 survival horror game.',
+    platforms: ['PlayStation 5', 'PC'],
+    tags: ['survival-horror', 'horror', 'psychological'],
+    source: 'IGDB',
   ),
 ];

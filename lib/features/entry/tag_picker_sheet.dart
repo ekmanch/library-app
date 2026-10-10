@@ -5,9 +5,9 @@ import '../../data/models/tag_category.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/sheet_frame.dart';
-import '../../widgets/tag_group.dart';
 import 'similar_tags.dart';
 import 'tag_dialogs.dart';
 
@@ -22,9 +22,10 @@ class TagPick {
   final Map<String, TagCategory> created;
 }
 
-/// The entry form's tag picker, the only place a tag can be created. New
-/// names go through the similar-tag check (D9) and the category dialog
-/// (D10). Resolves with null when dismissed.
+/// The entry form's tag picker (D14), the only place a tag can be created.
+/// Every category is open; a search narrows them, and a name that matches
+/// nothing exactly can be created, through the similar-tag check (D9) and
+/// the category dialog (D10). Resolves with null when dismissed.
 Future<TagPick?> showTagPickerSheet(
   BuildContext context, {
   required Library library,
@@ -65,13 +66,6 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   late final List<String> _selected = [...widget.selected];
   late final Map<String, TagCategory> _created = {...widget.created};
   final _query = TextEditingController();
-  TagCategory? _openGroup;
-
-  @override
-  void initState() {
-    super.initState();
-    _openGroup = _groups.keys.firstOrNull;
-  }
 
   @override
   void dispose() {
@@ -79,21 +73,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     super.dispose();
   }
 
-  /// The library's tags plus the ones created in this picker.
-  Map<TagCategory, List<String>> get _groups {
-    final groups = <TagCategory, List<String>>{
-      for (final MapEntry(key: k, value: v) in widget.library.tags.entries)
-        k: [...v],
-    };
-    for (final category in TagCategory.values) {
-      for (final MapEntry(key: name, value: c) in _created.entries) {
-        if (c == category) groups.putIfAbsent(category, () => []).add(name);
-      }
-    }
-    return groups;
-  }
-
-  Set<String> get _allNames => {for (final v in _groups.values) ...v};
+  Set<String> get _allNames => {...widget.library.allTags, ..._created.keys};
 
   void _toggle(String tag) {
     setState(() {
@@ -131,7 +111,6 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     setState(() {
       _created[name] = category;
       _selected.add(name);
-      _openGroup = category;
       _query.clear();
     });
   }
@@ -149,79 +128,133 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
-    final query = _query.text.trim().toLowerCase();
-    final candidate = normalizeTag(_query.text);
-    final canCreate = candidate.isNotEmpty && !_allNames.contains(candidate);
-    final groups = _groups;
+    final query = normalizeTag(_query.text);
+    final canCreate = query.isNotEmpty && !_allNames.contains(query);
+    bool matches(String tag) => query.isEmpty || tag.contains(query);
+
+    // "New on this entry" first, then the library's categories.
+    final groups = <(String, List<String>)>[
+      if (_created.isNotEmpty)
+        ('New on this entry', _created.keys.where(matches).toList()),
+      for (final MapEntry(key: category, value: names)
+          in widget.library.tags.entries)
+        (category.label, names.where(matches).toList()),
+    ].where((g) => g.$2.isNotEmpty).toList();
 
     return SheetFrame(
-      title: 'Tags',
       scrollable: true,
-      action: AppButton(label: 'Done', compact: true, onPressed: _done),
-      child: Column(
+      header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Add tags', style: theme.textTheme.titleLarge),
+              ),
+              AppButton(label: 'Done', compact: true, onPressed: _done),
+            ],
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _query,
             autofocus: _selected.isEmpty,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) {
-              if (canCreate) _create(candidate);
+              if (canCreate) _create(query);
             },
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              hintText: 'Search or add a tag',
+            decoration: InputDecoration(
+              hintText: 'Search or create a tag',
               isDense: true,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 10),
+                child: StrokeIcon(
+                  AppIcons.search,
+                  size: 18,
+                  color: colors.muted,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 42),
             ),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           if (canCreate)
             Semantics(
               button: true,
-              label: 'Create #$candidate',
+              label: 'Create #$query',
               excludeSemantics: true,
-              child: InkWell(
-                onTap: () => _create(candidate),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: colors.divider)),
-                  ),
-                  child: Row(
-                    children: [
-                      StrokeIcon(
-                        AppIcons.plus,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Create #$candidate',
-                          style: theme.textTheme.labelLarge!.copyWith(
-                            color: theme.colorScheme.primary,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _create(query),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 52),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: theme.colorScheme.outline),
+                    ),
+                    child: Row(
+                      children: [
+                        StrokeIcon(
+                          AppIcons.plus,
+                          size: 16,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Create “#$query”',
+                            style: theme.textTheme.labelLarge,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          for (final MapEntry(key: category, value: names) in groups.entries)
-            TagGroup(
-              label: category.label,
-              tags: query.isEmpty
-                  ? names
-                  : names
-                        .where((n) => n.toLowerCase().contains(query))
-                        .toList(),
-              selected: _selected,
-              open: query.isNotEmpty || _openGroup == category,
-              onToggleOpen: () => setState(
-                () => _openGroup = _openGroup == category ? null : category,
+          for (final (name, tags) in groups) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+              child: Text(
+                name.toUpperCase(),
+                style: theme.textTheme.labelSmall!.copyWith(fontSize: 12.5),
               ),
-              onToggleTag: _toggle,
             ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final tag in tags)
+                  PillChip(
+                    label: '#$tag',
+                    selected: _selected.contains(tag),
+                    checked: true,
+                    height: 40,
+                    horizontalPadding: 12,
+                    onTap: () => _toggle(tag),
+                  ),
+              ],
+            ),
+          ],
+          if (query.isNotEmpty && groups.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                'None of your tags match.',
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  fontSize: 14,
+                  color: colors.muted,
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
         ],
       ),
     );

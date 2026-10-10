@@ -6,6 +6,7 @@ import '../../data/models/book_format.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/entry_id.dart';
 import '../../data/models/entry_status.dart';
+import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/music_kind.dart';
 import '../../data/models/released.dart';
@@ -13,6 +14,7 @@ import '../../data/models/tag_category.dart';
 import '../../data/operations/operations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
+import '../../widgets/app_icons.dart';
 import '../../widgets/chip_grid.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/form_fields.dart';
@@ -22,6 +24,8 @@ import '../../widgets/segmented_control.dart';
 import 'lookup_matches.dart';
 import 'rating_sheet.dart';
 import 'replace_dialogs.dart';
+import 'similar_tags.dart';
+import 'tag_dialogs.dart';
 import 'tag_picker_sheet.dart';
 
 /// Opens the form (A8) for a new entry, prefilled from a lookup [match] or
@@ -81,7 +85,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   late final TextEditingController _creator;
   late final TextEditingController _released;
   late final TextEditingController _note;
-  late final TextEditingController _platform;
+  late final TextEditingController _otherPlatform;
   late final TextEditingController _album;
   late MediaType _type;
   late MusicKind? _kind;
@@ -89,6 +93,21 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   late int? _rating;
   late List<String> _tags;
   final Map<String, TagCategory> _newTags = {};
+
+  /// Tags the lookup suggested that are not in the library, in order.
+  /// Matches to existing tags were put straight into [_tags].
+  List<String> _suggestedNew = const [];
+
+  /// Existing tags the lookup matched; they start selected and come back
+  /// as suggestions when removed.
+  List<String> _suggestedExisting = const [];
+  bool _suggestionsPrepared = false;
+
+  /// The platform chips: from the lookup, the entry and the library, plus
+  /// any typed under "Other…", in that order.
+  final List<String> _platformOptions = [];
+  final Set<String> _platformsOn = {};
+  bool _otherPlatformOpen = false;
   late Set<BookFormat> _formats;
   late bool _seasonalOnly;
   late String _description;
@@ -115,7 +134,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       text: (entry?.released ?? match?.released)?.toString() ?? '',
     );
     _note = TextEditingController(text: entry?.note ?? '');
-    _platform = TextEditingController(text: entry?.platform ?? '');
+    _otherPlatform = TextEditingController();
+    for (final platform in [
+      ...?match?.platforms,
+      ...splitPlatforms(entry?.platform),
+    ]) {
+      _addPlatformOption(platform);
+    }
+    _platformsOn.addAll(splitPlatforms(entry?.platform));
     _album = TextEditingController(text: entry?.album ?? match?.album ?? '');
     _status = entry?.status ?? EntryStatus.want;
     _rating = entry?.rating;
@@ -131,7 +157,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     _creator.dispose();
     _released.dispose();
     _note.dispose();
-    _platform.dispose();
+    _otherPlatform.dispose();
     _album.dispose();
     super.dispose();
   }
@@ -147,6 +173,103 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
   bool get _canSave =>
       !_saving && _title.text.trim().isNotEmpty && _releasedError == null;
+
+  /// "PlayStation 5, PC" in the entry's `platform` field, as a list.
+  static List<String> splitPlatforms(String? text) => [
+    for (final part in (text ?? '').split(','))
+      if (part.trim().isNotEmpty) part.trim(),
+  ];
+
+  bool _addPlatformOption(String platform) {
+    final exists = _platformOptions.any(
+      (p) => p.toLowerCase() == platform.toLowerCase(),
+    );
+    if (!exists) _platformOptions.add(platform);
+    return !exists;
+  }
+
+  /// Platforms other games in the library use, so they can be picked
+  /// without typing. Added once the library is loaded.
+  void _addLibraryPlatforms(Iterable<Entry> entries) {
+    final used = <String>{
+      for (final e in entries)
+        if (e.type == MediaType.games) ...splitPlatforms(e.platform),
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    used.forEach(_addPlatformOption);
+  }
+
+  void _addOtherPlatform() {
+    final name = _otherPlatform.text.trim();
+    if (name.isEmpty) return;
+    setState(() {
+      _addPlatformOption(name);
+      _platformsOn.add(
+        _platformOptions.firstWhere(
+          (p) => p.toLowerCase() == name.toLowerCase(),
+        ),
+      );
+      _otherPlatform.clear();
+      _otherPlatformOpen = false;
+    });
+  }
+
+  /// Sorts the lookup's suggested tags into matches to the library's tags
+  /// (selected at once; a near miss like "sci-fi" counts as "scifi") and
+  /// new names offered under the field. At most six in total.
+  void _prepareSuggestions(Library library) {
+    _suggestionsPrepared = true;
+    final match = widget.match;
+    if (match == null) return;
+    final existing = library.allTags;
+    final matched = <String>[];
+    final fresh = <String>[];
+    for (final raw in match.tags) {
+      final name = normalizeTag(raw);
+      if (name.isEmpty) continue;
+      final hit = existing.contains(name)
+          ? name
+          : findSimilarTag(name, existing);
+      if (hit != null) {
+        if (!matched.contains(hit)) matched.add(hit);
+      } else if (!fresh.contains(name)) {
+        fresh.add(name);
+      }
+      if (matched.length + fresh.length == 6) break;
+    }
+    _suggestedExisting = matched;
+    _suggestedNew = fresh;
+    for (final tag in matched) {
+      if (!_tags.contains(tag)) _tags.add(tag);
+    }
+  }
+
+  /// The suggestions not on the entry right now.
+  List<String> get _suggestions => [
+    for (final tag in [..._suggestedExisting, ..._suggestedNew])
+      if (!_tags.contains(tag)) tag,
+  ];
+
+  Future<void> _addSuggestion(String tag) async {
+    if (_suggestedExisting.contains(tag)) {
+      setState(() => _tags.add(tag));
+      return;
+    }
+    final category = await showNewTagDialog(
+      context,
+      name: tag,
+      initial: _defaultCategory,
+    );
+    if (category == null || !mounted) return;
+    setState(() {
+      _newTags[tag] = category;
+      _tags.add(tag);
+    });
+  }
+
+  TagCategory get _defaultCategory => switch (_type) {
+    MediaType.games => TagCategory.gameGenre,
+    _ => TagCategory.genre,
+  };
 
   void _pickType(MediaType type) {
     setState(() {
@@ -173,10 +296,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       library: library,
       selected: _tags,
       created: _newTags,
-      defaultCategory: switch (_type) {
-        MediaType.games => TagCategory.gameGenre,
-        _ => TagCategory.genre,
-      },
+      defaultCategory: _defaultCategory,
     );
     if (pick == null || !mounted) return;
     setState(() {
@@ -193,7 +313,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final releasedText = _released.text.trim();
     final released = releasedText.isEmpty ? null : Released.parse(releasedText);
     final isMusic = _type == MediaType.music;
-    final platform = _platform.text.trim();
+    final platform = _platformOptions.where(_platformsOn.contains).join(', ');
     final album = _album.text.trim();
     final base = widget.entry;
     final now = DateTime.now();
@@ -294,6 +414,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final editing = widget.isEditing;
+    final library = ref.watch(libraryProvider).value;
+    if (library != null && !_suggestionsPrepared) {
+      // First build with the library: match the suggested tags and learn
+      // the platforms other games use. Plain field writes, no setState.
+      _prepareSuggestions(library);
+      _addLibraryPlatforms(library.entries);
+    }
+    final suggestions = _suggestions;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -314,6 +442,37 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 children: [
+                  if (widget.match != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          StrokeIcon(
+                            AppIcons.sparkle,
+                            size: 18,
+                            color: colors.muted,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Details fetched online. You can change anything.',
+                              style: theme.textTheme.bodySmall!.copyWith(
+                                fontStyle: FontStyle.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   const FieldLabel('Title'),
                   AppTextField(
                     controller: _title,
@@ -402,12 +561,56 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   ],
                   if (_type == MediaType.games) ...[
                     const SizedBox(height: 14),
-                    const FieldLabel('Platform'),
-                    AppTextField(
-                      controller: _platform,
-                      hintText: 'Optional',
-                      textCapitalization: TextCapitalization.characters,
+                    const FieldLabel('Platforms'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final platform in _platformOptions)
+                          PillChip(
+                            label: platform,
+                            selected: _platformsOn.contains(platform),
+                            checked: true,
+                            onTap: () => setState(() {
+                              if (!_platformsOn.remove(platform)) {
+                                _platformsOn.add(platform);
+                              }
+                            }),
+                          ),
+                        if (!_otherPlatformOpen)
+                          DashedChip(
+                            label: 'Other…',
+                            height: 44,
+                            semanticsLabel: 'Other platform',
+                            onTap: () =>
+                                setState(() => _otherPlatformOpen = true),
+                          ),
+                      ],
                     ),
+                    if (_otherPlatformOpen) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppTextField(
+                              controller: _otherPlatform,
+                              hintText: 'Type a platform',
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.words,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _addOtherPlatform(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          AppButton(
+                            label: 'Add',
+                            kind: AppButtonKind.outline,
+                            compact: true,
+                            onPressed: _addOtherPlatform,
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                   if (_type == MediaType.books) ...[
                     const SizedBox(height: 14),
@@ -463,9 +666,36 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                         : Wrap(
                             spacing: 6,
                             runSpacing: 6,
-                            children: [for (final tag in _tags) TagChip(tag)],
+                            children: [
+                              for (final tag in _tags)
+                                TagChip(tag, isNew: _newTags.containsKey(tag)),
+                            ],
                           ),
                   ),
+                  if (suggestions.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Suggested · tap to add',
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        fontSize: 12.5,
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final tag in suggestions)
+                          DashedChip(
+                            label: '#$tag',
+                            badge: _suggestedNew.contains(tag) ? 'new' : null,
+                            semanticsLabel: 'Add #$tag',
+                            onTap: () => _addSuggestion(tag),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   const FieldLabel('Note'),
                   AppTextField(

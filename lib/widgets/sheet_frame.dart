@@ -8,6 +8,7 @@ class SheetFrame extends StatelessWidget {
     super.key,
     this.title,
     this.action,
+    this.header,
     required this.child,
     this.footer,
     this.scrollable = false,
@@ -17,6 +18,10 @@ class SheetFrame extends StatelessWidget {
 
   /// Trailing widget on the title row, e.g. a "Reset" text button.
   final Widget? action;
+
+  /// A custom header instead of [title] and [action], pinned above the
+  /// content like they are: the tag picker's title row and search field.
+  final Widget? header;
   final Widget child;
 
   /// Pinned under the content, e.g. the "Show N entries" button.
@@ -38,7 +43,9 @@ class SheetFrame extends StatelessWidget {
         ),
       ),
     );
-    final header = title == null
+    final header = this.header != null
+        ? Padding(padding: const EdgeInsets.only(top: 8), child: this.header)
+        : title == null
         ? null
         : Padding(
             padding: const EdgeInsets.only(top: 8),

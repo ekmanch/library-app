@@ -161,6 +161,20 @@ class AppIcons {
     ],
   );
 
+  /// Eight short rays: "details fetched online".
+  static const sparkle = StrokeIconData(
+    polylines: [
+      [Offset(12, 3), Offset(12, 6)],
+      [Offset(12, 18), Offset(12, 21)],
+      [Offset(3, 12), Offset(6, 12)],
+      [Offset(18, 12), Offset(21, 12)],
+      [Offset(5.6, 5.6), Offset(7.7, 7.7)],
+      [Offset(16.3, 16.3), Offset(18.4, 18.4)],
+      [Offset(5.6, 18.4), Offset(7.7, 16.3)],
+      [Offset(16.3, 7.7), Offset(18.4, 5.6)],
+    ],
+  );
+
   /// A bin, for Delete.
   static const trash = StrokeIconData(
     polylines: [

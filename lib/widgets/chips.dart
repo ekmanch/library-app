@@ -22,6 +22,9 @@ class PillChip extends StatelessWidget {
     this.style = PillChipStyle.neutral,
     this.dotColor,
     this.horizontalPadding = 14,
+    this.checked = false,
+    this.height = 44,
+    this.badge,
   });
 
   final String label;
@@ -29,6 +32,16 @@ class PillChip extends StatelessWidget {
   final VoidCallback onTap;
   final PillChipStyle style;
   final Color? dotColor;
+
+  /// Shows a check before the label while selected (the tag picker, D14,
+  /// and the platform chips in A8).
+  final bool checked;
+
+  /// 44 px by default; the tag picker's chips are 40.
+  final double height;
+
+  /// A small word after the label, e.g. "new" on a tag not saved yet.
+  final String? badge;
 
   /// Smaller in tight grids, like the six "Released" chips in the filter
   /// sheet. With a bounded width the chip fills it and centers its label.
@@ -59,12 +72,16 @@ class PillChip extends StatelessWidget {
           onTap: onTap,
           customBorder: const StadiumBorder(),
           child: Container(
-            height: 44,
+            height: height,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (checked && selected) ...[
+                  StrokeIcon(AppIcons.check, size: 14, color: foreground),
+                  const SizedBox(width: 6),
+                ],
                 if (dotColor != null) ...[
                   Container(
                     width: 8,
@@ -87,6 +104,10 @@ class PillChip extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (badge != null) ...[
+                  const SizedBox(width: 6),
+                  ChipBadge(badge!),
+                ],
               ],
             ),
           ),
@@ -96,11 +117,39 @@ class PillChip extends StatelessWidget {
   }
 }
 
-/// A small read-only tag, shown as "#name".
+/// The tiny "new" word on a tag chip whose tag is not in the library yet.
+class ChipBadge extends StatelessWidget {
+  const ChipBadge(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = LibraryColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: colors.selectedFill,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: colors.muted,
+        ),
+      ),
+    );
+  }
+}
+
+/// A small read-only tag, shown as "#name". [isNew] adds the "new" badge.
 class TagChip extends StatelessWidget {
-  const TagChip(this.name, {super.key});
+  const TagChip(this.name, {super.key, this.isNew = false});
 
   final String name;
+  final bool isNew;
 
   @override
   Widget build(BuildContext context) {
@@ -111,15 +160,119 @@ class TagChip extends StatelessWidget {
         color: LibraryColors.of(context).surfaceHigh,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        '#$name',
-        style: theme.textTheme.bodySmall!.copyWith(
-          color: theme.colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '#$name',
+            style: theme.textTheme.bodySmall!.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (isNew) ...[const SizedBox(width: 6), const ChipBadge('new')],
+        ],
+      ),
+    );
+  }
+}
+
+/// A chip with a dashed outline and a plus: something that is not there
+/// yet, like a suggested tag or "Other…" among the platforms (A8).
+class DashedChip extends StatelessWidget {
+  const DashedChip({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.badge,
+    this.height = 40,
+    this.semanticsLabel,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final String? badge;
+  final double height;
+  final String? semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      excludeSemantics: semanticsLabel != null,
+      child: Material(
+        color: Colors.transparent,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const StadiumBorder(),
+          child: CustomPaint(
+            painter: _DashedStadiumPainter(theme.colorScheme.outline),
+            child: Container(
+              height: height,
+              padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StrokeIcon(
+                    AppIcons.plus,
+                    size: 14,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelMedium!.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 6),
+                    ChipBadge(badge!),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+class _DashedStadiumPainter extends CustomPainter {
+  const _DashedStadiumPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final rect = Offset.zero & size;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          rect.deflate(0.5),
+          Radius.circular(size.height / 2),
+        ),
+      );
+    const dash = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + dash), paint);
+        distance += dash * 2;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedStadiumPainter old) => old.color != color;
 }
 
 /// A 44 px chip for an active filter, with a cross that removes it.

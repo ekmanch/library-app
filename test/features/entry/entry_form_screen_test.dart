@@ -23,6 +23,7 @@ void main() {
   Finder field(String label) => find.byWidgetPredicate(
     (w) => w is TextField && w.decoration?.hintText == label,
   );
+  final hintedField = field;
 
   Future<void> scrollTo(WidgetTester tester, Finder finder) async {
     await tester.scrollUntilVisible(
@@ -82,7 +83,7 @@ void main() {
     await tester.tap(find.widgetWithText(PillChip, 'Games'));
     await tester.pumpAndSettle();
     expect(find.text('Studio'), findsOneWidget);
-    expect(find.text('Platform'), findsOneWidget);
+    expect(find.text('Platforms'), findsOneWidget);
     expect(find.text('Formats'), findsNothing);
 
     await tester.tap(find.widgetWithText(PillChip, 'Music'));
@@ -184,6 +185,142 @@ void main() {
     expect(find.text('7 / 10'), findsOneWidget);
   });
 
+  group('from a lookup match', () {
+    FixtureLibraryRepository repo(ProviderContainer c) =>
+        c.read(libraryRepositoryProvider) as FixtureLibraryRepository;
+
+    testWidgets('shows the fetched banner, platform chips and suggestions', (
+      tester,
+    ) async {
+      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      expect(
+        find.text('Details fetched online. You can change anything.'),
+        findsOneWidget,
+      );
+      expect(find.text('Platforms'), findsOneWidget);
+      for (final p in match.platforms) {
+        expect(find.widgetWithText(PillChip, p), findsOneWidget);
+      }
+      // Platforms other games use come after the lookup's.
+      expect(find.widgetWithText(PillChip, 'Switch'), findsOneWidget);
+      expect(find.bySemanticsLabel('Other platform'), findsOneWidget);
+      // Existing tags are selected; the rest are suggestions marked new.
+      await scrollTo(tester, find.text('Suggested · tap to add'));
+      expect(find.widgetWithText(TagChip, '#horror'), findsOneWidget);
+      expect(find.widgetWithText(TagChip, '#adventure'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #post-apocalyptic'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #horror'), findsNothing);
+      expect(find.text('new'), findsNWidgets(4));
+    });
+
+    testWidgets('a near miss counts as the existing tag', (tester) async {
+      final match = fakeLookup('dune', type: MediaType.books).single;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.text('Tags'));
+      // "sci-fi" from the lookup is the library's "scifi".
+      expect(find.widgetWithText(TagChip, '#scifi'), findsOneWidget);
+      expect(find.widgetWithText(TagChip, '#epic'), findsOneWidget);
+      expect(find.text('Suggested · tap to add'), findsNothing);
+    });
+
+    testWidgets('an album match gets suggestions too', (tester) async {
+      final match = fakeLookup('hounds').single;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.text('Suggested · tap to add'));
+      expect(find.widgetWithText(TagChip, '#pop'), findsOneWidget);
+      expect(find.widgetWithText(TagChip, '#classic'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #art-pop'), findsOneWidget);
+      expect(find.text('Platforms'), findsNothing);
+    });
+
+    testWidgets('a new suggestion is confirmed in D10 and saved as new', (
+      tester,
+    ) async {
+      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final container = await pumpApp(
+        tester,
+        EntryFormScreen.create(match: match),
+      );
+      await tester.tap(find.widgetWithText(PillChip, 'PlayStation 5'));
+      await tester.tap(find.widgetWithText(PillChip, 'PC'));
+      await scrollTo(tester, find.bySemanticsLabel('Add #stealth'));
+      await tester.tap(find.bySemanticsLabel('Add #stealth'));
+      await tester.pumpAndSettle();
+      expect(find.text('Create a new tag?'), findsOneWidget);
+      expect(
+        find.text('It will be added to your tag list under Game genre.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Create tag'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TagChip, '#stealth'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #stealth'), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+      final library = repo(container).current!;
+      final entry = library.entries.last;
+      expect(entry.platform, 'PlayStation 5, PC');
+      expect(entry.tags, ['horror', 'adventure', 'stealth']);
+      expect(library.tags[TagCategory.gameGenre], contains('stealth'));
+      expect(library.allTags.contains('zombies'), isFalse);
+    });
+
+    testWidgets('a removed match comes back as a suggestion', (tester) async {
+      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.widgetWithText(TagChip, '#horror'));
+      await tester.tap(find.widgetWithText(TagChip, '#horror'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PillChip, '#horror'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Add #horror'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Add #horror'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TagChip, '#horror'), findsOneWidget);
+    });
+
+    testWidgets(
+      '"Other…" adds a typed platform; editing keeps the saved ones',
+      (tester) async {
+        final elden = loadFixture().entryById('games/elden-ring-2022')!;
+        final container = await pumpApp(tester, EntryFormScreen.edit(elden));
+        expect(
+          find.text('Details fetched online. You can change anything.'),
+          findsNothing,
+        );
+        await scrollTo(tester, find.bySemanticsLabel('Other platform'));
+        final pc = find.widgetWithText(PillChip, 'PC');
+        expect(tester.widget<PillChip>(pc).selected, isTrue);
+        expect(
+          tester
+              .widget<PillChip>(find.widgetWithText(PillChip, 'PS5'))
+              .selected,
+          isFalse,
+        );
+        await tester.tap(find.bySemanticsLabel('Other platform'));
+        await tester.pumpAndSettle();
+        await tester.enterText(hintedField('Type a platform'), 'Steam Deck');
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Add'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PillChip>(find.widgetWithText(PillChip, 'Steam Deck'))
+              .selected,
+          isTrue,
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        expect(
+          repo(container).current!.entryById(elden.id)!.platform,
+          'PC, Steam Deck',
+        );
+      },
+    );
+  });
+
   group('tag picker', () {
     Future<ProviderContainer> openPicker(WidgetTester tester) async {
       final container = await pumpApp(
@@ -194,7 +331,7 @@ void main() {
       await scrollTo(tester, find.text('Choose from your tags'));
       await tester.tap(find.text('Choose from your tags'));
       await tester.pumpAndSettle();
-      expect(find.text('Tags'), findsWidgets);
+      expect(find.text('Add tags'), findsOneWidget);
       return container;
     }
 
@@ -210,14 +347,13 @@ void main() {
 
     testWidgets('picks existing tags from their groups', (tester) async {
       final container = await openPicker(tester);
-      // Genre is open by default; Mood is collapsed until tapped.
+      // Every category is open (D14).
+      expect(find.text('GENRE'), findsOneWidget);
+      expect(find.text('MOOD'), findsOneWidget);
       await tester.tap(find.widgetWithText(PillChip, '#horror'));
-      expect(find.widgetWithText(PillChip, '#dark'), findsNothing);
-      await tester.tap(find.text('Mood'));
-      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(PillChip, '#dark'));
       await tester.tap(find.widgetWithText(PillChip, '#dark'));
       await tester.pumpAndSettle();
-      expect(find.text('1 selected'), findsNWidgets(2));
       await done(tester);
       expect(find.text('#horror'), findsOneWidget);
       expect(find.text('#dark'), findsOneWidget);
@@ -261,6 +397,7 @@ void main() {
       );
       await tester.tap(find.text('Create tag'));
       await tester.pumpAndSettle();
+      expect(find.text('NEW ON THIS ENTRY'), findsOneWidget);
       expect(find.widgetWithText(PillChip, '#gothic'), findsOneWidget);
       // Not in the library until the entry is saved.
       expect(repo(container).current!.allTags.contains('gothic'), isFalse);

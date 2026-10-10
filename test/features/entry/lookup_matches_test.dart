@@ -11,6 +11,29 @@ void main() {
       'Stephen King',
     );
     expect(fakeLookup('zelda'), isEmpty);
+    final tlou = fakeLookup('the last of us', type: MediaType.games).first;
+    expect(tlou.platforms.first, 'PlayStation 3');
+    expect(tlou.tags, contains('zombies'));
+    expect(tlou.source, 'IGDB');
+  });
+
+  test('every match suggests tags, whatever its type', () {
+    for (final query in [
+      'the last of us',
+      'carrie',
+      'dune',
+      'akira',
+      'blade runner',
+      'perfect blue',
+      'hounds',
+      'running up',
+      'silent hill',
+    ]) {
+      for (final match in fakeLookup(query)) {
+        expect(match.tags, isNotEmpty, reason: match.title);
+        expect(match.source, isNotNull, reason: match.title);
+      }
+    }
   });
 
   test('titles starting with the query come first', () {
