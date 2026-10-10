@@ -8,7 +8,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 - [ ] Create the Flutter project (Android first; keep Linux desktop possible)
 - [ ] Add `lib/theme/app_theme.dart`, the fonts (Bricolage Grotesque, Figtree) and check that it compiles
-- [ ] Add Riverpod and go_router
+- [ ] Add Riverpod
 - [ ] Define the models from DESIGN.md section 6 (Entry, Track, Plan, PlanItem, tag categories)
 - [ ] Define the `LibraryRepository` interface
 - [ ] Create `assets/fixtures/library.json` in the v2 format with realistic data for all six types, a Halloween and a Christmas plan, and music with albums, songs and rated tracks
