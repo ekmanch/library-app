@@ -4,11 +4,10 @@
 // docs/DESIGN.md. Widgets should read colors from Theme.of(context) or from
 // LibraryColors.of(context), never from literals.
 //
-// Needs the google_fonts package (or bundle Bricolage Grotesque and Figtree
-// as assets and replace the two GoogleFonts calls).
+// Fonts are bundled: Bricolage Grotesque (Bold) and Figtree (Regular, Italic,
+// Medium, SemiBold, Bold) in assets/fonts/, declared in pubspec.yaml.
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 enum MediaType { movies, shows, books, games, music, anime }
 
@@ -195,11 +194,11 @@ ThemeData buildTheme({
     scrim: ext.scrim,
   );
 
-  final body = GoogleFonts.figtreeTextTheme(
-    isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
-  ).apply(bodyColor: text, displayColor: text);
+  final body = (isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme)
+      .apply(fontFamily: 'Figtree', bodyColor: text, displayColor: text);
 
-  TextStyle title(double size) => GoogleFonts.bricolageGrotesque(
+  TextStyle title(double size) => TextStyle(
+        fontFamily: 'Bricolage Grotesque',
         fontSize: size,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.02 * size,
@@ -229,6 +228,7 @@ ThemeData buildTheme({
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
+    fontFamily: 'Figtree',
     colorScheme: scheme,
     scaffoldBackgroundColor: background,
     textTheme: textTheme,
