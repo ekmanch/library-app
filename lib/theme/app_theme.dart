@@ -154,6 +154,17 @@ class SeasonalAccents {
   static const christmas = Color(0xFF35A56A);
 }
 
+/// Motion timings shared by widgets.
+class AppMotion {
+  /// Anchored popup menus (the view menu, the plan menu, the year chip).
+  /// Material's default 300 ms reveal feels sluggish for a small menu, so
+  /// they open in 150 ms and close in 100 ms.
+  static const menu = AnimationStyle(
+    duration: Duration(milliseconds: 150),
+    reverseDuration: Duration(milliseconds: 100),
+  );
+}
+
 /// Colors that Material's ColorScheme has no slot for.
 @immutable
 class LibraryColors extends ThemeExtension<LibraryColors> {

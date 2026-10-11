@@ -177,6 +177,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
         0,
       ),
       constraints: const BoxConstraints(minWidth: 170, maxWidth: 170),
+      popUpAnimationStyle: AppMotion.menu,
       items: [
         for (final other in years)
           PopupMenuItem<String>(

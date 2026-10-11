@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
 import '../settings/entry_view.dart';
 
@@ -36,11 +37,7 @@ class ViewMenuButton extends StatelessWidget {
       context: context,
       useRootNavigator: true,
       position: position,
-      // Material's default 300 ms reveal feels sluggish for a small menu.
-      popUpAnimationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 150),
-        reverseDuration: Duration(milliseconds: 100),
-      ),
+      popUpAnimationStyle: AppMotion.menu,
       constraints: const BoxConstraints(minWidth: 240, maxWidth: 240),
       items: [
         PopupMenuItem<EntryView>(

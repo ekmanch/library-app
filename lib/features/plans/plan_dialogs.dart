@@ -119,10 +119,7 @@ Future<PlanMenuAction?> showPlanMenu(
     useRootNavigator: true,
     position: position,
     constraints: const BoxConstraints(minWidth: 230, maxWidth: 230),
-    popUpAnimationStyle: const AnimationStyle(
-      duration: Duration(milliseconds: 150),
-      reverseDuration: Duration(milliseconds: 100),
-    ),
+    popUpAnimationStyle: AppMotion.menu,
     items: [
       item(PlanMenuAction.edit, 'Edit plan'),
       item(PlanMenuAction.copy, 'Copy to a new year'),
