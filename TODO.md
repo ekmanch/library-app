@@ -71,15 +71,17 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] Capture every screen, sheet and dialog built so far, also at the S25's 360 dp and at text scale 1.3; one shared search field for every search box
 
 ### 1f. Settings and states
-- [ ] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version)
-- [ ] D6 Library connection (UI only)
-- [ ] F1 to F7 First run (UI only): splash, welcome, connect GitHub, new or existing library file, create, pick, all set (replaces A11)
-- [ ] A12 Sync and error banners, D7 First load (driven by fake states)
-- [ ] D8 Light theme pass over every screen
+- [x] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version); also the default game platform from the canvas, used by A8
+- [x] D6 Library connection (UI only)
+- [x] F1 to F7 First run (UI only): splash, welcome, connect GitHub, new or existing library file, create, pick, all set (replaces A11)
+- [x] A12 Sync and error banners, D7 First load (driven by fake states)
+- [x] D8 Light theme pass over every screen (every screen is captured in light by `screenshots_test.dart`; a reviewer compared them and the banners, the inset status segments and the type-chip dots were fixed)
 
 ### 1g. Phase 1 wrap-up
 - [ ] Screen sizes pass: every screen at 320, 360, 384 and 412 dp and at text scale 1.3; fixed widths that break become flowing layouts
 - [ ] Walk through every artboard next to the app and list the differences
+- [ ] The tag search boxes in the filter sheet (A2) and the tag picker (D14) are filled fields without the shared search outline; decide whether they should be the shared `SearchField`
+- [ ] D6: the Disconnect outline is a step dimmer than Replace token in the mockup; the value column wraps on the 360 dp phone at text scale 1.3
 - [x] Reconsider the "See all" link: it jumps to a different screen (A4) and that was not intuitive. A clearer label or a different affordance. (Resolved by the canvas revision of 2026-10-10: the type view is the home with a chip picked.)
 - [ ] Accessibility pass: contrast, touch targets, screen reader labels, large font scale
 - [ ] Widget tests for filtering, sorting, the similar-tag check and the replace dialogs
@@ -110,7 +112,10 @@ Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
 - [ ] Save: bundle edits for 2 to 3 seconds into one commit with a readable message ("Mark The Mummy as done")
 - [ ] Conflicts: refetch and re-apply the pending operations
 - [ ] Offline queue
-- [ ] A12 banners driven by the real sync state
+- [ ] A12 banners driven by the real sync state; Retry re-sends, "Sync now" in D6 syncs
+- [ ] F3 "How do I create a token?" opens GitHub's token page (needs url_launcher)
+- [ ] Confirm before Disconnect in D6, since it clears the token
+- [ ] Read the version for About from the build (package_info_plus) instead of `lib/app_info.dart`
 
 ## Phase 5: Lookups and images
 

@@ -10,10 +10,12 @@ import 'package:library_app/data/models/released.dart';
 import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/entry/entry_form_screen.dart';
+import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/entry/lookup_matches.dart';
 import 'package:library_app/widgets/chips.dart';
 import 'package:library_app/widgets/segmented_control.dart';
 
+import '../../helpers/pump.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -242,8 +244,9 @@ void main() {
         tester,
         EntryFormScreen.create(match: match),
       );
+      // PC is the default platform in Settings, so it starts picked.
+      expect(isSelected(tester, find.widgetWithText(PillChip, 'PC')), isTrue);
       await tester.tap(find.widgetWithText(PillChip, 'PlayStation 5'));
-      await tester.tap(find.widgetWithText(PillChip, 'PC'));
       await scrollTo(tester, find.bySemanticsLabel('Add #stealth'));
       await tester.tap(find.bySemanticsLabel('Add #stealth'));
       await tester.pumpAndSettle();
@@ -265,6 +268,30 @@ void main() {
       expect(entry.tags, ['horror', 'adventure', 'stealth']);
       expect(library.tags[TagCategory.gameGenre], contains('stealth'));
       expect(library.allTags.contains('zombies'), isFalse);
+    });
+
+    testWidgets('the default platform is picked only when the game is on it', (
+      tester,
+    ) async {
+      // The Last of Us came out on PC; Uncharted did not.
+      final onPc = fakeLookup('the last of us', type: MediaType.games).first;
+      await pumpApp(tester, EntryFormScreen.create(match: onPc));
+      expect(isSelected(tester, find.widgetWithText(PillChip, 'PC')), isTrue);
+      expect(
+        isSelected(tester, find.widgetWithText(PillChip, 'PlayStation 5')),
+        isFalse,
+      );
+    });
+
+    testWidgets('no default platform means nothing is picked', (tester) async {
+      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final container = await pumpApp(
+        tester,
+        EntryFormScreen.create(match: match),
+        prefs: const DisplayPreferences(defaultPlatform: null),
+      );
+      expect(isSelected(tester, find.widgetWithText(PillChip, 'PC')), isFalse);
+      expect(container.read(displayPreferencesProvider).defaultPlatform, null);
     });
 
     testWidgets('a removed match comes back as a suggestion', (tester) async {

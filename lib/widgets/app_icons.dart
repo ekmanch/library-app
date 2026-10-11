@@ -196,6 +196,46 @@ class AppIcons {
     ],
   );
 
+  /// A heavier check, for the big "all set" disc (F7).
+  static const checkBold = StrokeIconData(
+    strokeWidth: 2.6,
+    polylines: [
+      [Offset(5, 12.5), Offset(9.5, 17), Offset(19, 7.5)],
+    ],
+  );
+
+  /// A page with a folded corner and a plus: a new library file (F4).
+  static const filePlus = StrokeIconData(
+    polylines: [
+      [
+        Offset(14, 3),
+        Offset(5, 3),
+        Offset(5, 21),
+        Offset(19, 21),
+        Offset(19, 8),
+        Offset(14, 3),
+      ],
+      [Offset(14, 3), Offset(14, 8), Offset(19, 8)],
+      [Offset(12, 11), Offset(12, 17)],
+      [Offset(9, 14), Offset(15, 14)],
+    ],
+  );
+
+  /// A folder: an existing file (F4).
+  static const folder = StrokeIconData(
+    polylines: [
+      [
+        Offset(3, 19),
+        Offset(3, 5),
+        Offset(9, 5),
+        Offset(11, 7),
+        Offset(21, 7),
+        Offset(21, 19),
+        Offset(3, 19),
+      ],
+    ],
+  );
+
   static const filters = StrokeIconData(
     polylines: [
       [Offset(4, 7), Offset(14, 7)],

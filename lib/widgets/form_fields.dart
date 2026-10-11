@@ -38,6 +38,8 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.maxLength,
+    this.obscureText = false,
+    this.keyboardType,
   });
 
   final TextEditingController? controller;
@@ -53,6 +55,10 @@ class AppTextField extends StatelessWidget {
   /// Stops typing past this many characters; no counter is shown.
   final int? maxLength;
 
+  /// Hides the text, for the access token (F3).
+  final bool obscureText;
+  final TextInputType? keyboardType;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -61,6 +67,8 @@ class AppTextField extends StatelessWidget {
       autofocus: autofocus,
       maxLines: maxLines,
       maxLength: maxLength,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
       onChanged: onChanged,

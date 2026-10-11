@@ -39,8 +39,8 @@ class SegmentedControl<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
   final SegmentedStyle style;
 
-  /// True inside a sheet, where the track uses the screen background instead
-  /// of the surface color.
+  /// True inside a sheet, where the track is a darker well ([LibraryColors.tray])
+  /// instead of the surface color, which would vanish against the sheet.
   final bool inset;
 
   /// A track color of its own, without a border (the plan header's tabs).
@@ -59,9 +59,7 @@ class SegmentedControl<T> extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color:
-            trackColor ??
-            (inset ? theme.scaffoldBackgroundColor : scheme.surface),
+        color: trackColor ?? (inset ? colors.tray : scheme.surface),
         borderRadius: BorderRadius.circular(14),
         border: inset || trackColor != null
             ? null

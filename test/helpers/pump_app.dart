@@ -7,6 +7,8 @@ import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/library.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/data/repository/library_repository.dart';
+import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/theme/app_theme.dart';
 
 /// The bundled fixture, read once per test file.
@@ -20,15 +22,21 @@ Future<ProviderContainer> pumpApp(
   Widget home, {
   Library? library,
   Size size = const Size(390, 844),
+  DisplayPreferences? prefs,
+  LibraryRepository? repository,
 }) async {
   final lib = library ?? loadFixture();
   final container = ProviderContainer(
     overrides: [
       libraryRepositoryProvider.overrideWithValue(
-        FixtureLibraryRepository(loadJson: () async => encodeLibrary(lib)),
+        repository ??
+            FixtureLibraryRepository(loadJson: () async => encodeLibrary(lib)),
       ),
     ],
   );
+  if (prefs != null) {
+    container.read(displayPreferencesProvider.notifier).replace(prefs);
+  }
   addTearDown(container.dispose);
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));

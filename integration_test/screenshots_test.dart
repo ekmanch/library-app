@@ -3,6 +3,7 @@
 // Linux dev target:
 //
 //   flutter test integration_test/screenshots_test.dart -d linux
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -15,6 +16,7 @@ import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/dev/long_lists.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/features/library/library_filter.dart';
@@ -23,6 +25,7 @@ import 'package:library_app/features/library/library_sort.dart';
 import 'package:library_app/features/plans/plan_entry_sheet.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
+import 'package:library_app/features/sync/sync_state.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
 
@@ -469,6 +472,363 @@ void main() {
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
     await capture(tester, 'narrow-a8-form');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    // S6, D6, F3, F4 and A12 on the narrow phone.
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-s6-settings');
+    await tester.scrollUntilVisible(find.text('Library source'), 200);
+    await tester.tap(find.text('Library source'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-d6-connection');
+    await tester.tap(find.text('Replace token'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'github_pat_example');
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-f3-connect');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    final narrowContainer = ProviderScope.containerOf(
+      tester.element(find.text('Library').first),
+    );
+    narrowContainer
+        .read(syncBannerProvider.notifier)
+        .show(SyncBanner.couldNotSave);
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-a12-could-not-save');
+    narrowContainer.read(syncBannerProvider.notifier).clear();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('settings, connection, first run, banners and first load', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Library').first),
+    );
+
+    // A12: the four banners on the home.
+    final banners = container.read(syncBannerProvider.notifier);
+    for (final (banner, name) in [
+      (SyncBanner.saving, 'a12-saving'),
+      (SyncBanner.offline, 'a12-offline'),
+      (SyncBanner.couldNotSave, 'a12-could-not-save'),
+      (SyncBanner.tokenProblem, 'a12-token-problem'),
+    ]) {
+      banners.show(banner);
+      await tester.pumpAndSettle();
+      await capture(tester, name);
+    }
+    banners.clear();
+    await tester.pumpAndSettle();
+
+    // S6 top and bottom, D6.
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's6-settings');
+    await tester.scrollUntilVisible(find.text('Version 0.1.0'), 300);
+    await tester.pumpAndSettle();
+    await capture(tester, 's6-settings-bottom');
+    await tester.tap(find.text('Library source'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd6-connection');
+
+    // Disconnect starts the first run at the splash (F1).
+    await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'f1-splash');
+    await tester.pump(FirstRunFlow.splashDuration);
+    await tester.pumpAndSettle();
+    await capture(tester, 'f2-welcome');
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'github_pat_example');
+    await tester.pumpAndSettle();
+    await capture(tester, 'f3-connect');
+    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'f4-file');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'f5-create');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use a file I already have'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'f6-existing');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create a new library'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create library'));
+    await tester.pump();
+    await capture(tester, 'f5-creating');
+    await tester.pump(FirstRunFlow.createDuration);
+    await tester.pumpAndSettle();
+    await capture(tester, 'f7-done');
+    await tester.tap(find.text('Open Libri'));
+    await tester.pumpAndSettle();
+    expect(find.text('Library'), findsWidgets);
+
+    // D7: a library that never finishes loading.
+    final never = Completer<String>();
+    await tester.pumpWidget(
+      ProviderScope(
+        // A new key, or the first ProviderScope's container is kept.
+        key: UniqueKey(),
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(loadJson: () => never.future),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await capture(tester, 'd7-first-load');
+  });
+
+  testWidgets('light theme pass over every screen', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Library').first),
+    );
+    container
+        .read(displayPreferencesProvider.notifier)
+        .setThemeMode(ThemeMode.light);
+    await tester.pumpAndSettle();
+    Future<void> shot(String name) => capture(tester, 'light-$name');
+    Future<void> tapText(String text) async {
+      await tester.tap(find.text(text).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> back() async {
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+    }
+
+    await shot('a1-home');
+    await tester.tap(find.widgetWithText(PillChip, 'Movies'));
+    await tester.pumpAndSettle();
+    await shot('a4-movies-text');
+    await tester.tap(find.byTooltip('Change view'));
+    await tester.pumpAndSettle();
+    await shot('a16-view-menu');
+    await tapText('Grid');
+    await shot('a21-movies-grid');
+    await tapText('Newest added');
+    await shot('d1-sort');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await pickView(tester, 'List with photos');
+    await shot('a20-movies-list-covers');
+    await pickView(tester, 'Text');
+    await tester.tap(find.widgetWithText(PillChip, 'All'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PillChip, '#horror'));
+    await tester.pumpAndSettle();
+    await shot('a2-filter-sheet');
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await shot('a3-filtered');
+    await tapText('Clear all');
+    await tapText('Search titles and tags');
+    await tester.enterText(find.byType(TextField), 'hal');
+    await tester.pumpAndSettle();
+    await shot('a5-search');
+    await tapText('Cancel');
+    await tester.tap(find.widgetWithText(PillChip, 'Movies'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('The Mummy').last);
+    await tester.pumpAndSettle();
+    await tapText('The Mummy');
+    await shot('a6-entry-details');
+    await tapText('9 / 10');
+    await shot('d11-rating');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tapText('Add to plan');
+    await shot('a7-add-to-plan');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Delete'));
+    await tapText('Delete');
+    await shot('a9-delete');
+    await tapText('Cancel');
+    await tapText('Edit');
+    await shot('a8-edit-entry');
+    await tester.ensureVisible(find.text('#adventure'));
+    await tapText('#adventure');
+    await shot('d14-tag-picker');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await back();
+    await closeSheet(tester);
+    await tester.tap(find.widgetWithText(PillChip, 'All'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pumpAndSettle();
+    await shot('a13-new-entry');
+    await tapText('GAME · 2013');
+    await shot('a8-new-entry');
+    await back();
+    await back();
+    await pickChip(tester, 'Music');
+    await shot('a14-music-artists');
+    await pickView(tester, 'List with photos');
+    await shot('a17-music-list-photos');
+    await pickView(tester, 'Grid');
+    await shot('a18-music-grid');
+    await pickView(tester, 'Text');
+    await tapText('Alice in Chains');
+    await shot('a15-artist');
+    await tapText('Dirt');
+    await shot('a22-album-details');
+    await closeSheet(tester);
+    await back();
+    await pickChip(tester, 'All');
+
+    // Plans.
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await shot('s5-plans');
+    await tapText('Halloween 2026');
+    await shot('s2-s11-halloween-timeline');
+    await tester.tap(find.bySemanticsLabel('Choose year'));
+    await tester.pumpAndSettle();
+    await shot('s1-year-menu');
+    await tapText('2026');
+    await tester.tap(find.byTooltip('Plan options'));
+    await tester.pumpAndSettle();
+    await shot('d3-plan-menu');
+    await tapText('Delete plan');
+    await shot('d5-delete-plan');
+    await tapText('Cancel');
+    await tapText('All Halloween');
+    await shot('s4-pool');
+    await tapText('This plan');
+    await tapText('The Mummy');
+    await shot('s7-plan-entry');
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PlanEntrySheet),
+        matching: find.text('Oct 19–31'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await shot('d2-when');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Remove'));
+    await tapText('Remove');
+    await shot('d4-remove');
+    await tapText('Cancel');
+    await closeSheet(tester);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Plans'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tapText('Christmas 2026');
+    await shot('s1-s12-christmas-checklist');
+    await tester.tap(find.byTooltip('Plan options'));
+    await tester.pumpAndSettle();
+    await tapText('Edit plan');
+    await shot('s9-edit-plan');
+    await back();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Plans'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await shot('s10-new-plan');
+    await back();
+
+    // Settings, connection, banners and the first run.
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await shot('s6-settings');
+    await tester.scrollUntilVisible(find.text('Version 0.1.0'), 300);
+    await tester.pumpAndSettle();
+    await shot('s6-settings-bottom');
+    await tapText('Library source');
+    await shot('d6-connection');
+    await back();
+    await back();
+    final banners = container.read(syncBannerProvider.notifier);
+    banners.show(SyncBanner.couldNotSave);
+    await tester.pumpAndSettle();
+    await shot('a12-could-not-save');
+    banners.show(SyncBanner.offline);
+    await tester.pumpAndSettle();
+    await shot('a12-offline');
+    banners.clear();
+    await tester.pumpAndSettle();
+    container.read(libraryConnectionProvider.notifier).disconnect();
+    await tester.pumpAndSettle();
+    await shot('f1-splash');
+    await tester.pump(FirstRunFlow.splashDuration);
+    await tester.pumpAndSettle();
+    await shot('f2-welcome');
+    await tapText('Get started');
+    await tester.enterText(find.byType(TextField).last, 'github_pat_example');
+    await tester.pumpAndSettle();
+    await shot('f3-connect');
+    await tapText('Connect');
+    await shot('f4-file');
+    await tapText('Continue');
+    await shot('f5-create');
+    await back();
+    await tapText('Use a file I already have');
+    await tapText('Continue');
+    await shot('f6-existing');
+    await tapText('Use this file');
+    await shot('f7-done');
+    await tapText('Open Libri');
   });
 
   testWidgets('plans: overview, checklist, timeline, pool, dialogs', (

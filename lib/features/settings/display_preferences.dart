@@ -24,6 +24,7 @@ class DisplayPreferences {
     this.artistSort = LibrarySort.yearOldest,
     this.timelineDefault = false,
     this.seasonalThemeDefault = true,
+    this.defaultPlatform = 'PC',
   });
 
   final ThemeMode themeMode;
@@ -49,6 +50,18 @@ class DisplayPreferences {
   /// set in Settings (S6).
   final bool timelineDefault;
   final bool seasonalThemeDefault;
+
+  /// Pre-selected on a new game that came out on it (A8); null means none.
+  /// The choices are listed in Settings (S6).
+  final String? defaultPlatform;
+
+  static const platformChoices = [
+    'PC',
+    'PlayStation 5',
+    'Xbox Series X|S',
+    'Switch 2',
+    'Steam Deck',
+  ];
 
   EntryView viewFor(MediaType type) => viewByType[type] ?? EntryView.text;
 
@@ -76,6 +89,7 @@ class DisplayPreferences {
     LibrarySort? artistSort,
     bool? timelineDefault,
     bool? seasonalThemeDefault,
+    Object? defaultPlatform = _keep,
   }) => DisplayPreferences(
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
@@ -86,7 +100,13 @@ class DisplayPreferences {
     artistSort: artistSort ?? this.artistSort,
     timelineDefault: timelineDefault ?? this.timelineDefault,
     seasonalThemeDefault: seasonalThemeDefault ?? this.seasonalThemeDefault,
+    defaultPlatform: defaultPlatform == _keep
+        ? this.defaultPlatform
+        : defaultPlatform as String?,
   );
+
+  /// Sentinel for [copyWith], so a null [defaultPlatform] can be set.
+  static const _keep = Object();
 
   @override
   bool operator ==(Object other) =>
@@ -99,7 +119,8 @@ class DisplayPreferences {
       other.filteredSort == filteredSort &&
       other.artistSort == artistSort &&
       other.timelineDefault == timelineDefault &&
-      other.seasonalThemeDefault == seasonalThemeDefault;
+      other.seasonalThemeDefault == seasonalThemeDefault &&
+      other.defaultPlatform == defaultPlatform;
 
   @override
   int get hashCode => Object.hash(
@@ -114,6 +135,7 @@ class DisplayPreferences {
     artistSort,
     timelineDefault,
     seasonalThemeDefault,
+    defaultPlatform,
   );
 }
 
@@ -122,6 +144,9 @@ class DisplayPreferencesNotifier extends Notifier<DisplayPreferences> {
   DisplayPreferences build() => const DisplayPreferences();
 
   void setThemeMode(ThemeMode mode) => state = state.copyWith(themeMode: mode);
+
+  /// Swaps in a whole set of preferences, e.g. in tests.
+  void replace(DisplayPreferences prefs) => state = prefs;
 
   void setAccent(AccentOption accent) => state = state.copyWith(accent: accent);
 
@@ -137,6 +162,9 @@ class DisplayPreferencesNotifier extends Notifier<DisplayPreferences> {
 
   void setSeasonalThemeDefault(bool on) =>
       state = state.copyWith(seasonalThemeDefault: on);
+
+  void setDefaultPlatform(String? platform) =>
+      state = state.copyWith(defaultPlatform: platform);
 
   void setArtistSort(LibrarySort sort) =>
       state = state.copyWith(artistSort: sort);

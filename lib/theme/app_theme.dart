@@ -154,6 +154,24 @@ class SeasonalAccents {
   static const christmas = Color(0xFF35A56A);
 }
 
+/// Font families. Bricolage Grotesque and Figtree are bundled; the code
+/// font falls back to the platform's monospace face (the F5 preview).
+class AppFonts {
+  AppFonts._();
+  static const display = 'Bricolage Grotesque';
+  static const body = 'Figtree';
+  static const code = 'monospace';
+}
+
+/// The Libri mark (F1, F2): a peach left half with a play triangle and a
+/// paper right half with three lines. Fixed colors, the same on both themes.
+class BrandColors {
+  BrandColors._();
+  static const peach = Color(0xFFF8B289);
+  static const paper = Color(0xFFEDEEF0);
+  static const ink = Color(0xFF232428);
+}
+
 /// Motion timings shared by widgets.
 class AppMotion {
   /// Anchored popup menus (the view menu, the plan menu, the year chip).
@@ -193,6 +211,9 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.navShadow,
     required this.coverPlaceholders,
     required this.coverBadge,
+    required this.dangerFill,
+    required this.success,
+    required this.skeleton,
   });
 
   /// Raised fill: tag chips, the floating navigation pill, sheet buttons.
@@ -249,6 +270,15 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
   /// Round badge over a cover, e.g. behind the Done check in the grid.
   final Color coverBadge;
 
+  /// Fill of an error banner (A12); the text on it stays the main color.
+  final Color dangerFill;
+
+  /// The "connected" dot (D6).
+  final Color success;
+
+  /// Placeholder blocks while the library loads (D7).
+  final Color skeleton;
+
   Color forType(MediaType t) => switch (t) {
     MediaType.movies => movies,
     MediaType.shows => shows,
@@ -257,6 +287,10 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     MediaType.music => music,
     MediaType.anime => anime,
   };
+
+  /// The dot on a type chip or a rail. Dots keep the bright hues on both
+  /// themes (D8); only text in a type color darkens on light.
+  Color dotForType(MediaType t) => dark.forType(t);
 
   static LibraryColors of(BuildContext context) =>
       Theme.of(context).extension<LibraryColors>()!;
@@ -288,6 +322,9 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     ],
     coverPlaceholders: _coverPlaceholders,
     coverBadge: Color(0xD9131416),
+    dangerFill: Color(0xFF3A2323),
+    success: Color(0xFF8FD694),
+    skeleton: Color(0xFF1D1F22),
   );
 
   // Values from the light mockups D8 and S6. The type colors are settled.
@@ -326,6 +363,9 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     ],
     coverPlaceholders: _coverPlaceholders,
     coverBadge: Color(0xD9FFFFFF),
+    dangerFill: Color(0xFFFBE9E7),
+    success: Color(0xFF1E7B34),
+    skeleton: Color(0xFFE9EBEE),
   );
 
   static const _coverPlaceholders = [
@@ -385,13 +425,13 @@ ThemeData buildTheme({
 
   final body =
       (isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme).apply(
-        fontFamily: 'Figtree',
+        fontFamily: AppFonts.body,
         bodyColor: text,
         displayColor: text,
       );
 
   TextStyle title(double size, {double? height}) => TextStyle(
-    fontFamily: 'Bricolage Grotesque',
+    fontFamily: AppFonts.display,
     fontSize: size,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.02 * size,
@@ -441,7 +481,7 @@ ThemeData buildTheme({
     // fields by 8 px on desktop, and the Linux build is for checking
     // screens against the canvas.
     visualDensity: VisualDensity.standard,
-    fontFamily: 'Figtree',
+    fontFamily: AppFonts.body,
     colorScheme: scheme,
     scaffoldBackgroundColor: background,
     textTheme: textTheme,

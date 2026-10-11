@@ -128,7 +128,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                       PillChip(
                         label: t.label,
                         selected: _type == t,
-                        dotColor: colors.forType(t),
+                        dotColor: colors.dotForType(t),
                         onTap: () => setState(() => _type = t),
                       ),
                     ],

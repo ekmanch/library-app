@@ -258,6 +258,11 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Ticking a plan item marks the entry Done and remembers the old status; unticking restores it unless the status changed in between or was Done already.
 - The "+" button changes with the screen: on a plan it opens the pool or adds a tagged entry, and wears the plan's seasonal accent.
 - Desktop builds use the same visual density as the phone, so Linux captures match the device.
+- Settings (S6) also has the default game platform from the canvas (PC, PlayStation 5, Xbox Series X|S, Switch 2, Steam Deck, None). A new game from a lookup starts with it picked when the game came out on it, as the A8 note says.
+- The A12 banner sits under the title on both top-level screens, Library and Plans, so a failed save is seen wherever you are.
+- Until phase 4, Disconnect in D6 goes straight back to the splash (F1); a confirmation comes with the real token handling.
+- "Replace token" in D6 opens the Connect GitHub step (F3) on its own, with a Save token button and no step label.
+- The About version comes from `lib/app_info.dart`, kept equal to pubspec.yaml by a test, until a package reads it from the build.
 
 ## 11. Visual design
 

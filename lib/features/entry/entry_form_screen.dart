@@ -21,6 +21,7 @@ import '../../widgets/form_fields.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segmented_control.dart';
+import '../settings/display_preferences.dart';
 import 'lookup_matches.dart';
 import 'rating_sheet.dart';
 import 'replace_dialogs.dart';
@@ -156,6 +157,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       _addPlatformOption(platform);
     }
     _platformsOn.addAll(splitPlatforms(entry?.platform));
+    // A new game starts with the default platform from Settings picked,
+    // when the game came out on it.
+    if (entry == null && _type == MediaType.games) {
+      final wanted = ref.read(displayPreferencesProvider).defaultPlatform;
+      _platformsOn.addAll(
+        _platformOptions.where((p) => p.toLowerCase() == wanted?.toLowerCase()),
+      );
+    }
     _album = TextEditingController(text: entry?.album ?? match?.album ?? '');
     _status = entry?.status ?? EntryStatus.want;
     _rating = entry?.rating;
@@ -505,7 +514,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                         PillChip(
                           label: type.label,
                           selected: type == _type,
-                          dotColor: colors.forType(type),
+                          dotColor: colors.dotForType(type),
                           horizontalPadding: 4,
                           onTap: () => _pickType(type),
                         ),

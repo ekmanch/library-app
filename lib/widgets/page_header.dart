@@ -52,13 +52,18 @@ class PageHeader extends StatelessWidget {
           if (hasBack) const SizedBox(width: 4),
           if (leading != null) ...[leading!, const SizedBox(width: 6)],
           Expanded(
-            child: Text(
-              title,
-              style: hasBack
-                  ? textTheme.headlineMedium
-                  : textTheme.headlineLarge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // "Library connection" at a large text size on a narrow phone:
+            // shrink a little before cutting off.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                title,
+                style: hasBack
+                    ? textTheme.headlineMedium
+                    : textTheme.headlineLarge,
+                maxLines: 1,
+              ),
             ),
           ),
           ...actions,

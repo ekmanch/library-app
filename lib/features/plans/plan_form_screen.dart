@@ -15,6 +15,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/radio_mark.dart';
 import '../../widgets/segmented_control.dart';
 import '../../widgets/sheet_frame.dart';
+import '../../widgets/switch_row.dart';
 import '../settings/display_preferences.dart';
 import 'plan_builders.dart';
 import 'plan_dialogs.dart';
@@ -214,32 +215,6 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
       height: 1.4,
     );
 
-    Widget switchRow({
-      required String label,
-      required bool value,
-      required ValueChanged<bool> onChanged,
-      required String help,
-    }) => Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: theme.textTheme.titleMedium)),
-              Switch(value: value, onChanged: onChanged),
-            ],
-          ),
-          Text(help, style: helpStyle),
-        ],
-      ),
-    );
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -338,7 +313,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                   ),
                   if (season != null) ...[
                     const SizedBox(height: 18),
-                    switchRow(
+                    SwitchRow(
                       label: 'Seasonal theme',
                       value: _seasonal,
                       onChanged: (on) => setState(() => _seasonal = on),
@@ -404,7 +379,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                     ),
                   ],
                   const SizedBox(height: 18),
-                  switchRow(
+                  SwitchRow(
                     label: 'Timeline',
                     value: _timeline,
                     onChanged: (on) => setState(() => _timeline = on),

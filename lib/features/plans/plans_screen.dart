@@ -9,8 +9,10 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
+import '../settings/settings_screen.dart';
 import '../shell/app_shell.dart';
 import '../shell/floating_nav_bar.dart';
+import '../sync/sync_banner.dart';
 import 'plan_builders.dart';
 import 'plan_form_screen.dart';
 import 'plan_progress.dart';
@@ -47,8 +49,14 @@ class PlansScreen extends ConsumerWidget {
           children: [
             PageHeader(
               title: 'Plans',
-              actions: [SettingsButton(onPressed: onOpenSettings ?? () {})],
+              actions: [
+                SettingsButton(
+                  onPressed:
+                      onOpenSettings ?? () => openSettingsScreen(context),
+                ),
+              ],
             ),
+            const SyncBannerCard(),
             if (library != null && library.plans.isEmpty)
               EmptyState(
                 icon: AppIcons.plans,

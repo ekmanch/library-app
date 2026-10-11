@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/features/plans/seasonal_art_data.dart';
-import 'package:library_app/features/plans/svg_path.dart';
+import 'package:library_app/widgets/svg_path.dart';
 
 void main() {
   test('absolute and relative commands build the expected bounds', () {

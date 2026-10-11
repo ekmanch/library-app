@@ -21,6 +21,9 @@ import '../music/music_type_body.dart';
 import '../plans/plan_progress.dart';
 import '../plans/plan_screen.dart';
 import '../settings/display_preferences.dart';
+import '../settings/settings_screen.dart';
+import '../sync/sync_banner.dart';
+import 'library_skeleton.dart';
 import '../settings/entry_view.dart';
 import '../shell/app_shell.dart';
 import '../shell/floating_nav_bar.dart';
@@ -82,6 +85,9 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     if (result != null) ref.read(libraryFilterProvider.notifier).set(result);
   }
 
+  void _openSettings() =>
+      (widget.onOpenSettings ?? () => openSettingsScreen(context))();
+
   Future<void> _openSearch() async {
     // The chip row is hidden while a filter is active, so search is scoped
     // to the picked type only when the chip can be seen.
@@ -119,13 +125,29 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     final library = libraryAsync.value;
 
     final Widget body;
-    if (library == null) {
+    if (library == null && !libraryAsync.hasError) {
+      // D7: the first load.
+      return Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PageHeader(
+                title: 'Library',
+                actions: [SettingsButton(onPressed: _openSettings)],
+              ),
+              const SyncBannerCard(),
+              const Expanded(child: LibrarySkeleton()),
+            ],
+          ),
+        ),
+      );
+    } else if (library == null) {
       body = Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
-          libraryAsync.hasError
-              ? 'Could not load the library: ${libraryAsync.error}'
-              : 'Loading…',
+          'Could not load the library: ${libraryAsync.error}',
           style: theme.textTheme.bodyMedium,
         ),
       );
@@ -145,10 +167,9 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
           children: [
             PageHeader(
               title: 'Library',
-              actions: [
-                SettingsButton(onPressed: widget.onOpenSettings ?? () {}),
-              ],
+              actions: [SettingsButton(onPressed: _openSettings)],
             ),
+            const SyncBannerCard(),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
               child: _SearchRow(
@@ -177,7 +198,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                         PillChip(
                           label: t.label,
                           selected: type == t,
-                          dotColor: colors.forType(t),
+                          dotColor: colors.dotForType(t),
                           onTap: () => _pickType(t),
                         ),
                       ],

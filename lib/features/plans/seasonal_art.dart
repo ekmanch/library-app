@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import 'svg_path.dart';
+import '../../widgets/svg_path.dart';
 
 /// One shape of a [SeasonalArt] picture, in the picture's own units.
 @immutable
