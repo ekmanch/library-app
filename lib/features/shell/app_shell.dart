@@ -9,6 +9,8 @@ import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
 import '../settings/display_preferences.dart';
 import '../../theme/app_theme.dart';
+import '../../data/models/plan.dart';
+import '../plans/plan_screen.dart';
 import '../plans/plans_screen.dart';
 import 'fab_action.dart';
 import 'floating_nav_bar.dart';
@@ -73,6 +75,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  /// The active plan card on the home (A1) opens the plan in the Plans
+  /// tab, so the pill says where you are and back lands on the overview.
+  void _openPlan(Plan plan) {
+    setState(() => _tab = ShellTab.plans);
+    final plans = _keys[ShellTab.plans]!.currentState!;
+    plans.popUntil((route) => route.isFirst);
+    openPlanScreen(plans.context, plan.id, tab: ShellTab.plans);
+  }
+
   void _add() {
     final context = _current?.context ?? this.context;
     switch (_tab) {
@@ -116,6 +127,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       LibraryHomeScreen(
                         onOpenEntry: (entry) =>
                             showEntryDetailsSheet(context, entry.id),
+                        onOpenPlan: _openPlan,
                         onAddEntry: ({type, title}) => openNewEntryScreen(
                           context,
                           type: type,

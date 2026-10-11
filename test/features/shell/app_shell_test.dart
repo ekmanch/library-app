@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
 import 'package:library_app/features/library/library_home_screen.dart';
+import 'package:library_app/features/plans/plan_screen.dart';
+import 'package:library_app/features/plans/plans_screen.dart';
 import 'package:library_app/features/shell/app_shell.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/theme/app_theme.dart';
@@ -123,6 +125,34 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
     expect(fabColor(), Accents.defaultAccent.fill);
+  });
+
+  testWidgets('the active plan card opens the plan on the Plans tab', (
+    tester,
+  ) async {
+    await pumpApp(tester, const AppShell(), size: const Size(480, 844));
+    await tester.tap(find.text('Halloween 2026'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlanScreen), findsOneWidget);
+    expect(find.text('2 of 8 done'), findsOneWidget);
+    final plansItem = find.descendant(
+      of: find.byType(FloatingNavBar),
+      matching: find.text('Plans'),
+    );
+    expect(isSelected(tester, plansItem), isTrue);
+    // System back lands on the plans overview; Library is still the home.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(PlansScreen), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Library'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryHomeScreen), findsOneWidget);
+    expect(find.byType(PlanScreen), findsNothing);
   });
 
   testWidgets('starts on Library and switches to Plans', (tester) async {

@@ -56,7 +56,8 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
   final void Function(Entry entry)? onOpenEntry;
   final VoidCallback? onOpenSettings;
 
-  /// Opens the active plan; by default inside this tab.
+  /// Opens the active plan. The shell switches to the Plans tab (DESIGN.md
+  /// section 3); without a shell, e.g. in tests, it opens in place.
   final void Function(Plan plan)? onOpenPlan;
 
   /// Starts a new entry, for the picked [type] and with a [title] already
