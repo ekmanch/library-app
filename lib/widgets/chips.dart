@@ -222,10 +222,16 @@ class DashedChip extends StatelessWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelMedium!.copyWith(
-                      fontWeight: FontWeight.w500,
+                  // A long suggestion ("#post-apocalyptic" with its "new"
+                  // badge) is cut off rather than overflowing a 360 dp row.
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium!.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   if (badge != null) ...[
