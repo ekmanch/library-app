@@ -97,3 +97,12 @@ String musicCountLabel({
     '$artists ${artists == 1 ? 'artist' : 'artists'}, '
     '$albums ${albums == 1 ? 'album' : 'albums'}, '
     '$songs ${songs == 1 ? 'song' : 'songs'}';
+
+/// What a plan row says when the entry was already done when it was added:
+/// a rewatch, a reread, a replay or a relisten.
+String repeatLabel(MediaType type) => switch (type) {
+  MediaType.books => 'Reread',
+  MediaType.games => 'Replay',
+  MediaType.music => 'Relisten',
+  MediaType.movies || MediaType.shows || MediaType.anime => 'Rewatch',
+};

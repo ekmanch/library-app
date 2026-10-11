@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/models/entry.dart';
+import 'package:library_app/widgets/labels.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/models/music_kind.dart';
@@ -94,5 +96,26 @@ void main() {
     );
     await tester.tap(find.text('The Mummy'));
     expect(taps, 1);
+  });
+
+  test('a repeat is a rewatch, a reread, a replay or a relisten', () {
+    expect(repeatLabel(MediaType.movies), 'Rewatch');
+    expect(repeatLabel(MediaType.books), 'Reread');
+    expect(repeatLabel(MediaType.games), 'Replay');
+    expect(repeatLabel(MediaType.music), 'Relisten');
+  });
+
+  test('a song in the Songs tab shows its artist and year', () {
+    final song = Entry(
+      id: 'music/rooster-alice-in-chains',
+      type: MediaType.music,
+      title: 'Rooster',
+      status: EntryStatus.done,
+      creator: 'Alice in Chains',
+      album: 'Dirt',
+      released: Released.parse('1992'),
+      added: DateTime(2026),
+    );
+    expect(songSubtitle(song, today: DateTime(2026)), 'Alice in Chains · 1992');
   });
 }

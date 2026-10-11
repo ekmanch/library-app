@@ -7,6 +7,7 @@ import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/sheet_frame.dart';
 import 'similar_tags.dart';
 import 'tag_dialogs.dart';
@@ -35,6 +36,8 @@ Future<TagPick?> showTagPickerSheet(
 }) {
   return showAppSheet<TagPick>(
     context,
+    // The form stays in view above the picker, as on D14.
+    maxHeightFactor: 0.78,
     builder: (context) => TagPickerSheet(
       library: library,
       selected: selected,
@@ -155,27 +158,15 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
+          SearchField(
             controller: _query,
+            hintText: 'Search or create a tag',
             autofocus: _selected.isEmpty,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) {
               if (canCreate) _create(query);
             },
             textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              hintText: 'Search or create a tag',
-              isDense: true,
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(left: 14, right: 10),
-                child: StrokeIcon(
-                  AppIcons.search,
-                  size: 18,
-                  color: colors.muted,
-                ),
-              ),
-              prefixIconConstraints: const BoxConstraints(minWidth: 42),
-            ),
           ),
         ],
       ),

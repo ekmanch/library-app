@@ -12,12 +12,10 @@ enum AppButtonKind {
   /// Neutral fill, main text color.
   neutral,
 
-  /// Neutral fill with red text. Never a red fill, and never next to an
+  /// No fill, the grey button outline, red text: Delete, Disconnect,
+  /// Delete everywhere, Replace… Never a red fill, and never next to an
   /// accent-colored button.
   destructive,
-
-  /// Outline with red text, for a second destructive choice (D4).
-  destructiveOutline,
 
   /// Plain text, 44 px tall: "Cancel" under a stack of choices.
   text,
@@ -26,7 +24,8 @@ enum AppButtonKind {
   /// (A6, S7) and the actions under a pool row (S4).
   soft,
 
-  /// Like [soft] with red text: Delete on a details sheet.
+  /// The [soft] shape with no fill, the grey outline and red text: Delete
+  /// next to Edit on a details sheet (A6) and under a pool row (S4).
   softDestructive,
 }
 
@@ -113,17 +112,7 @@ class AppButton extends StatelessWidget {
         ),
         child: child,
       ),
-      AppButtonKind.destructive => FilledButton(
-        onPressed: onPressed,
-        style: style(
-          FilledButton.styleFrom(
-            backgroundColor: colors.neutralFill,
-            foregroundColor: colors.dangerText,
-          ),
-        ),
-        child: child,
-      ),
-      AppButtonKind.destructiveOutline => OutlinedButton(
+      AppButtonKind.destructive => OutlinedButton(
         onPressed: onPressed,
         style: style(
           OutlinedButton.styleFrom(foregroundColor: colors.dangerText),
@@ -146,11 +135,10 @@ class AppButton extends StatelessWidget {
         ),
         child: child,
       ),
-      AppButtonKind.softDestructive => FilledButton(
+      AppButtonKind.softDestructive => OutlinedButton(
         onPressed: onPressed,
         style: style(
-          FilledButton.styleFrom(
-            backgroundColor: colors.surfaceHigh,
+          OutlinedButton.styleFrom(
             foregroundColor: colors.dangerText,
             shape: softShape,
           ),

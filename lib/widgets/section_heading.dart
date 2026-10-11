@@ -73,7 +73,7 @@ class SectionHeading extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
+          constraints: const BoxConstraints(minHeight: 48),
           padding: padding,
           alignment: Alignment.centerLeft,
           child: row,

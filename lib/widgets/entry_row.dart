@@ -37,6 +37,23 @@ String entryKindLabel(Entry entry) => switch (entry.kind) {
   null => entry.type.singular,
 };
 
+/// A song's subtitle in the Songs tab (A14): the artist and the year the
+/// song, or the album it is on, came out. The tab mixes every artist, so
+/// the artist is named, unlike on an artist's own screen.
+String songSubtitle(Entry songOrAlbum, {DateTime? today}) {
+  final released = songOrAlbum.released;
+  if (released != null && !released.isReleasedOn(today ?? DateTime.now())) {
+    return [
+      songOrAlbum.creator,
+      'Not released yet',
+    ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+  }
+  return [
+    songOrAlbum.creator,
+    released?.year.toString(),
+  ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+}
+
 /// One entry in a list: title, italic subtitle and a status mark. No tags.
 class EntryRow extends StatelessWidget {
   const EntryRow({
@@ -60,8 +77,9 @@ class EntryRow extends StatelessWidget {
     DateTime? today,
     bool showType = false,
     LibraryColors? colors,
+    String? subtitle,
   }) : title = entry.title,
-       subtitle = entrySubtitle(entry, today: today),
+       subtitle = subtitle ?? entrySubtitle(entry, today: today),
        status = entry.status,
        typeLabel = showType ? entryKindLabel(entry) : null,
        typeColor = showType ? colors?.forType(entry.type) : null;

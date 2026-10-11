@@ -218,11 +218,16 @@ void main() {
     tester,
   ) async {
     final container = await open(tester);
+    await tester.ensureVisible(find.text('Add to plan'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Add to plan'));
     await tester.pumpAndSettle();
     expect(find.text('Add to plan'), findsWidgets);
+    await tester.ensureVisible(find.text('Christmas 2026'));
+    await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Christmas 2026'), findsOneWidget);
-    expect(find.text('Active'), findsNWidgets(2)); // Both have open items.
+    expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Not started'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Christmas 2026'));
     await tester.pumpAndSettle();

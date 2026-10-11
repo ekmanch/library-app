@@ -407,16 +407,19 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                   onRemove: () =>
                       ref.read(libraryFilterProvider.notifier).remove(chip),
                 ),
-              TextButton(
-                onPressed: () =>
-                    ref.read(libraryFilterProvider.notifier).clear(),
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  textStyle: theme.textTheme.labelMedium,
+              // With no results the empty state's button clears the
+              // filters, so the chip row has no link of its own (A10).
+              if (matching.isNotEmpty)
+                TextButton(
+                  onPressed: () =>
+                      ref.read(libraryFilterProvider.notifier).clear(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    textStyle: theme.textTheme.labelMedium,
+                  ),
+                  child: const Text('Clear all'),
                 ),
-                child: const Text('Clear all'),
-              ),
             ],
           ),
         ),
@@ -424,7 +427,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
           EmptyState(
             icon: AppIcons.filters,
             title: 'Nothing matches these filters',
-            body: 'Remove a filter to see more.',
+            body: filter.noMatchesText,
             actionLabel: 'Clear filters',
             onAction: () => ref.read(libraryFilterProvider.notifier).clear(),
           )

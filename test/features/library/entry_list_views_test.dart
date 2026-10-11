@@ -9,20 +9,21 @@ import '../../helpers/sample_library.dart';
 void main() {
   test('grid captions and placeholder colors', () {
     final today = DateTime(2026);
-    expect(CoverGridTile.statusCaption(mummy, today: today), '1999');
+    // The year only, whatever the status (the A21 note).
+    expect(CoverGridTile.yearCaption(mummy, today: today), '1999');
     expect(
-      CoverGridTile.statusCaption(
+      CoverGridTile.yearCaption(
         mummy.copyWith(status: EntryStatus.want),
         today: today,
       ),
-      'Want · 1999',
+      '1999',
     );
     expect(
-      CoverGridTile.statusCaption(
+      CoverGridTile.yearCaption(
         mummy.copyWith(status: EntryStatus.want, released: null),
         today: today,
       ),
-      'Want',
+      '',
     );
     expect(
       CoverPlaceholder.paletteIndex('The Mummy', 4),

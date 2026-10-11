@@ -6,7 +6,9 @@ import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/plans/plan_entry_sheet.dart';
+import 'package:library_app/features/plans/plan_progress.dart';
 import 'package:library_app/features/plans/plan_screen.dart';
+import 'package:library_app/features/plans/plan_timeline.dart';
 import 'package:library_app/features/plans/seasonal_art.dart';
 import 'package:library_app/features/plans/when_sheet.dart';
 import 'package:library_app/features/shell/fab_action.dart';
@@ -176,15 +178,55 @@ void main() {
     );
   });
 
+  testWidgets('ticking the last entry finishes the plan, with Undo', (
+    tester,
+  ) async {
+    final fixture = loadFixture();
+    final halloween = fixture.planById('halloween-2026')!;
+    final one = halloween.copyWith(
+      id: 'one',
+      name: 'Movie night',
+      year: null,
+      started: false,
+      timeline: false,
+      seasonalTheme: false,
+      tags: [],
+      items: [halloween.items.firstWhere((i) => !i.done)],
+    );
+    final container = await pumpApp(
+      tester,
+      Scaffold(
+        body: PlanScreen(planId: 'one', tab: ShellTab.plans),
+      ),
+      library: fixture.copyWith(plans: [one]),
+    );
+    final title = fixture.entryById(one.items.single.entry)!.title;
+    await tester.tap(check(title));
+    await tester.pumpAndSettle();
+    final ticked = repo(container).current!.planById('one')!;
+    expect(ticked.started, isTrue);
+    expect(planState(ticked), PlanState.finished);
+    expect(find.text('Movie night finished'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    final undone = repo(container).current!.planById('one')!;
+    expect(undone.items.single.done, isFalse);
+    // Unticking leaves it active, not back to not started.
+    expect(planState(undone), PlanState.active);
+  });
+
   group('timeline (S2)', () {
     testWidgets('dated groups with the rail and today, then Whenever', (
       tester,
     ) async {
       await open(tester, 'halloween-2026');
       expect(find.text('Halloween'), findsOneWidget);
-      expect(find.text('One day'), findsWidgets);
       expect(find.text('MOVIE'), findsWidgets);
-      expect(find.text('Sat Oct 3'), findsOneWidget);
+      // The buckets depend on today's date; the widget shows what the
+      // grouping (tested on its own in plan_logic_test) returns.
+      final plan = loadFixture().planById('halloween-2026')!;
+      final groups = timelineGroups(plan);
+      expect(find.text(groups.first.title), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('Whenever'),
         300,
@@ -192,14 +234,11 @@ void main() {
       );
       expect(find.text('No date'), findsOneWidget);
       expect(find.text('Hereditary'), findsOneWidget);
-      // The fixture's October 2026 periods against today's date.
-      final today = DateTime.now();
-      final inRange =
-          DateTime(2026, 10, 10).isBefore(today) &&
-          today.isBefore(DateTime(2026, 10, 18));
       expect(
         find.byKey(const Key('timeline-today')),
-        inRange ? findsOneWidget : findsNothing,
+        groups.any((g) => g.state == TimelineState.current)
+            ? findsOneWidget
+            : findsNothing,
       );
     });
 
@@ -321,7 +360,8 @@ void main() {
       await tester.tap(find.text('All Christmas'));
       await tester.pumpAndSettle();
       expect(container.read(fabActionProvider)?.label, 'New Christmas entry');
-      expect(find.text('0 of 6 done'), findsNothing);
+      // The progress row stays on the pool tab too.
+      expect(find.text('0 of 6 done'), findsOneWidget);
       expect(find.text('The Nightmare Before Christmas'), findsOneWidget);
       expect(find.textContaining('only in Christmas'), findsWidgets);
       expect(
@@ -433,7 +473,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete plan'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete plan'));
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Delete plan').last);
       await tester.pumpAndSettle();
       expect(repo(container).current!.planById('christmas-2026'), isNull);
       expect(find.byType(PlanScreen), findsNothing);

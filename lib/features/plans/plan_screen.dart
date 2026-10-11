@@ -6,6 +6,7 @@ import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
+import '../../data/models/music_kind.dart';
 import '../../data/models/plan.dart';
 import '../../data/models/plan_item.dart';
 import '../../data/operations/operations.dart';
@@ -16,6 +17,8 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/fitted_title.dart';
+import '../../widgets/touch_target.dart';
 import '../../widgets/segmented_control.dart';
 import '../entry/delete_entry_dialog.dart';
 import '../entry/entry_form_screen.dart';
@@ -125,7 +128,13 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
   }
 
   Future<void> _toggleDone(Plan plan, PlanItem item, Entry entry) =>
-      togglePlanItemDone(ref, plan: plan, item: item, entry: entry);
+      togglePlanItemDoneWithUndo(
+        context,
+        ref,
+        plan: plan,
+        item: item,
+        entry: entry,
+      );
 
   Future<void> _openMenu(Plan plan) async {
     final action = await showPlanMenu(
@@ -432,35 +441,37 @@ class _Header extends StatelessWidget {
             children: [
               if (showYearChip) ...[
                 Builder(
-                  builder: (anchor) => Semantics(
-                    button: true,
-                    label: 'Choose year',
-                    excludeSemantics: true,
-                    child: Material(
-                      color: colors.tray,
-                      shape: StadiumBorder(
-                        side: BorderSide(color: colors.trayBorder),
-                      ),
-                      child: InkWell(
-                        onTap: () => onPickYear(anchor),
-                        customBorder: const StadiumBorder(),
-                        child: Container(
-                          height: 40,
-                          padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                plan.year?.toString() ?? 'No year',
-                                style: theme.textTheme.labelLarge,
-                              ),
-                              const SizedBox(width: 4),
-                              StrokeIcon(
-                                AppIcons.chevronDown,
-                                size: 16,
-                                color: scheme.onSurface,
-                              ),
-                            ],
+                  builder: (anchor) => TouchTarget(
+                    child: Semantics(
+                      button: true,
+                      label: 'Choose year',
+                      excludeSemantics: true,
+                      child: Material(
+                        color: colors.tray,
+                        shape: StadiumBorder(
+                          side: BorderSide(color: colors.trayBorder),
+                        ),
+                        child: InkWell(
+                          onTap: () => onPickYear(anchor),
+                          customBorder: const StadiumBorder(),
+                          child: Container(
+                            height: 40,
+                            padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  plan.year?.toString() ?? 'No year',
+                                  style: theme.textTheme.labelLarge,
+                                ),
+                                const SizedBox(width: 4),
+                                StrokeIcon(
+                                  AppIcons.chevronDown,
+                                  size: 16,
+                                  color: scheme.onSurface,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -469,7 +480,9 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
               ],
-              if (tab == PlanTab.thisPlan) ...[
+              // The bar shows on every tab, so the header looks the same on
+              // the checklist, the timeline and the "All <plan>" tab.
+              ...[
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) => SizedBox(
@@ -553,8 +566,8 @@ class PlanCheck extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          width: 44,
-          height: 44,
+          width: 48,
+          height: 48,
           child: Center(
             child: Container(
               width: 24,
@@ -678,7 +691,7 @@ class _CheckRow extends StatelessWidget {
             child: InkWell(
               onTap: onOpen,
               child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
+                constraints: const BoxConstraints(minHeight: 48),
                 alignment: Alignment.centerLeft,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -694,8 +707,8 @@ class _CheckRow extends StatelessWidget {
                     ),
                     Text(
                       [
-                        entrySubtitle(entry),
-                        if (item.repeat) 'Rewatch',
+                        planRowSubtitle(entry),
+                        if (item.repeat) repeatLabel(entry.type),
                       ].where((s) => s.isNotEmpty).join(' · '),
                       style: theme.textTheme.bodySmall!.copyWith(
                         fontStyle: FontStyle.italic,
@@ -730,7 +743,11 @@ class _Timeline extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = LibraryColors.of(context);
-    final groups = timelineGroups(plan);
+    final groups = timelineGroups(
+      plan,
+      typeRank: (item) =>
+          library.entryById(item.entry)?.type.index ?? MediaType.values.length,
+    );
     if (plan.items.isEmpty) {
       return EmptyState(
         icon: AppIcons.plans,
@@ -754,8 +771,14 @@ class _Timeline extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  // Wide enough for "Whenever" at the user's text size.
-                  width: 76 * MediaQuery.textScalerOf(context).scale(1),
+                  // "Whenever" fits at normal size; at large text sizes the
+                  // column grows only a little, so the cards keep room for
+                  // their titles, and a label may wrap instead.
+                  width:
+                      76 *
+                      MediaQuery.textScalerOf(context)
+                          .scale(1)
+                          .clamp(1.0, 1.15),
                   child: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
@@ -918,48 +941,72 @@ class _TimelineCard extends StatelessWidget {
               onTap: onOpen,
               borderRadius: BorderRadius.circular(10),
               child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
+                constraints: const BoxConstraints(minHeight: 48),
                 alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.title,
-                            style: theme.textTheme.titleMedium!.copyWith(
-                              fontSize: 15.5,
-                              height: 1.25,
-                              color: item.done ? colors.muted : null,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          entryKindLabel(entry).toUpperCase(),
-                          style: theme.textTheme.labelSmall!.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: colors.forType(entry.type),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      entrySubtitle(entry),
+                child: Builder(
+                  builder: (context) {
+                    final title = Text(
+                      entry.title,
+                      style: theme.textTheme.titleMedium!.copyWith(
+                        fontSize: 15.5,
+                        height: 1.25,
+                        color: item.done ? colors.muted : null,
+                      ),
+                      // Two lines before cutting off, as on S2.
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    );
+                    final kind = Text(
+                      entryKindLabel(entry).toUpperCase(),
+                      style: theme.textTheme.labelSmall!.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: colors.forType(entry.type),
+                      ),
+                    );
+                    final subtitle = Text(
+                      planRowSubtitle(entry),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall!.copyWith(
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
-                    ),
-                  ],
+                    );
+                    // A narrow card (large text on a small phone) gives the
+                    // title the full width and puts the type label above
+                    // it, so words are never split.
+                    // The card sits in an IntrinsicHeight row, so its width
+                    // comes from the screen: margins, the label column, the
+                    // rail and the check ring.
+                    final scaler = MediaQuery.textScalerOf(context);
+                    final labelColumn = 76 * scaler.scale(1).clamp(1.0, 1.15);
+                    final textWidth =
+                        MediaQuery.sizeOf(context).width -
+                        40 -
+                        labelColumn -
+                        26 -
+                        14 -
+                        50;
+                    final narrow = textWidth < scaler.scale(170);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: narrow
+                          ? [kind, title, const SizedBox(height: 2), subtitle]
+                          : [
+                              Row(
+                                children: [
+                                  Expanded(child: title),
+                                  const SizedBox(width: 8),
+                                  kind,
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              subtitle,
+                            ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -1061,7 +1108,7 @@ class _Pool extends ConsumerWidget {
                     final inPlan = plan.itemFor(entry.id) != null;
                     final open = expanded == entry.id;
                     final meta = [
-                      entrySubtitle(entry),
+                      planRowSubtitle(entry),
                       if (entry.seasonalOnly) 'only in ${plan.name}',
                     ].where((s) => s.isNotEmpty).join(' · ');
                     return Container(
@@ -1149,8 +1196,8 @@ class _Pool extends ConsumerWidget {
                                 tooltip: 'More actions: ${entry.title}',
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints.tightFor(
-                                  width: 44,
-                                  height: 44,
+                                  width: 48,
+                                  height: 48,
                                 ),
                                 style: IconButton.styleFrom(
                                   tapTargetSize:
@@ -1219,54 +1266,9 @@ class _ActionChip extends StatelessWidget {
   }
 }
 
-/// A one-line title that steps down through [sizes] until the text fits,
-/// and cuts off with an ellipsis at the smallest size (S11 to S14).
-class FittedTitle extends StatelessWidget {
-  const FittedTitle(
-    this.text, {
-    super.key,
-    required this.style,
-    required this.sizes,
-  });
-
-  final String text;
-  final TextStyle style;
-
-  /// Font sizes to try, largest first.
-  final List<double> sizes;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final scaler = MediaQuery.textScalerOf(context);
-        final direction = Directionality.of(context);
-        TextStyle styled(double size) =>
-            style.copyWith(fontSize: size, letterSpacing: -0.02 * size);
-        var chosen = sizes.last;
-        for (final size in sizes) {
-          // Measure exactly what will be drawn, with a pixel to spare, so
-          // a borderline fit cannot come out as an ellipsis.
-          final painter = TextPainter(
-            text: TextSpan(text: text, style: styled(size)),
-            textDirection: direction,
-            textScaler: scaler,
-            maxLines: 1,
-          )..layout();
-          final fits = painter.width + 1 <= constraints.maxWidth;
-          painter.dispose();
-          if (fits) {
-            chosen = size;
-            break;
-          }
-        }
-        return Text(
-          text,
-          style: styled(chosen),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
-    );
-  }
-}
+/// A plan row's subtitle: as in the library, except that a song names its
+/// artist ("Wham! · 1984"), since plans mix every type and artist.
+String planRowSubtitle(Entry entry) =>
+    entry.type == MediaType.music && entry.kind == MusicKind.song
+    ? songSubtitle(entry)
+    : entrySubtitle(entry);

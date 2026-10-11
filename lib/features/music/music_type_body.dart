@@ -90,6 +90,7 @@ class _MusicTypeBodyState extends ConsumerState<MusicTypeBody> {
               ),
               ViewMenuButton(
                 current: view,
+                photos: _tab != MusicTab.albums,
                 onChanged: (v) => ref
                     .read(displayPreferencesProvider.notifier)
                     .setMusicView(_tab, v),
@@ -155,9 +156,10 @@ class ArtistList extends StatelessWidget {
       itemCount: artists.length,
       sections: artistSections(artists),
       grid: grid,
-      rowExtent: photo
-          ? EntryListMetrics.coverRowHeight
-          : EntryListMetrics.textRowHeight,
+      rowExtent: ArtistRow.extent(
+        photo: photo,
+        scaler: MediaQuery.textScalerOf(context),
+      ),
       gridRowExtent: (width) =>
           ArtistGridTile.extent(EntryListMetrics.gridTileWidth(width)) +
           EntryListMetrics.gridMainSpacing,
@@ -257,12 +259,14 @@ class SongList extends StatelessWidget {
         return EntryRow.forEntry(
           item.entry,
           leading: leading,
+          subtitle: songSubtitle(item.entry),
           onTap: () => onTap(item.entry),
         );
       }
       return TrackRow(
         title: track.title,
-        subtitle: [?item.entry.creator, item.entry.title].join(' · '),
+        // The album's artist and year: one format with the song entries.
+        subtitle: songSubtitle(item.entry),
         rating: track.rating,
         leading: leading,
         onTap: () => onTap(item.entry),
@@ -273,7 +277,10 @@ class SongList extends StatelessWidget {
       itemCount: items.length,
       sections: sectionsByTitle(items, (i) => i.title),
       grid: grid,
-      rowExtent: EntryListMetrics.rowHeight(view),
+      rowExtent: EntryListMetrics.rowHeight(
+        view,
+        MediaQuery.textScalerOf(context),
+      ),
       gridRowExtent: (width) =>
           EntryListMetrics.gridRowExtent(width, items.first.entry.type),
       gridTopPadding: EntryListMetrics.gridTopPadding,

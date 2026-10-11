@@ -12,12 +12,12 @@ void main() {
     expect(find.text('Plans'), findsOneWidget);
     expect(find.text('ACTIVE'), findsOneWidget);
     expect(find.text('FINISHED'), findsOneWidget);
-    expect(find.text('NOT STARTED'), findsNothing);
+    // Christmas has entries but is not started and has no dates yet.
+    expect(find.text('NOT STARTED'), findsOneWidget);
     expect(find.text('Halloween 2026'), findsOneWidget);
     expect(find.text('2 of 8 done'), findsOneWidget);
     expect(find.textContaining('Next up: Mononoke, The Mummy'), findsOneWidget);
     expect(find.text('Christmas 2026'), findsOneWidget);
-    expect(find.text('0 of 6 done'), findsOneWidget);
     expect(find.text('Halloween 2025'), findsOneWidget);
     expect(find.text('Linked to #halloween'), findsOneWidget);
   });

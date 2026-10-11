@@ -1,15 +1,37 @@
 import '../../data/models/library.dart';
 import '../../data/models/plan.dart';
+import '../../data/operations/plan_operations.dart';
+import 'plan_dates.dart';
 
-/// Where a plan stands, as grouped on S5.
+/// Where a plan stands, as grouped on S5 (the S9 note).
 enum PlanState { active, notStarted, finished }
 
-PlanState planState(Plan plan) {
-  if (plan.items.isEmpty) return PlanState.notStarted;
-  return plan.items.every((i) => i.done)
-      ? PlanState.finished
-      : PlanState.active;
+/// Finished: at least one entry, and every entry done (removed ones are no
+/// longer in the plan). An empty plan is never finished. Active: Started
+/// is on, or the plan's first date has come. Otherwise not started. A plan
+/// never goes back to not started on its own after its end date.
+PlanState planState(Plan plan, {DateTime? today}) {
+  if (plan.items.isNotEmpty && plan.items.every((i) => i.done)) {
+    return PlanState.finished;
+  }
+  if (plan.started || planIsDue(plan, today: today)) return PlanState.active;
+  return PlanState.notStarted;
 }
+
+/// Whether the plan's first date is today or past.
+bool planIsDue(Plan plan, {DateTime? today}) {
+  final first = plan.firstDate;
+  if (first == null) return false;
+  return !dateOnly(first).isAfter(dateOnly(today ?? DateTime.now()));
+}
+
+/// The Started switches to turn on because a plan's first date has come,
+/// so the switch always shows the real state.
+List<SetPlanStarted> dueStarts(Library library, {DateTime? today}) => [
+  for (final plan in library.plans)
+    if (!plan.started && planIsDue(plan, today: today))
+      SetPlanStarted(plan.id, true),
+];
 
 int doneCount(Plan plan) => plan.items.where((i) => i.done).length;
 
@@ -18,9 +40,9 @@ String planTitle(Plan plan) =>
     plan.year == null ? plan.name : '${plan.name} ${plan.year}';
 
 /// The plan shown on the library home card: the first active one.
-Plan? activePlan(Library library) {
+Plan? activePlan(Library library, {DateTime? today}) {
   for (final plan in library.plans) {
-    if (planState(plan) == PlanState.active) return plan;
+    if (planState(plan, today: today) == PlanState.active) return plan;
   }
   return null;
 }

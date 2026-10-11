@@ -39,11 +39,11 @@ void main() {
       ],
     );
 
-    test('groups by period in date order, undated last', () {
+    test('groups by time: last week, this week, days, later, whenever', () {
       final groups = timelineGroups(plan, today: DateTime(2026, 10, 7));
       expect(groups.map((g) => g.title), [
-        'Earlier',
-        'Now',
+        'Last week',
+        'This week',
         'Sat Oct 17',
         'Later',
         'Whenever',
@@ -64,11 +64,42 @@ void main() {
       expect(groups[4].items.single.entry, 'z');
     });
 
-    test('a single day that is today is current', () {
+    test('older items are Earlier; a day in this week joins This week', () {
       final groups = timelineGroups(plan, today: DateTime(2026, 10, 17));
-      final day = groups.firstWhere((g) => g.title == 'Sat Oct 17');
-      expect(day.state, TimelineState.current);
-      expect(day.todayFraction, 0.5);
+      expect(groups.map((g) => g.title), [
+        'Earlier',
+        'Last week',
+        'This week',
+        'Later',
+        'Whenever',
+      ]);
+      expect(groups[2].items.single.entry, 'c');
+      expect(groups[2].todayFraction, closeTo(5.5 / 7, 0.001));
+    });
+
+    test('every Later period shares one bucket, in type order', () {
+      final later = Plan(
+        id: 'l',
+        name: 'L',
+        items: [
+          PlanItem(entry: 'show', when: when(10, 24, 10, 26)),
+          PlanItem(entry: 'movie', when: when(10, 19, 10, 31)),
+          PlanItem(entry: 'book', when: when(10, 20, 10, 22)),
+        ],
+      );
+      const rank = {'movie': 0, 'show': 1, 'book': 2};
+      final groups = timelineGroups(
+        later,
+        today: DateTime(2026, 10, 7),
+        typeRank: (i) => rank[i.entry]!,
+      );
+      expect(groups.single.title, 'Later');
+      expect(groups.single.dates, 'Oct 19–31');
+      expect(groups.single.items.map((i) => i.entry), [
+        'movie',
+        'show',
+        'book',
+      ]);
     });
   });
 

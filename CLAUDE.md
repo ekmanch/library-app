@@ -53,6 +53,6 @@ flutter test
 - Every change to the library is expressed as a small operation ("set status", "add entry", "rate track") so it can be re-applied after a sync conflict. Operations never reorder existing entries or plans.
 - All `library.json` text goes through `lib/data/library_codec.dart`, so that a save produces a minimal git diff. After editing the fixture by hand, run `dart run tool/format_fixture.dart` to restore the canonical form.
 - Display preferences (theme, accent, view per type, sort) are stored on the device, never in `library.json`.
-- Touch targets are at least 44 px. Every icon-only button has a tooltip or semantic label.
+- Touch targets are at least 48 dp (40 dp chips get a 48 dp touch area; see `lib/widgets/touch_target.dart`). Every icon-only button has a tooltip or semantic label.
 - Write widget tests for anything with logic (filtering, sorting, similar-tag check, replace dialogs) and unit tests for the models and operations.
 - Write a widget test for each screen as it is built, not in a later pass.

@@ -96,11 +96,12 @@ Future<ReplaceChoice?> showReplaceSongsDialog(
       actions: [
         AppButton(
           label: 'Keep both',
+          kind: AppButtonKind.neutral,
           onPressed: () => Navigator.pop(context, ReplaceChoice.keepBoth),
         ),
         AppButton(
           label: 'Replace songs with album',
-          kind: AppButtonKind.outline,
+          kind: AppButtonKind.destructive,
           onPressed: () => Navigator.pop(context, ReplaceChoice.replace),
         ),
         AppButton(
@@ -132,11 +133,12 @@ Future<ReplaceChoice?> showReplaceAlbumDialog(
       actions: [
         AppButton(
           label: 'Keep both',
+          kind: AppButtonKind.neutral,
           onPressed: () => Navigator.pop(context, ReplaceChoice.keepBoth),
         ),
         AppButton(
           label: 'Replace album with this song',
-          kind: AppButtonKind.outline,
+          kind: AppButtonKind.destructive,
           onPressed: () => Navigator.pop(context, ReplaceChoice.replace),
         ),
         AppButton(

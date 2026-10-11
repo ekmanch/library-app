@@ -96,6 +96,65 @@ class LibraryFilter {
 
   bool get isActive => !isEmpty;
 
+  /// Spells out a filter that matches nothing (A10): "No books are both
+  /// in progress and tagged #christmas. Remove a filter to see more."
+  String get noMatchesText {
+    String join(List<String> parts, String word) => parts.length < 2
+        ? parts.join()
+        : '${parts.sublist(0, parts.length - 1).join(', ')} $word ${parts.last}';
+    String plural(MediaType t) => switch (t) {
+      MediaType.music => 'albums or songs',
+      _ => t.label.toLowerCase(),
+    };
+    final subject = types.isEmpty
+        ? 'entries'
+        : join([
+            for (final t in MediaType.values)
+              if (types.contains(t)) plural(t),
+          ], 'or');
+    final conditions = [
+      if (statuses.isNotEmpty)
+        join([
+          for (final s in EntryStatus.values)
+            if (statuses.contains(s))
+              switch (s) {
+                EntryStatus.want => 'wanted',
+                EntryStatus.inProgress => 'in progress',
+                EntryStatus.done => 'done',
+                EntryStatus.dnf => 'not finished',
+              },
+        ], 'or'),
+      if (decades.isNotEmpty)
+        join([
+          for (final d in decades.toList()..sort())
+            d.isOlder
+                ? 'from before ${Decade.oldestNamed}'
+                : 'from the ${d.label}',
+        ], 'or'),
+      if (tags.isNotEmpty)
+        'tagged ${join([for (final tag in tags) '#$tag'], 'and')}',
+    ];
+    const tail = 'Remove a filter to see more.';
+    if (conditions.isEmpty) return tail;
+    final what = switch (conditions.length) {
+      1 => conditions.single,
+      2 => 'both ${conditions[0]} and ${conditions[1]}',
+      _ => join(conditions, 'and'),
+    };
+    return 'No $subject are $what. $tail';
+  }
+
+  /// The type when a single type is the only filter. That is not a results
+  /// screen: the home shows that type's view instead (the L6 note).
+  MediaType? get onlyType =>
+      types.length == 1 &&
+          statuses.isEmpty &&
+          decades.isEmpty &&
+          tags.isEmpty &&
+          !includeSeasonalOnly
+      ? types.single
+      : null;
+
   /// Number shown on the filter button badge.
   int get count =>
       types.length +

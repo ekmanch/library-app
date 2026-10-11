@@ -152,6 +152,9 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    // Scroll the switch well clear of the pinned Delete plan button.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(Switch).last); // Timeline on.
     await tester.pump();
     await tester.tap(find.text('Save'));
@@ -173,9 +176,35 @@ void main() {
     await tester.tap(find.text('Delete plan'));
     await tester.pumpAndSettle();
     expect(find.text('Delete Christmas 2026?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete plan'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Delete plan').last);
     await tester.pumpAndSettle();
     expect(repo(container).current!.planById('christmas-2026'), isNull);
     expect(find.byType(PlanFormScreen), findsNothing);
+  });
+
+  testWidgets('S9: the Started switch shows the state and saves it', (
+    tester,
+  ) async {
+    final plan = loadFixture().planById('christmas-2026')!;
+    final container = await pumpApp(tester, PlanFormScreen.edit(plan));
+    expect(find.text('Started'), findsOneWidget);
+    expect(find.textContaining('Turns on by itself'), findsOneWidget);
+    await tester.tap(find.byType(Switch).first);
+    await tester.pump();
+    expect(
+      find.textContaining('Stays active after its end date'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(
+      repo(container).current!.planById('christmas-2026')!.started,
+      isTrue,
+    );
+  });
+
+  testWidgets('S10: a new plan has no Started switch', (tester) async {
+    await pumpApp(tester, PlanFormScreen.create());
+    expect(find.text('Started'), findsNothing);
   });
 }

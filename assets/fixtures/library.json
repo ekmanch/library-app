@@ -672,7 +672,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-07-01",
-      "platform": "PS5"
+      "platform": "PlayStation 5"
     },
     {
       "id": "games/celeste-2018",
@@ -727,7 +727,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-10-03",
-      "platform": "PS5"
+      "platform": "PlayStation 5"
     },
     {
       "id": "anime/spirited-away-2001",
@@ -1299,6 +1299,7 @@
       ],
       "timeline": true,
       "seasonal_theme": true,
+      "started": true,
       "items": [
         {
           "entry": "music/halloween-original-motion-picture-soundtrack-john-carpenter",
@@ -1382,6 +1383,7 @@
       ],
       "timeline": false,
       "seasonal_theme": true,
+      "started": false,
       "items": [
         {
           "entry": "movies/die-hard-1988",
@@ -1436,6 +1438,7 @@
       ],
       "timeline": false,
       "seasonal_theme": true,
+      "started": true,
       "items": [
         {
           "entry": "shows/the-haunting-of-hill-house-2018",

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../data/models/entry.dart';
@@ -19,14 +21,28 @@ abstract final class EntryListMetrics {
   static const gridMainSpacing = 16.0;
   static const gridTopPadding = 10.0;
 
-  /// Text under a grid cover: a gap, one title line, a gap, one caption
+  /// Text under a grid cover: a gap, two title lines, a gap, one caption
   /// line. The line heights are fixed in [CoverGridTile], so this does not
   /// depend on font metrics or the device's text scale.
   static const gridCaptionHeight =
-      6 + CoverGridTile.titleLineHeight + 1 + CoverGridTile.captionLineHeight;
+      6 +
+      CoverGridTile.titleLineHeight * CoverGridTile.titleLines +
+      1 +
+      CoverGridTile.captionLineHeight;
 
-  static double rowHeight(EntryView view) =>
-      view == EntryView.listWithPhotos ? coverRowHeight : textRowHeight;
+  /// The fixed extent of one row in a long list. A row grows with the
+  /// user's text size (title plus subtitle, about 36 px of scaled text), so
+  /// it never overflows at text scale 1.3.
+  static double rowHeight(EntryView view, [TextScaler? scaler]) {
+    final base = view == EntryView.listWithPhotos
+        ? coverRowHeight
+        : textRowHeight;
+    return base + textGrowth(scaler);
+  }
+
+  /// Extra height a row needs at the user's text size.
+  static double textGrowth(TextScaler? scaler) =>
+      scaler == null ? 0 : math.max(0.0, scaler.scale(36) - 36);
 
   static double gridTileWidth(double width) =>
       (width - gridCrossSpacing * (gridColumns - 1)) / gridColumns;

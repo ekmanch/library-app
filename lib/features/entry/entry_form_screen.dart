@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +11,7 @@ import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/music_kind.dart';
+import '../../data/models/platform_names.dart';
 import '../../data/models/released.dart';
 import '../../data/models/tag_category.dart';
 import '../../data/operations/operations.dart';
@@ -161,8 +164,9 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     // when the game came out on it.
     if (entry == null && _type == MediaType.games) {
       final wanted = ref.read(displayPreferencesProvider).defaultPlatform;
+      final name = wanted == null ? null : normalizePlatform(wanted);
       _platformsOn.addAll(
-        _platformOptions.where((p) => p.toLowerCase() == wanted?.toLowerCase()),
+        _platformOptions.where((p) => p.toLowerCase() == name?.toLowerCase()),
       );
     }
     _album = TextEditingController(text: entry?.album ?? match?.album ?? '');
@@ -194,43 +198,48 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     return EntryFormScreen.releasedHelp;
   }
 
+  double _releasedWidth(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: '0000-00-00',
+        style: Theme.of(context).textTheme.bodyLarge!
+            .copyWith(fontWeight: FontWeight.w500, fontSize: 16),
+      ),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    // The field's 14 px side padding, the border and a little air.
+    return math.max(132.0, width + 2 * 14 + 8);
+  }
+
   bool get _canSave =>
       !_saving && _title.text.trim().isNotEmpty && _releasedError == null;
 
-  /// "PlayStation 5, PC" in the entry's `platform` field, as a list.
+  /// "PlayStation 5, PC" in the entry's `platform` field, as a list of
+  /// spelled-out names ("PS5" reads as "PlayStation 5").
   static List<String> splitPlatforms(String? text) => [
     for (final part in (text ?? '').split(','))
-      if (part.trim().isNotEmpty) part.trim(),
+      if (part.trim().isNotEmpty) normalizePlatform(part),
   ];
 
-  bool _addPlatformOption(String platform) {
-    final exists = _platformOptions.any(
-      (p) => p.toLowerCase() == platform.toLowerCase(),
-    );
-    if (!exists) _platformOptions.add(platform);
-    return !exists;
-  }
-
-  /// Platforms other games in the library use, so they can be picked
-  /// without typing. Added once the library is loaded.
-  void _addLibraryPlatforms(Iterable<Entry> entries) {
-    final used = <String>{
-      for (final e in entries)
-        if (e.type == MediaType.games) ...splitPlatforms(e.platform),
-    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    used.forEach(_addPlatformOption);
+  /// Adds a chip unless one with the same platform is there already.
+  /// Returns the chip's name.
+  String _addPlatformOption(String platform) {
+    final name = normalizePlatform(platform);
+    for (final p in _platformOptions) {
+      if (p.toLowerCase() == name.toLowerCase()) return p;
+    }
+    _platformOptions.add(name);
+    return name;
   }
 
   void _addOtherPlatform() {
     final name = _otherPlatform.text.trim();
     if (name.isEmpty) return;
     setState(() {
-      _addPlatformOption(name);
-      _platformsOn.add(
-        _platformOptions.firstWhere(
-          (p) => p.toLowerCase() == name.toLowerCase(),
-        ),
-      );
+      _platformsOn.add(_addPlatformOption(name));
       _otherPlatform.clear();
       _otherPlatformOpen = false;
     });
@@ -439,10 +448,11 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final editing = widget.isEditing;
     final library = ref.watch(libraryProvider).value;
     if (library != null && !_suggestionsPrepared) {
-      // First build with the library: match the suggested tags and learn
-      // the platforms other games use. Plain field writes, no setState.
+      // First build with the library: match the suggested tags. The
+      // platform chips are only the ones the game came out on (fetched)
+      // and the entry's own; anything else goes through "Other…".
+      // Plain field writes, no setState.
       _prepareSuggestions(library);
-      _addLibraryPlatforms(library.entries);
     }
     final suggestions = _suggestions;
     return Scaffold(
@@ -474,6 +484,9 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(14),
+                        // On light the surface is white, so the card needs
+                        // its shadow to show.
+                        boxShadow: colors.cardShadow,
                       ),
                       child: Row(
                         children: [
@@ -538,40 +551,56 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
+                  // Side by side while the creator keeps room for a name;
+                  // stacked at a large text size on a small phone, so
+                  // neither field is cut.
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final dateWidth = _releasedWidth(context);
+                      final creatorField = Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          FieldLabel(creatorLabel(_type)),
+                          AppTextField(
+                            controller: _creator,
+                            hintText: 'Optional',
+                            textCapitalization: TextCapitalization.words,
+                          ),
+                        ],
+                      );
+                      final releasedField = Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const FieldLabel('Released'),
+                          AppTextField(
+                            controller: _released,
+                            hintText: 'Year or date',
+                            errorText: _releasedError,
+                            textCapitalization: TextCapitalization.none,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ],
+                      );
+                      if (constraints.maxWidth - dateWidth - 12 <
+                          MediaQuery.textScalerOf(context).scale(150)) {
+                        return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            FieldLabel(creatorLabel(_type)),
-                            AppTextField(
-                              controller: _creator,
-                              hintText: 'Optional',
-                              textCapitalization: TextCapitalization.words,
-                            ),
+                            creatorField,
+                            const SizedBox(height: 14),
+                            releasedField,
                           ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 132,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const FieldLabel('Released'),
-                            AppTextField(
-                              controller: _released,
-                              hintText: 'Year or date',
-                              errorText: _releasedError,
-                              textCapitalization: TextCapitalization.none,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: creatorField),
+                          const SizedBox(width: 12),
+                          SizedBox(width: dateWidth, child: releasedField),
+                        ],
+                      );
+                    },
                   ),
                   if (_type == MediaType.music && _kind == MusicKind.song) ...[
                     const SizedBox(height: 14),
@@ -739,7 +768,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                       style: theme.textTheme.bodyLarge,
                     ),
                     subtitle: Text(
-                      'Only wanted in its season; hidden from the main lists',
+                      'Only wanted in its season; hidden from the main lists.',
                       style: theme.textTheme.bodySmall,
                     ),
                   ),

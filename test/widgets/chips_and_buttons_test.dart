@@ -33,7 +33,7 @@ void main() {
     expect(find.text('#horror'), findsOneWidget);
   });
 
-  testWidgets('destructive buttons use red text on a neutral fill', (
+  testWidgets('destructive buttons use red text on the grey outline', (
     tester,
   ) async {
     await pumpThemed(
@@ -56,16 +56,17 @@ void main() {
     );
     final context = tester.element(find.text('Delete'));
     final colors = LibraryColors.of(context);
-    final delete = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Delete'),
+    final delete = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, 'Delete'),
     );
     final style = delete.style!;
-    expect(style.backgroundColor!.resolve({}), colors.neutralFill);
+    // No fill: the grey outline from the theme and red text.
+    expect(style.backgroundColor?.resolve({}), isNull);
     expect(style.foregroundColor!.resolve({}), colors.dangerText);
     expect(
       tester.getSize(find.widgetWithText(FilledButton, 'Save')).height,
       48,
     );
-    expect(find.byType(OutlinedButton), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsNWidgets(2));
   });
 }

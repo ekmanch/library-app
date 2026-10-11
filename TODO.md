@@ -78,13 +78,13 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] D8 Light theme pass over every screen (every screen is captured in light by `screenshots_test.dart`; a reviewer compared them and the banners, the inset status segments and the type-chip dots were fixed)
 
 ### 1g. Phase 1 wrap-up
-- [ ] Screen sizes pass: every screen at 360 (Galaxy S25), 402 (iPhone 17), 412 (Galaxy Ultra and Plus) and 440 dp (iPhone 17 Pro Max), each at text scale 1.0 and 1.3; fixed widths that break become flowing layouts
-- [ ] Walk through every artboard next to the app and list the differences
-- [ ] The tag search boxes in the filter sheet (A2) and the tag picker (D14) are filled fields without the shared search outline; decide whether they should be the shared `SearchField`
-- [ ] D6: the Disconnect outline is a step dimmer than Replace token in the mockup; the value column wraps on the 360 dp phone at text scale 1.3
+- [x] Screen sizes pass: every screen at 360 (Galaxy S25), 402 (iPhone 17), 412 (Galaxy Ultra and Plus) and 440 dp (iPhone 17 Pro Max), each at text scale 1.0 and 1.3; fixed widths that break become flowing layouts
+- [x] Walk through every artboard next to the app and list the differences (three independent reviews; the differences and the owner's decisions are fixed and recorded in DESIGN.md)
+- [x] The tag search boxes in the filter sheet (A2), the tag picker (D14) and Edit plan (S9) are the shared `SearchField` with the magnifying glass
+- [x] D6: both outline buttons use the artboard's button outline; "Check for changes" is a two-line row
 - [x] Reconsider the "See all" link: it jumps to a different screen (A4) and that was not intuitive. A clearer label or a different affordance. (Resolved by the canvas revision of 2026-10-10: the type view is the home with a chip picked.)
-- [ ] Accessibility pass: contrast, touch targets, screen reader labels, large font scale
-- [ ] Widget tests for filtering, sorting, the similar-tag check and the replace dialogs
+- [x] Accessibility pass: contrast, touch targets, screen reader labels, large font scale (`test/accessibility/a11y_audit_test.dart` walks every screen in dark, light and at 1.3; 48 dp targets, AA inks and type colors except Movies by decision)
+- [x] Widget tests for filtering, sorting, the similar-tag check and the replace dialogs
 
 ## Phase 2: Local data
 
@@ -126,6 +126,8 @@ Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
 - [ ] API keys kept out of the repo
 
 ## Later
+
+- [ ] Revisit whether entry details show the cover whenever a title is opened, not only in a photo view (decision 19 of the 1g audit: keep the current behavior for now)
 
 - [ ] Linux desktop layout
 - [ ] Split `library.json` per type if it grows too large

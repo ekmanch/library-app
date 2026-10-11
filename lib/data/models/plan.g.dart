@@ -15,6 +15,7 @@ _Plan _$PlanFromJson(Map<String, dynamic> json) => _Plan(
       const [],
   timeline: json['timeline'] as bool? ?? false,
   seasonalTheme: json['seasonal_theme'] as bool? ?? false,
+  started: json['started'] as bool? ?? false,
   items:
       (json['items'] as List<dynamic>?)
           ?.map((e) => PlanItem.fromJson(e as Map<String, dynamic>))
@@ -29,5 +30,6 @@ Map<String, dynamic> _$PlanToJson(_Plan instance) => <String, dynamic>{
   'tags': instance.tags,
   'timeline': instance.timeline,
   'seasonal_theme': instance.seasonalTheme,
+  'started': instance.started,
   'items': instance.items.map((e) => e.toJson()).toList(),
 };

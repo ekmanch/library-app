@@ -99,7 +99,7 @@ void main() {
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await capture(tester, 'a16-view-menu');
-    await tester.tap(find.text('Grid'));
+    await tester.tap(find.text('Grid with covers'));
     await tester.pumpAndSettle();
     await capture(tester, 'a21-movies-grid');
     await tester.tap(find.text('Newest added'));
@@ -221,7 +221,7 @@ void main() {
     await capture(tester, 'a14-music-artists');
     await pickView(tester, 'List with photos');
     await capture(tester, 'a17-music-list-photos');
-    await pickView(tester, 'Grid');
+    await pickView(tester, 'Grid with photos');
     await capture(tester, 'a18-music-grid');
     await pickView(tester, 'Text');
 
@@ -312,7 +312,7 @@ void main() {
 
     // A20: Movies as a list with covers.
     await pickChip(tester, 'Movies');
-    await pickView(tester, 'List with photos');
+    await pickView(tester, 'List with covers');
     await capture(tester, 'a20-movies-list-covers');
     await pickView(tester, 'Text');
 
@@ -638,13 +638,13 @@ void main() {
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await shot('a16-view-menu');
-    await tapText('Grid');
+    await tapText('Grid with covers');
     await shot('a21-movies-grid');
     await tapText('Newest added');
     await shot('d1-sort');
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
-    await pickView(tester, 'List with photos');
+    await pickView(tester, 'List with covers');
     await shot('a20-movies-list-covers');
     await pickView(tester, 'Text');
     await tester.tap(find.widgetWithText(PillChip, 'All'));
@@ -705,7 +705,7 @@ void main() {
     await shot('a14-music-artists');
     await pickView(tester, 'List with photos');
     await shot('a17-music-list-photos');
-    await pickView(tester, 'Grid');
+    await pickView(tester, 'Grid with photos');
     await shot('a18-music-grid');
     await pickView(tester, 'Text');
     await tapText('Alice in Chains');
@@ -956,7 +956,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Grid'));
+    await tester.tap(find.text('Grid with covers'));
     await tester.pumpAndSettle();
     final gesture = await tester.startGesture(const Offset(342, 330));
     await tester.pump();
@@ -972,7 +972,13 @@ void main() {
     );
     container
         .read(libraryFilterProvider.notifier)
-        .set(const LibraryFilter(types: {MediaType.movies}));
+        .set(
+          // A lone type filter is the type view; one more filter makes L5.
+          const LibraryFilter(
+            types: {MediaType.movies},
+            includeSeasonalOnly: true,
+          ),
+        );
     container
         .read(displayPreferencesProvider.notifier)
         .setFilteredSort(LibrarySort.yearNewest);

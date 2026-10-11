@@ -193,14 +193,14 @@ void main() {
       await tester.tap(find.byTooltip('Change view'));
       await tester.pumpAndSettle();
       expect(find.text('VIEW'), findsOneWidget);
-      await tester.tap(find.text('List with photos'));
+      await tester.tap(find.text('List with covers'));
       await tester.pumpAndSettle();
       expect(find.byType(CoverPlaceholder), findsWidgets);
       expect(find.byType(EntryRow), findsWidgets);
 
       await tester.tap(find.byTooltip('Change view'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Grid'));
+      await tester.tap(find.text('Grid with covers'));
       await tester.pumpAndSettle();
       expect(find.byType(CoverGridTile), findsWidgets);
       expect(find.bySemanticsLabel('Done'), findsWidgets);
@@ -293,12 +293,54 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Filters'), findsOneWidget);
     await tester.tap(find.widgetWithText(PillChip, 'Games'));
+    await tester.tap(find.widgetWithText(PillChip, 'Want'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Show '), findsOneWidget);
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
     expect(container.read(libraryFilterProvider).types, {MediaType.games});
     expect(find.text('GAMES'), findsOneWidget);
+  });
+
+  testWidgets('a lone type filter opens that type instead of results', (
+    tester,
+  ) async {
+    final container = await pumpApp(tester, const LibraryHomeScreen());
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PillChip, 'Games'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    expect(container.read(libraryFilterProvider).isActive, isFalse);
+    expect(container.read(homeTypeProvider), MediaType.games);
+  });
+
+  testWidgets('a filter with no matches spells itself out (A10)', (
+    tester,
+  ) async {
+    final container = await pumpApp(tester, const LibraryHomeScreen());
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(
+          const LibraryFilter(
+            types: {MediaType.books},
+            statuses: {EntryStatus.inProgress},
+            tags: {'christmas'},
+          ),
+        );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'No books are both in progress and tagged #christmas. '
+        'Remove a filter to see more.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Clear all'), findsNothing);
+    await tester.tap(find.text('Clear filters'));
+    await tester.pumpAndSettle();
+    expect(container.read(libraryFilterProvider).isActive, isFalse);
   });
 
   testWidgets('search can pick a tag, which filters the home', (tester) async {
@@ -422,7 +464,13 @@ void main() {
       );
       container
           .read(libraryFilterProvider.notifier)
-          .set(const LibraryFilter(types: {MediaType.movies}));
+          .set(
+            // A lone type filter would be the type view, so add one more.
+            const LibraryFilter(
+              types: {MediaType.movies},
+              includeSeasonalOnly: true,
+            ),
+          );
       container
           .read(displayPreferencesProvider.notifier)
           .setFilteredSort(LibrarySort.yearNewest);
@@ -443,7 +491,13 @@ void main() {
       final container = await pumpApp(tester, const LibraryHomeScreen());
       container
           .read(libraryFilterProvider.notifier)
-          .set(const LibraryFilter(types: {MediaType.movies}));
+          .set(
+            // A lone type filter would be the type view, so add one more.
+            const LibraryFilter(
+              types: {MediaType.movies},
+              includeSeasonalOnly: true,
+            ),
+          );
       await tester.pumpAndSettle();
       expect(find.text('MOVIES'), findsOneWidget);
       expect(find.byKey(EntryListBody.railKey), findsNothing);

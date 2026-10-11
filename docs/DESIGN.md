@@ -19,8 +19,9 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | Row content | Title plus an italic subtitle. Subtitle is the year; for books and music it is creator and year; for a song it is album and year. No tags in rows. |
 | Not released yet | Subtitle reads "Not released yet" |
 | Note vs About | Note is my own text. About is the description fetched from a lookup. |
-| Delete | Lives in the details sheet. Destructive buttons use a neutral fill with red text; never a red fill, never next to an accent button. |
+| Delete | Lives in the details sheet. Every destructive button (Delete, Delete plan, Delete everywhere, Disconnect, Replace…) has no fill, the grey button outline and red text; never a red fill, never next to an accent button. |
 | Spelling | American, sentence case |
+| Type order | Wherever entries are grouped by type (home, filtered results, plan checklists, the pool), the groups follow the global order: Movies, Shows, Books, Games, Music, Anime. An artboard showing another order is incidental. The timeline groups by time instead and uses this order inside each bucket. |
 
 ## 3. Navigation
 
@@ -37,7 +38,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | ID | Screen | Notes |
 |---|---|---|
 | A1 | Library home | Type chips; active plan card; two entries per type under a heading that shows the type's count. Rows are ordered In progress, then Want (newest added), then Done, then DNF. Tapping a heading or a chip picks that type, and the home becomes the type's list in place (A4) with no separate screen: status segments, count, sort and view replace the plan card and the headings, and the search hint becomes "Search movies". Picking a type resets the status segment to All. The active plan is the first plan with items that are not all done; finished plans live on S5. Seasonal-only entries are hidden from the home, the type lists and filtered results unless the switch in A2 is on; search still finds them. |
-| A2 | Filter sheet | Type, Status, Released, Tags. Within Type, Status and Released any choice matches; all selected tags must match. Tags are in collapsible groups by category. Released is a scrolling row built from the library: one chip per decade from the earliest to the latest decade that has an entry, gaps filled in so the row never jumps, plus Older when anything is from before 1960. A new decade appears as soon as an entry from it exists. Has an "Include seasonal-only" switch; when on it counts as one active filter and shows as a removable chip. |
+| A2 | Filter sheet | Type, Status, Released, Tags. Within Type, Status and Released any choice matches; all selected tags must match. Tags are in collapsible groups by category. Released is a scrolling row built from the library: one chip per decade, labeled with the full decade ("1980s", not "80s"), from the earliest to the latest decade that has an entry, gaps filled in so the row never jumps, plus Older when anything is from before 1960. A new decade appears as soon as an entry from it exists. Has an "Include seasonal-only" switch; when on it counts as one active filter and shows as a removable chip. |
 | A3 | Filtered results | Removable chips and the count stay put; the rows scroll, grouped by type. Long results get a rail (L5, L6). |
 | A4 | Type picked, text view | The home with a type chip picked: status segments, count, sort link, view button. A status with nothing in it shows one line, "Nothing marked want yet." |
 | A5 | Search | |
@@ -51,12 +52,12 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A13 | New entry: pick a match | A new entry starts here, then opens A8 prefilled. "Fill in the details myself" skips the lookup. |
 | A14 | Music by artist, text view | See section 5 |
 | A15 | One artist, text view | |
-| A16 | View menu | Text, List with photos, Grid; the same menu for every type |
+| A16 | View menu | Text, List with covers, Grid with covers for media types and music albums; Text, List with photos, Grid with photos for music artists and songs. The screen behind is dimmed; the chosen view is highlighted and checked. |
 | A17 | Music, list with photos | |
 | A18 | Music, grid | |
 | A19 | One artist, with photos | |
 | A20 | Type picked, list with covers | |
-| A21 | Type picked, grid with covers | Check badge on the cover means Done; other statuses are written under the title |
+| A21 | Type picked, grid with covers | Title on up to two lines, then the year only, never the status ("Not released yet" without a year); music grids show the artist instead. The check badge on the cover's upper-right corner means Done. L4 follows the same rule. |
 | A22 | Album details with track ratings | See section 5 |
 | L1, L2, L3 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
 | L4 | Long grid with fast scroll | Same rule. The grid keeps no headers; a thumb on the right appears while scrolling and can be dragged, and a bubble next to it names the section at the top of the screen. |
@@ -69,14 +70,14 @@ A plan is a named list of entries, for example "Halloween 2026". Plans replace t
 
 | ID | Screen | Notes |
 |---|---|---|
-| S1 | Plan checklist | Grouped by type. Spacing in the mockup is trimmed; use normal row spacing. |
-| S2 | Timeline view | Chronological, with a rail on the left that fills up to today. No highlight on the last item. |
-| S4 | All entries matching the plan's tags | Add, edit, remove |
-| S5 | Plans overview | |
+| S1 | Plan checklist | Grouped by type, in the global type order. Spacing in the mockup is trimmed; use normal row spacing. |
+| S2 | Timeline view | Groups by time, not by type: Earlier, Last week, This week, each future single day ("Sat Oct 17"), Later, and Whenever for undated items. Every bucket mixes types, in the global type order inside. Titles wrap to two lines before cutting off. A rail on the left fills up to today. No highlight on the last item. |
+| S4 | All entries matching the plan's tags | Add, edit, remove. Keeps the plan header's progress row. |
+| S5 | Plans overview | Active plans as cards, then Not started and Finished as rows (see the plan states below). |
 | S6 | Settings | Theme, accent color, timeline default, seasonal theme default; an About row with the app name and version |
 | S7 | Entry details in a plan, timeline on | Has a "When" row (D2) and a plan note |
 | S8 | Entry details in a plan, timeline off | No "When" row |
-| S9 | Edit plan | |
+| S9 | Edit plan | A Started switch under Name and Year (see the plan states below). |
 | S10 | New plan | Can copy an existing plan to a new year |
 | S11 | Halloween theme | |
 | S12 | Christmas theme | |
@@ -84,8 +85,15 @@ A plan is a named list of entries, for example "Halloween 2026". Plans replace t
 Plan rules:
 
 - A plan has a name, an optional year, linked tags (multi-select from existing tags; an entry matches if it has any of them), a Timeline switch and a Seasonal theme switch. Both switches default to the values in Settings.
+- Plan states, from the S9 note: Not started, Active, Finished.
+  - Active: the Started switch is on, or the plan's first date has come. When the first date arrives the app turns Started on, so the switch always shows the real state. A plan never goes inactive on its own after its end date.
+  - Finished, automatically: the plan has at least one entry and every entry is done or removed from the plan. An empty plan is never Finished. Finishing shows a short "Halloween 2026 finished" message with Undo, which unticks the last item.
+  - Ticking an item also turns Started on, so unticking an entry or adding a new one to a Finished plan makes it Active again.
+  - Removing an entry from a plan never removes it from the library. There is no separate close action.
+  - The Started help text: on, "Active. Stays active after its end date until every entry is done or removed."; off, "Not started. Turns on by itself when the plan's first date comes."
+- The plan header is the same on the checklist, the timeline and the "All <plan>" tab (S11 to S14): row 1 is the name (one line, 32, 28 then 24 px, then an ellipsis) and the ⋮ menu; row 2 is the year chip, the progress bar and "X of Y done". The year chip is never next to the title, and its menu opens right below it.
 - "When" on a plan item is empty, a single day, or a period.
-- Rewatch or re-read is detected automatically: an entry that is already Done when it is added to a plan is a repeat.
+- Rewatch or re-read is detected automatically: an entry that is already Done when it is added to a plan is a repeat. Its row says Rewatch for movies, shows and anime, Reread for books, Replay for games and Relisten for music.
 - Removing an entry from a plan offers "Remove from this plan" or "Delete everywhere" (D4).
 - Seasonal theme: an illustrated 88 px strip at the top, an icon by the title, a themed progress marker and a seasonal accent color. Only inside that plan.
 
@@ -127,7 +135,7 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
 - Opening an album writes nothing. The track list is fetched from the lookup and cached on the device.
 - Rating a track adds it to the album entry's `tracks` list. Clearing the rating removes it. Only rated tracks are stored.
 - A rated track is not a song entry. It has a title, a lookup ID and a rating, nothing else.
-- The Songs tab lists song entries and rated tracks together.
+- The Songs tab lists song entries and rated tracks together, both with the subtitle "Artist · Year": the year the song, or the album it is on, came out. Tapping a rated track opens its album. Plan rows, which also mix artists, use the same "Artist · Year" for songs. On an artist's own screen a song keeps "Album · Year".
 - Offline with no cached track list: show the rated tracks and a line saying the full list needs a connection.
 
 ### Replace dialogs
@@ -181,6 +189,7 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
       "tags": ["halloween"],
       "timeline": true,
       "seasonal_theme": true,
+      "started": true,
       "items": [
         { "entry": "movies/the-mummy-1999", "done": false, "repeat": true, "note": "", "when": { "from": "2026-10-19", "to": "2026-10-31" } }
       ]
@@ -198,6 +207,8 @@ Field rules:
 - `status`: `want`, `in_progress`, `done`, `dnf`.
 - `rating`: 1 to 10 or `null`.
 - `seasonal_only`: true for titles only wanted in season; hidden from the main lists unless "Include seasonal-only" is on.
+- `started` on a plan: the Started switch (S9). Always written, `false` by default; set by the user or by the app when the plan's first date arrives, and never cleared by the app.
+- `platform` (games) uses spelled-out names, one spelling per platform: "PlayStation 5", not "PS5" (see `lib/data/models/platform_names.dart`).
 - `when` on a plan item: `null`, or `from` and `to` (equal for a single day).
 - Type-specific fields: `platform` (games), `formats` (books: `audiobook`, `physical`), and for music `kind` (`album` or `song`), `album` (songs, optional), `tracks` (albums, optional: `[{ "title", "id", "rating" }]`).
 - Lookup IDs for entries (to re-fetch covers and track lists) can be added as a `source` field when lookups are built.
@@ -249,14 +260,22 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Cover shape for games.
 - Whether rated tracks need notes (currently: no, make it a song entry instead).
 - Not drawn yet: the "Include seasonal-only" switch in A2, the `seasonal_only` switch in A8, the "Rewatch" label on plan rows, the Album / Song switch in A8.
-- Some older Plans mockups (S4, S9) still show an earlier red for Delete; the correct one is in the theme file.
 
 ## 10a. Decisions made while building
 
 - Section headers are uppercase, except decades ("1990s", not "1990S").
 - A plan header gives the name priority: it shrinks a little to fit on one line, then truncates with "…"; the year chip sits by the progress bar.
-- Every search box is the shared `SearchField`: one outline, the text inside it, no border on the inner field.
+- Every search box is the shared `SearchField`: a magnifying glass on the left, one outline (the accent while typing, the field outline at rest), the text inside it, no border on the inner field. That includes the tag searches in A2, D14 and S9.
 - Ticking a plan item marks the entry Done and remembers the old status; unticking restores it unless the status changed in between or was Done already.
+- Platform chips in the entry form are only the platforms the game came out on (fetched) plus the entry's own; "Other…" adds anything else. Aliases merge into one spelled-out name.
+- A sheet is at most 88% of the screen tall, the tag picker 78%, so the screen behind stays in view.
+- Segmented controls that do not fit at a large text size keep their full labels and scroll sideways; the filter sheet's status chips share the row by label length and wrap when they do not fit.
+- A filter that is only one type is not a results screen: the home picks that type instead (the L6 note).
+- A filter that matches nothing spells itself out: "No books are both in progress and tagged #christmas. Remove a filter to see more." The empty state's button clears the filters, so the chip row has no "Clear all" then.
+- The active plan card's name shrinks a step (20, 18, 16 px) before cutting off, like the plan header.
+- At a large text size on a small phone, a timeline card puts its type label above the title so the title gets the full width, and the entry form stacks the creator and Released fields so neither is cut.
+- D6: "Check for changes" is a two-line row: the label, then "When you open Libri, then every 5 minutes" in the secondary color, left-aligned.
+- D2: the range band is drawn per week row from the center of the start day to the center of the end day (to the row edge where the range carries on), 40 px tall, square ends hidden under the dots; no band for a single day.
 - The "+" button changes with the screen: on a plan it opens the pool or adds a tagged entry, and wears the plan's seasonal accent.
 - Desktop builds use the same visual density as the phone, so Linux captures match the device.
 - Settings (S6) also has the default game platform from the canvas (PC, PlayStation 5, Xbox Series X|S, Switch 2, Steam Deck, None). A new game from a lookup starts with it picked when the game came out on it, as the A8 note says.
@@ -271,7 +290,7 @@ Exact values are in `lib/theme/app_theme.dart`.
 
 - Dark graphite theme by default; a light theme with a white background and soft shadows for cards.
 - Fonts: Bricolage Grotesque for titles, Figtree for everything else.
-- One accent color chosen by the user in Settings, from a Vivid group and a Pastel group. Default: Hot pink. On the light theme a darker "ink" version of the accent is used.
-- Each type has its own color, used for section headings, dots and labels. On the light theme the headings use darker versions of the same hues.
+- One accent color chosen by the user in Settings, from a Vivid group and a Pastel group. Default: Hot pink. On the light theme a darker "ink" version of the accent is used for accent text, icons and outlines; every ink reaches 4.5:1 on white (the S6 list). Fills stay the same on both themes.
+- Each type has its own color per theme, used for section headings, chip dots, rail dots and labels. The light colors reach 4.5:1 on white, except Movies (3.8:1, kept on purpose so gold stays gold). Values are in the theme file and the D8 note.
 - Seasonal accents: Halloween orange, Christmas green, only inside a themed plan.
-- Phone frame in the mockups is 390 × 844. The target phone, the Galaxy S25 (1080 × 2340 at 480 dpi), is 360 × 780 dp, and the Linux dev window and the captures use that size. Side padding is 20 px. Touch targets are at least 44 px.
+- Phone frame in the mockups is 390 × 844. The target phone, the Galaxy S25 (1080 × 2340 at 480 dpi), is 360 × 780 dp, and the Linux dev window and the captures use that size. Side padding is 20 px. Touch targets are at least 48 dp: bottom navigation items and segments are 48 dp tall and every segment at least 48 dp wide; 40 dp chips keep their drawn size but get a 48 dp touch area.

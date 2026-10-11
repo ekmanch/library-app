@@ -70,8 +70,13 @@ class PlanEntrySheet extends ConsumerWidget {
         ref.watch(displayPreferencesProvider).viewForEntry(entry) !=
         EntryView.text;
 
-    Future<void> toggleDone() =>
-        togglePlanItemDone(ref, plan: plan, item: item, entry: entry);
+    Future<void> toggleDone() => togglePlanItemDoneWithUndo(
+      context,
+      ref,
+      plan: plan,
+      item: item,
+      entry: entry,
+    );
 
     Future<void> pickRating() async {
       final choice = await showRatingSheet(

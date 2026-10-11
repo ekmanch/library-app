@@ -14,6 +14,7 @@ import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/radio_mark.dart';
 import '../../widgets/segmented_control.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/sheet_frame.dart';
 import '../../widgets/switch_row.dart';
 import '../settings/display_preferences.dart';
@@ -72,6 +73,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
   late List<String> _tags;
   late bool _timeline;
   late bool _seasonal;
+  late bool _started;
   late _Start _start;
   Plan? _source;
   bool _defaultsApplied = false;
@@ -91,6 +93,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
     _tags = [...?(plan ?? copy)?.tags];
     _timeline = (plan ?? copy)?.timeline ?? false;
     _seasonal = (plan ?? copy)?.seasonalTheme ?? true;
+    _started = plan?.started ?? false;
     _start = copy == null ? _Start.empty : _Start.copy;
     _source = copy;
     _defaultsApplied = plan != null || copy != null;
@@ -168,6 +171,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
             tags: _tags,
             timeline: _timeline,
             seasonalTheme: _seasonal,
+            started: _started,
           ),
         ),
       );
@@ -286,6 +290,21 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                       ),
                     ],
                   ),
+                  if (editing) ...[
+                    const SizedBox(height: 14),
+                    // Plan states, from the S9 note: on is Active, off is
+                    // Not started; the first date turns it on by itself.
+                    SwitchRow(
+                      label: 'Started',
+                      value: _started,
+                      onChanged: (on) => setState(() => _started = on),
+                      help: _started
+                          ? 'Active. Stays active after its end date until '
+                                'every entry is done or removed.'
+                          : 'Not started. Turns on by itself when the '
+                                "plan's first date comes.",
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   const FieldLabel('Linked hashtags (optional)'),
                   FieldButton(
@@ -401,7 +420,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                 child: AppButton(
                   label: 'Delete plan',
-                  kind: AppButtonKind.destructiveOutline,
+                  kind: AppButtonKind.destructive,
                   onPressed: _delete,
                 ),
               ),
@@ -463,12 +482,9 @@ class _LinkedTagsSheetState extends State<_LinkedTagsSheet> {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
+          SearchField(
+            hintText: 'Search tags',
             onChanged: (value) => setState(() => _query = value),
-            decoration: const InputDecoration(
-              hintText: 'Search tags',
-              isDense: true,
-            ),
           ),
         ],
       ),

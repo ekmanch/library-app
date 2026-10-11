@@ -44,17 +44,19 @@ void main() {
       available: 204,
       measure: (l) => l.length * 10.0,
     );
-    // Usable 200: contents 46 and 126, leftover 28 shared as 14 each.
-    expect(widths, [60, 140]);
+    // Usable 200: contents 48 (46, raised to the 48 dp minimum) and 126,
+    // leftover 26 shared as 13 each.
+    expect(widths, [61, 139]);
     final tight = SegmentedControl.segmentWidths(
       labels: ['Abcdefghij', 'Klmnopqrst'],
       available: 104,
       measure: (l) => l.length * 10.0,
     );
-    expect(tight, [50, 50]);
+    // Too long to fit: full widths, and the control scrolls.
+    expect(tight, [116, 116]);
   });
 
-  testWidgets('segments are 44 px tall and fill the row evenly', (
+  testWidgets('segments are 48 dp tall and fill the row evenly', (
     tester,
   ) async {
     await pumpThemed(
@@ -71,7 +73,7 @@ void main() {
     final two = tester.getSize(
       find.ancestor(of: find.text('Two'), matching: find.byType(InkWell)).first,
     );
-    expect(one.height, 44);
+    expect(one.height, 48);
     expect(one.width, two.width);
   });
 

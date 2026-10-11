@@ -124,6 +124,7 @@ void main() {
       'tags',
       'timeline',
       'seasonal_theme',
+      'started',
       'items',
     ]);
     expect(Plan.fromJson(json), halloweenPlan);

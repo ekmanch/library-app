@@ -11,7 +11,9 @@ import '../settings/display_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../data/models/plan.dart';
 import '../plans/plan_screen.dart';
+import '../plans/plan_progress.dart';
 import '../plans/plans_screen.dart';
+import '../../data/library_providers.dart';
 import 'fab_action.dart';
 import 'floating_nav_bar.dart';
 
@@ -38,8 +40,9 @@ class AppShell extends ConsumerStatefulWidget {
   final void Function(BuildContext context)? onAddEntry;
   final void Function(BuildContext context)? onAddPlan;
 
-  /// Navigation height (56) plus its 20 px margins.
-  static const contentBottomPadding = 96.0;
+  /// Navigation height (60: 48 dp items in a 6 dp padded pill) plus its
+  /// 20 px margin and 20 px of air.
+  static const contentBottomPadding = 100.0;
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -53,6 +56,22 @@ class _AppShellState extends ConsumerState<AppShell> {
   };
 
   NavigatorState? get _current => _keys[_tab]!.currentState;
+
+  @override
+  void initState() {
+    super.initState();
+    // A plan whose first date has come turns its Started switch on, so the
+    // switch always shows the real state (S9). Plans never stop on their
+    // own.
+    ref.listenManual(libraryProvider, (_, next) {
+      final library = next.value;
+      if (library == null) return;
+      final repository = ref.read(libraryRepositoryProvider);
+      for (final start in dueStarts(library)) {
+        repository.apply(start);
+      }
+    }, fireImmediately: true);
+  }
 
   void _select(ShellTab tab) {
     if (tab == _tab) {

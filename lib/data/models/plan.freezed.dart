@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Plan {
 
- String get id; String get name; int? get year; List<String> get tags; bool get timeline;@JsonKey(name: 'seasonal_theme') bool get seasonalTheme; List<PlanItem> get items;
+ String get id; String get name; int? get year; List<String> get tags; bool get timeline;@JsonKey(name: 'seasonal_theme') bool get seasonalTheme;/// Set by the Started switch in S9, and by the app when the plan's
+/// first date arrives. Never cleared on its own.
+ bool get started; List<PlanItem> get items;
 /// Create a copy of Plan
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +32,20 @@ $PlanCopyWith<Plan> get copyWith => _$PlanCopyWithImpl<Plan>(this as Plan, _$ide
 @override
 bool operator ==(Object other) {
   final _this = this as Plan;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Plan&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.year, _this.year) || other.year == _this.year)&&const DeepCollectionEquality().equals(other.tags, _this.tags)&&(identical(other.timeline, _this.timeline) || other.timeline == _this.timeline)&&(identical(other.seasonalTheme, _this.seasonalTheme) || other.seasonalTheme == _this.seasonalTheme)&&const DeepCollectionEquality().equals(other.items, _this.items));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Plan&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.year, _this.year) || other.year == _this.year)&&const DeepCollectionEquality().equals(other.tags, _this.tags)&&(identical(other.timeline, _this.timeline) || other.timeline == _this.timeline)&&(identical(other.seasonalTheme, _this.seasonalTheme) || other.seasonalTheme == _this.seasonalTheme)&&(identical(other.started, _this.started) || other.started == _this.started)&&const DeepCollectionEquality().equals(other.items, _this.items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Plan;
-  return Object.hash(runtimeType,_this.id,_this.name,_this.year,const DeepCollectionEquality().hash(_this.tags),_this.timeline,_this.seasonalTheme,const DeepCollectionEquality().hash(_this.items));
+  return Object.hash(runtimeType,_this.id,_this.name,_this.year,const DeepCollectionEquality().hash(_this.tags),_this.timeline,_this.seasonalTheme,_this.started,const DeepCollectionEquality().hash(_this.items));
 }
 
 @override
 String toString() {
   final _this = this as Plan;
-  return 'Plan(id: ${_this.id}, name: ${_this.name}, year: ${_this.year}, tags: ${_this.tags}, timeline: ${_this.timeline}, seasonalTheme: ${_this.seasonalTheme}, items: ${_this.items})';
+  return 'Plan(id: ${_this.id}, name: ${_this.name}, year: ${_this.year}, tags: ${_this.tags}, timeline: ${_this.timeline}, seasonalTheme: ${_this.seasonalTheme}, started: ${_this.started}, items: ${_this.items})';
 }
 
 
@@ -54,7 +56,7 @@ abstract mixin class $PlanCopyWith<$Res>  {
   factory $PlanCopyWith(Plan value, $Res Function(Plan) _then) = _$PlanCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, int? year, List<String> tags, bool timeline,@JsonKey(name: 'seasonal_theme') bool seasonalTheme, List<PlanItem> items
+ String id, String name, int? year, List<String> tags, bool timeline,@JsonKey(name: 'seasonal_theme') bool seasonalTheme, bool started, List<PlanItem> items
 });
 
 
@@ -71,7 +73,7 @@ class _$PlanCopyWithImpl<$Res>
 
 /// Create a copy of Plan
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? year = freezed,Object? tags = null,Object? timeline = null,Object? seasonalTheme = null,Object? items = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? year = freezed,Object? tags = null,Object? timeline = null,Object? seasonalTheme = null,Object? started = null,Object? items = null,}) {
   return _then(Plan(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -79,6 +81,7 @@ as String,year: freezed == year ? _self.year : year // ignore: cast_nullable_to_
 as int?,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,timeline: null == timeline ? _self.timeline : timeline // ignore: cast_nullable_to_non_nullable
 as bool,seasonalTheme: null == seasonalTheme ? _self.seasonalTheme : seasonalTheme // ignore: cast_nullable_to_non_nullable
+as bool,started: null == started ? _self.started : started // ignore: cast_nullable_to_non_nullable
 as bool,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
 as List<PlanItem>,
   ));
@@ -165,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  List<PlanItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  bool started,  List<PlanItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Plan() when $default != null:
-return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.items);case _:
+return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.started,_that.items);case _:
   return orElse();
 
 }
@@ -186,10 +189,10 @@ return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  List<PlanItem> items)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  bool started,  List<PlanItem> items)  $default,) {final _that = this;
 switch (_that) {
 case _Plan():
-return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.items);case _:
+return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.started,_that.items);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +209,10 @@ return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  List<PlanItem> items)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  int? year,  List<String> tags,  bool timeline, @JsonKey(name: 'seasonal_theme')  bool seasonalTheme,  bool started,  List<PlanItem> items)?  $default,) {final _that = this;
 switch (_that) {
 case _Plan() when $default != null:
-return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.items);case _:
+return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.seasonalTheme,_that.started,_that.items);case _:
   return null;
 
 }
@@ -221,7 +224,7 @@ return $default(_that.id,_that.name,_that.year,_that.tags,_that.timeline,_that.s
 @JsonSerializable()
 
 class _Plan extends Plan {
-  const _Plan({required this.id, required this.name, this.year,  List<String> tags = const [], this.timeline = false, @JsonKey(name: 'seasonal_theme') this.seasonalTheme = false,  List<PlanItem> items = const []}): _tags = tags,_items = items,super._();
+  const _Plan({required this.id, required this.name, this.year,  List<String> tags = const [], this.timeline = false, @JsonKey(name: 'seasonal_theme') this.seasonalTheme = false, this.started = false,  List<PlanItem> items = const []}): _tags = tags,_items = items,super._();
   factory _Plan.fromJson(Map<String, dynamic> json) => _$PlanFromJson(json);
 
 @override final  String id;
@@ -236,6 +239,9 @@ class _Plan extends Plan {
 
 @override@JsonKey() final  bool timeline;
 @override@JsonKey(name: 'seasonal_theme') final  bool seasonalTheme;
+/// Set by the Started switch in S9, and by the app when the plan's
+/// first date arrives. Never cleared on its own.
+@override@JsonKey() final  bool started;
  final  List<PlanItem> _items;
 @override@JsonKey() List<PlanItem> get items {
   if (_items is EqualUnmodifiableListView) return _items;
@@ -257,18 +263,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Plan&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.year, year) || other.year == year)&&const DeepCollectionEquality().equals(other.tags, _tags)&&(identical(other.timeline, timeline) || other.timeline == timeline)&&(identical(other.seasonalTheme, seasonalTheme) || other.seasonalTheme == seasonalTheme)&&const DeepCollectionEquality().equals(other.items, _items));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Plan&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.year, year) || other.year == year)&&const DeepCollectionEquality().equals(other.tags, _tags)&&(identical(other.timeline, timeline) || other.timeline == timeline)&&(identical(other.seasonalTheme, seasonalTheme) || other.seasonalTheme == seasonalTheme)&&(identical(other.started, started) || other.started == started)&&const DeepCollectionEquality().equals(other.items, _items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,name,year,const DeepCollectionEquality().hash(_tags),timeline,seasonalTheme,const DeepCollectionEquality().hash(_items));
+    return Object.hash(runtimeType,id,name,year,const DeepCollectionEquality().hash(_tags),timeline,seasonalTheme,started,const DeepCollectionEquality().hash(_items));
 }
 
 @override
 String toString() {
-    return 'Plan(id: $id, name: $name, year: $year, tags: $tags, timeline: $timeline, seasonalTheme: $seasonalTheme, items: $items)';
+    return 'Plan(id: $id, name: $name, year: $year, tags: $tags, timeline: $timeline, seasonalTheme: $seasonalTheme, started: $started, items: $items)';
 }
 
 
@@ -279,7 +285,7 @@ abstract mixin class _$PlanCopyWith<$Res> implements $PlanCopyWith<$Res> {
   factory _$PlanCopyWith(_Plan value, $Res Function(_Plan) _then) = __$PlanCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, int? year, List<String> tags, bool timeline,@JsonKey(name: 'seasonal_theme') bool seasonalTheme, List<PlanItem> items
+ String id, String name, int? year, List<String> tags, bool timeline,@JsonKey(name: 'seasonal_theme') bool seasonalTheme, bool started, List<PlanItem> items
 });
 
 
@@ -296,7 +302,7 @@ class __$PlanCopyWithImpl<$Res>
 
 /// Create a copy of Plan
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? year = freezed,Object? tags = null,Object? timeline = null,Object? seasonalTheme = null,Object? items = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? year = freezed,Object? tags = null,Object? timeline = null,Object? seasonalTheme = null,Object? started = null,Object? items = null,}) {
   return _then(_Plan(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -304,6 +310,7 @@ as String,year: freezed == year ? _self.year : year // ignore: cast_nullable_to_
 as int?,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,timeline: null == timeline ? _self.timeline : timeline // ignore: cast_nullable_to_non_nullable
 as bool,seasonalTheme: null == seasonalTheme ? _self.seasonalTheme : seasonalTheme // ignore: cast_nullable_to_non_nullable
+as bool,started: null == started ? _self.started : started // ignore: cast_nullable_to_non_nullable
 as bool,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<PlanItem>,
   ));

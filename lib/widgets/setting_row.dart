@@ -11,12 +11,18 @@ class SettingRow extends StatelessWidget {
     super.key,
     required this.label,
     this.value,
+    this.detail,
     this.onTap,
     this.minHeight = 52,
   });
 
   final String label;
   final String? value;
+
+  /// A second line under the label, left-aligned in the secondary color,
+  /// for a value too long to sit on the right ("When you open Libri, then
+  /// every 5 minutes").
+  final String? detail;
   final VoidCallback? onTap;
   final double minHeight;
 
@@ -32,12 +38,36 @@ class SettingRow extends StatelessWidget {
       child: Row(
         children: [
           // The label keeps its natural width and the value gets the rest,
-          // so "On open, then every 5 min" stays on one line where it can.
+          // so a short value stays on one line where it can.
           Flexible(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyLarge!.copyWith(fontSize: 16),
-            ),
+            child: detail == null
+                ? Text(
+                    label,
+                    style: theme.textTheme.bodyLarge!.copyWith(fontSize: 16),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: theme.textTheme.bodyLarge!.copyWith(
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          detail!,
+                          style: theme.textTheme.bodyMedium!.copyWith(
+                            fontSize: 14,
+                            height: 1.35,
+                            color: colors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
           if (value != null) ...[
             const SizedBox(width: 12),

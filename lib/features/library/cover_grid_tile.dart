@@ -4,12 +4,11 @@ import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/entry_row.dart';
-import '../../widgets/labels.dart';
 import 'cover_placeholder.dart';
 
-/// One cell of the grid with covers (A21). A check badge on the cover means
-/// Done; other statuses are written under the title.
+/// One cell of the grid with covers (A21, L4): the cover, a title of up to
+/// two lines and the year. A check badge on the cover means Done; the
+/// caption never shows a status.
 class CoverGridTile extends StatelessWidget {
   const CoverGridTile({
     super.key,
@@ -27,23 +26,24 @@ class CoverGridTile extends StatelessWidget {
   /// Shown instead of the entry's title, e.g. a rated track on its album.
   final String? title;
 
-  /// Shown instead of the status caption, e.g. the artist for an album.
+  /// Shown instead of the year, e.g. the artist for an album.
   final String? caption;
 
   /// Fixed line boxes, so the grid can size its rows exactly whatever the
   /// platform's font metrics or text scale.
-  static const titleFontSize = 14.0;
-  static const titleLineHeight = 18.0;
-  static const captionFontSize = 12.5;
+  static const titleFontSize = 13.5;
+  static const titleLineHeight = 17.0;
+  static const titleLines = 2;
+  static const captionFontSize = 12.0;
   static const captionLineHeight = 16.0;
 
-  /// "Want · 1999", "Want", or just "1999" when done.
-  static String statusCaption(Entry entry, {DateTime? today}) {
-    final subtitle = entrySubtitle(entry, today: today);
-    return [
-      if (entry.status != EntryStatus.done) entry.status.label,
-      if (subtitle.isNotEmpty) subtitle,
-    ].join(' · ');
+  /// The year, or "Not released yet" (the A21 note). Never the status.
+  static String yearCaption(Entry entry, {DateTime? today}) {
+    final released = entry.released;
+    if (released != null && !released.isReleasedOn(today ?? DateTime.now())) {
+      return 'Not released yet';
+    }
+    return released?.year.toString() ?? '';
   }
 
   @override
@@ -90,10 +90,10 @@ class CoverGridTile extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             SizedBox(
-              height: titleLineHeight,
+              height: titleLineHeight * titleLines,
               child: Text(
                 title ?? entry.title,
-                maxLines: 1,
+                maxLines: titleLines,
                 overflow: TextOverflow.ellipsis,
                 textScaler: TextScaler.noScaling,
                 style: theme.textTheme.labelMedium!.copyWith(
@@ -106,13 +106,13 @@ class CoverGridTile extends StatelessWidget {
             SizedBox(
               height: captionLineHeight,
               child: Text(
-                caption ?? statusCaption(entry, today: today),
+                caption ?? yearCaption(entry, today: today),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textScaler: TextScaler.noScaling,
                 style: theme.textTheme.bodySmall!.copyWith(
                   fontSize: captionFontSize,
-                  fontStyle: FontStyle.italic,
+                  fontStyle: FontStyle.normal,
                   height: captionLineHeight / captionFontSize,
                 ),
               ),

@@ -6,9 +6,16 @@ import 'package:library_app/features/plans/plan_progress.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
-  test('plan state from its items', () {
+  final today = DateTime(2026, 10, 11);
+
+  test('plan state from Started, its dates and its items', () {
     const empty = Plan(id: 'a', name: 'A');
-    expect(planState(empty), PlanState.notStarted);
+    expect(planState(empty, today: today), PlanState.notStarted);
+    // An empty plan is never finished, even when started.
+    expect(
+      planState(empty.copyWith(started: true), today: today),
+      PlanState.active,
+    );
     const some = Plan(
       id: 'b',
       name: 'B',
@@ -17,7 +24,11 @@ void main() {
         PlanItem(entry: 'y'),
       ],
     );
-    expect(planState(some), PlanState.active);
+    expect(planState(some, today: today), PlanState.notStarted);
+    expect(
+      planState(some.copyWith(started: true), today: today),
+      PlanState.active,
+    );
     expect(doneCount(some), 1);
     const all = Plan(
       id: 'c',
@@ -28,6 +39,34 @@ void main() {
     expect(planState(all), PlanState.finished);
     expect(planTitle(all), 'C 2025');
     expect(planTitle(empty), 'A');
+  });
+
+  test('the first date makes a plan active and turns Started on', () {
+    final dated = Plan(
+      id: 'd',
+      name: 'D',
+      items: [
+        PlanItem(
+          entry: 'x',
+          when: PlanWhen(
+            from: DateTime(2026, 10, 20),
+            to: DateTime(2026, 10, 22),
+          ),
+        ),
+      ],
+    );
+    expect(planState(dated, today: today), PlanState.notStarted);
+    final onTheDay = DateTime(2026, 10, 20);
+    expect(planState(dated, today: onTheDay), PlanState.active);
+    // Long after the end date it stays active until every entry is done.
+    expect(planState(dated, today: DateTime(2027, 3, 1)), PlanState.active);
+    final library = loadFixture().copyWith(plans: [dated]);
+    expect(dueStarts(library, today: today), isEmpty);
+    final starts = dueStarts(library, today: onTheDay);
+    expect(starts.single.planId, 'd');
+    final started = starts.single.apply(library).planById('d')!;
+    expect(started.started, isTrue);
+    expect(dueStarts(starts.single.apply(library), today: onTheDay), isEmpty);
   });
 
   test('the fixture has Halloween 2026 as the active plan', () {

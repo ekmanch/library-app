@@ -33,15 +33,16 @@ class PageHeader extends StatelessWidget {
         children: [
           if (hasBack)
             Transform.translate(
-              offset: const Offset(-12, 0),
+              // A 48 dp target whose icon lines up with the 20 px margin.
+              offset: const Offset(-14, 0),
               child: IconButton(
                 onPressed: onBack,
                 tooltip: 'Back',
                 color: Theme.of(context).colorScheme.onSurface,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints.tightFor(
-                  width: 44,
-                  height: 44,
+                  width: 48,
+                  height: 48,
                 ),
                 style: IconButton.styleFrom(
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -49,7 +50,6 @@ class PageHeader extends StatelessWidget {
                 icon: const StrokeIcon(AppIcons.back, size: 22),
               ),
             ),
-          if (hasBack) const SizedBox(width: 4),
           if (leading != null) ...[leading!, const SizedBox(width: 6)],
           Expanded(
             // "Library connection" at a large text size on a narrow phone:

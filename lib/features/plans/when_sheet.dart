@@ -202,19 +202,39 @@ class _WhenSheetState extends State<WhenSheet> {
           for (var row = 0; row < cells.length ~/ 7; row++)
             Padding(
               padding: EdgeInsets.only(top: row == 0 ? 0 : 2),
-              child: Row(
+              child: Stack(
                 children: [
-                  for (final day in cells.sublist(row * 7, row * 7 + 7))
-                    Expanded(
-                      child: day == null
-                          ? const SizedBox(height: 44)
-                          : _DayCell(
-                              day: day,
-                              from: _from,
-                              to: _to,
-                              onTap: () => _tap(day),
-                            ),
+                  // The range band is one shape per week row, so there
+                  // are no seams between the days (D2).
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _BandPainter(
+                        span: bandSpan(
+                          cells.sublist(row * 7, row * 7 + 7),
+                          _from,
+                          _to,
+                        ),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.10,
+                        ),
+                      ),
                     ),
+                  ),
+                  Row(
+                    children: [
+                      for (final day in cells.sublist(row * 7, row * 7 + 7))
+                        Expanded(
+                          child: day == null
+                              ? const SizedBox(height: 44)
+                              : _DayCell(
+                                  day: day,
+                                  from: _from,
+                                  to: _to,
+                                  onTap: () => _tap(day),
+                                ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -262,15 +282,6 @@ class _DayCell extends StatelessWidget {
     final isEnd = lo != null && (day == lo || day == hi);
     final inRange =
         lo != null && hi != null && day.isAfter(lo) && day.isBefore(hi);
-    final ranged = lo != null && hi != null && hi != lo;
-    final band = inRange || (isEnd && ranged);
-    final bandRadius = !band
-        ? BorderRadius.zero
-        : day == lo
-        ? const BorderRadius.horizontal(left: Radius.circular(22))
-        : day == hi
-        ? const BorderRadius.horizontal(right: Radius.circular(22))
-        : BorderRadius.zero;
     return Semantics(
       button: true,
       selected: isEnd || inRange,
@@ -278,13 +289,8 @@ class _DayCell extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        child: Container(
+        child: SizedBox(
           height: 44,
-          decoration: BoxDecoration(
-            // A tenth of white, a touch quieter than the selected fill.
-            color: band ? scheme.onSurface.withValues(alpha: 0.10) : null,
-            borderRadius: bandRadius,
-          ),
           child: Center(
             child: Container(
               width: 40,
@@ -309,4 +315,55 @@ class _DayCell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Where the range band runs in one week row of [days] (null for blanks),
+/// in cell units from the row's left edge: from the center of the start
+/// day to the center of the end day, or to the row's edge where the range
+/// carries on into the next or previous row. Null when the row has no band,
+/// and for a single day.
+@visibleForTesting
+(double, double)? bandSpan(List<DateTime?> days, DateTime? from, DateTime? to) {
+  final lo = from, hi = to;
+  if (lo == null || hi == null || hi == lo) return null;
+  int? first, last;
+  for (final (i, day) in days.indexed) {
+    if (day == null || day.isBefore(lo) || day.isAfter(hi)) continue;
+    first ??= i;
+    last = i;
+  }
+  if (first == null || last == null) return null;
+  final left = days[first] == lo
+      ? first + 0.5
+      : (first == 0 ? 0.0 : first.toDouble());
+  final right = days[last] == hi
+      ? last + 0.5
+      : (last == days.length - 1 ? days.length.toDouble() : last + 1.0);
+  return right > left ? (left, right) : null;
+}
+
+class _BandPainter extends CustomPainter {
+  const _BandPainter({required this.span, required this.color});
+
+  final (double, double)? span;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = span;
+    if (s == null) return;
+    final cell = size.width / 7;
+    // As tall as the day dots and centered on them; square ends, hidden
+    // under the start and end dots.
+    const height = 40.0;
+    final top = (size.height - height) / 2;
+    canvas.drawRect(
+      Rect.fromLTWH(s.$1 * cell, top, (s.$2 - s.$1) * cell, height),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BandPainter old) =>
+      old.span != span || old.color != color;
 }

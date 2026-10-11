@@ -39,7 +39,7 @@ Future<RemoveChoice?> showRemoveFromPlanDialog(
         ),
         AppButton(
           label: 'Delete everywhere',
-          kind: AppButtonKind.destructiveOutline,
+          kind: AppButtonKind.destructive,
           onPressed: () => Navigator.pop(context, RemoveChoice.everywhere),
         ),
         AppButton(

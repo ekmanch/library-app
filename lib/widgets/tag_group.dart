@@ -73,7 +73,8 @@ class TagGroup extends StatelessWidget {
           ),
           if (open)
             Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 12),
+              // Room for the chips' 48 dp touch area above the first row.
+              padding: const EdgeInsets.only(top: 4, bottom: 10),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,

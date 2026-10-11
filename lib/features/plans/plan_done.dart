@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
@@ -6,6 +7,8 @@ import '../../data/models/entry_status.dart';
 import '../../data/models/plan.dart';
 import '../../data/models/plan_item.dart';
 import '../../data/operations/operations.dart';
+import '../shell/app_shell.dart';
+import 'plan_progress.dart';
 
 /// The status an entry had before a plan check marked it Done, by plan
 /// item, so unticking can put it back. Session state on the device; it is
@@ -43,7 +46,11 @@ String planItemKey(String planId, String entryId) => '$planId/$entryId';
 /// it was. Unticking puts that status back, but only if the entry is still
 /// Done; a status changed elsewhere in between stays. An entry that was
 /// already Done when ticked is left alone when unticked.
-Future<void> togglePlanItemDone(
+///
+/// Ticking an item starts the plan, so unticking one later, or adding an
+/// entry to a finished plan, leaves it Active (the S9 note). Returns true
+/// when this tick finished the plan.
+Future<bool> togglePlanItemDone(
   WidgetRef ref, {
   required Plan plan,
   required PlanItem item,
@@ -55,6 +62,7 @@ Future<void> togglePlanItemDone(
   final done = !item.done;
   await repository.apply(SetPlanItem(plan.id, item.copyWith(done: done)));
   if (done) {
+    await repository.apply(SetPlanStarted(plan.id, true));
     if (entry.status == EntryStatus.done) {
       memory.forget(key);
     } else {
@@ -67,4 +75,58 @@ Future<void> togglePlanItemDone(
       await repository.apply(SetStatus(entry.id, previous));
     }
   }
+  if (!done) return false;
+  final after = (await repository.load()).planById(plan.id);
+  return after != null && planState(after) == PlanState.finished;
+}
+
+/// [togglePlanItemDone], and when the tick finishes the plan a short
+/// "Halloween 2026 finished" message whose Undo unticks the item again.
+Future<void> togglePlanItemDoneWithUndo(
+  BuildContext context,
+  WidgetRef ref, {
+  required Plan plan,
+  required PlanItem item,
+  required Entry entry,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final finished = await togglePlanItemDone(
+    ref,
+    plan: plan,
+    item: item,
+    entry: entry,
+  );
+  if (!finished) return;
+  final repository = ref.read(libraryRepositoryProvider);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text('${planTitle(plan)} finished'),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          AppShell.contentBottomPadding,
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final library = await repository.load();
+            final now = library.planById(plan.id);
+            final nowItem = now?.itemFor(entry.id);
+            final nowEntry = library.entryById(entry.id);
+            if (now == null || nowItem == null || nowEntry == null) return;
+            if (!nowItem.done) return;
+            await togglePlanItemDone(
+              ref,
+              plan: now,
+              item: nowItem,
+              entry: nowEntry,
+            );
+          },
+        ),
+      ),
+    );
 }

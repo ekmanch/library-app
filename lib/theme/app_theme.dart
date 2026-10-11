@@ -57,7 +57,7 @@ class Accents {
       AccentGroup.vivid,
       'Amber',
       Color(0xFFF2B544),
-      Color(0xFFC27C0E),
+      Color(0xFFA36706),
     ),
     AccentOption(
       AccentGroup.vivid,
@@ -78,25 +78,25 @@ class Accents {
       AccentGroup.pastel,
       'Beige',
       Color(0xFFF9E2AF),
-      Color(0xFFDF8E1D),
+      Color(0xFFA66706),
     ),
     AccentOption(
       AccentGroup.pastel,
       'Rosewater',
       Color(0xFFF5E0DC),
-      Color(0xFFDC8A78),
+      Color(0xFFAD604F),
     ),
     AccentOption(
       AccentGroup.pastel,
       'Flamingo',
       Color(0xFFF2CDCD),
-      Color(0xFFDD7878),
+      Color(0xFFB85759),
     ),
     AccentOption(
       AccentGroup.pastel,
       'Pink',
       Color(0xFFF5C2E7),
-      Color(0xFFEA76CB),
+      Color(0xFFBA4A9E),
     ),
     AccentOption(
       AccentGroup.pastel,
@@ -114,7 +114,7 @@ class Accents {
       AccentGroup.pastel,
       'Lavender',
       Color(0xFFB4BEFE),
-      Color(0xFF7287FD),
+      Color(0xFF596ADD),
     ),
     AccentOption(
       AccentGroup.pastel,
@@ -126,13 +126,13 @@ class Accents {
       AccentGroup.pastel,
       'Sky',
       Color(0xFF89DCEB),
-      Color(0xFF04A5E5),
+      Color(0xFF017DAF),
     ),
     AccentOption(
       AccentGroup.pastel,
       'Green',
       Color(0xFFA6E3A1),
-      Color(0xFF40A02B),
+      Color(0xFF238700),
     ),
   ];
 
@@ -214,6 +214,7 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.dangerFill,
     required this.success,
     required this.skeleton,
+    required this.buttonOutline,
   });
 
   /// Raised fill: tag chips, the floating navigation pill, sheet buttons.
@@ -279,6 +280,10 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
   /// Placeholder blocks while the library loads (D7).
   final Color skeleton;
 
+  /// Outline of an outline button (Cancel, Delete, Replace token): a step
+  /// lighter than the field outline.
+  final Color buttonOutline;
+
   Color forType(MediaType t) => switch (t) {
     MediaType.movies => movies,
     MediaType.shows => shows,
@@ -297,7 +302,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     divider: Color(0xFF26292D),
     muted: Color(0xFFA3A8AE),
     soft: Color(0xFFD0D4D9),
-    placeholder: Color(0xFF666B73),
+    // 5:1 on the surface, as the S9 hint color (#8A8F96).
+    placeholder: Color(0xFF8A8F96),
     dangerText: Color(0xFFFF6B6B),
     neutralFill: Color(0xFF3A3E44),
     selectedFill: Color(0x24FFFFFF),
@@ -321,18 +327,20 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     dangerFill: Color(0xFF3A2323),
     success: Color(0xFF8FD694),
     skeleton: Color(0xFF1D1F22),
+    buttonOutline: Color(0xFF4A4F57),
   );
 
   // Values from the light mockups D8 and S6. The type colors follow the D8
-  // note: same lightness as the dark set with as much color as they hold,
-  // about 4.1:1 on white or more (Movies 3.8:1, so gold stays gold).
+  // note: as colorful as they can be while readable, 4.5:1 (AA) on white,
+  // except Movies (3.8:1, kept on purpose so gold stays gold).
   static const light = LibraryColors(
     surfaceHigh: Color(0xFFE9EBEE),
     dialog: Color(0xFFFFFFFF),
     divider: Color(0xFFE3E5E9),
     muted: Color(0xFF5B616B),
     soft: Color(0xFF3C424A),
-    placeholder: Color(0xFF9AA0A8),
+    // 4.6:1 on white.
+    placeholder: Color(0xFF6F757E),
     dangerText: Color(0xFFC62828),
     neutralFill: Color(0xFFE9EBEE),
     selectedFill: Color(0xFFE9EBEE),
@@ -342,8 +350,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     trayBorder: Color(0xFFD5D9DE),
     scrim: Color(0x99000000),
     movies: Color(0xFFA87C00),
-    shows: Color(0xFF0A78E0),
-    books: Color(0xFF1A9136),
+    shows: Color(0xFF0074DC),
+    books: Color(0xFF01872C),
     games: Color(0xFFD63A1F),
     music: Color(0xFF7C3AED),
     anime: Color(0xFFC8157E),
@@ -364,6 +372,7 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     dangerFill: Color(0xFFFBE9E7),
     success: Color(0xFF1E7B34),
     skeleton: Color(0xFFE9EBEE),
+    buttonOutline: Color(0xFFC9CED4),
   );
 
   static const _coverPlaceholders = [
@@ -522,7 +531,7 @@ ThemeData buildTheme({
         minimumSize: const Size.fromHeight(48),
         shape: const StadiumBorder(),
         foregroundColor: text,
-        side: BorderSide(color: outline),
+        side: BorderSide(color: ext.buttonOutline),
         textStyle: textTheme.labelLarge,
       ),
     ),

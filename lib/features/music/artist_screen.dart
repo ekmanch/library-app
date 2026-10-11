@@ -17,6 +17,7 @@ import '../settings/display_preferences.dart';
 import '../settings/entry_view.dart';
 import '../shell/app_shell.dart';
 import 'artist_index.dart';
+import 'artist_tiles.dart';
 import 'music_tab.dart';
 
 /// Opens one artist (A15, A19) inside the Library tab, so the floating
@@ -64,7 +65,7 @@ class ArtistScreen extends ConsumerWidget {
       title: entry.title,
       subtitle: album ? yearSubtitle(entry) : entrySubtitle(entry),
       status: entry.status,
-      leading: photo ? CoverPlaceholder(entry: entry, width: 40) : null,
+      leading: photo ? CoverPlaceholder(entry: entry, width: 44) : null,
       onTap: () => onOpenEntry?.call(entry),
     );
 
@@ -101,19 +102,41 @@ class ArtistScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 4, 10, 0),
                 child: Row(
                   children: [
+                    // With a photo view chosen the artist's photo leads the
+                    // count line (A19); the count and sort stack beside it.
+                    if (photo) ...[
+                      ArtistAvatar(artist: artist, size: 72),
+                      const SizedBox(width: 14),
+                    ],
                     Expanded(
-                      child: Text(
-                        artist.countLabel,
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          fontSize: 14,
-                        ),
+                      child: Builder(
+                        builder: (context) {
+                          final count = Text(
+                            artist.countLabel,
+                            style: theme.textTheme.bodySmall!.copyWith(
+                              fontSize: 14,
+                            ),
+                          );
+                          final sort = SortButton(
+                            current: prefs.artistSort,
+                            onChanged: (sort) => ref
+                                .read(displayPreferencesProvider.notifier)
+                                .setArtistSort(sort),
+                          );
+                          return photo
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [count, sort],
+                                )
+                              : Row(
+                                  children: [
+                                    Expanded(child: count),
+                                    sort,
+                                  ],
+                                );
+                        },
                       ),
-                    ),
-                    SortButton(
-                      current: prefs.artistSort,
-                      onChanged: (sort) => ref
-                          .read(displayPreferencesProvider.notifier)
-                          .setArtistSort(sort),
                     ),
                   ],
                 ),

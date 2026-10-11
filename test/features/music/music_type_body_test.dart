@@ -122,7 +122,8 @@ void main() {
     expect(find.byType(EntryRow), findsNWidgets(songs.length));
     expect(find.byType(TrackRow), findsWidgets);
     expect(find.text('Rooster'), findsOneWidget);
-    expect(find.text('Alice in Chains · Dirt'), findsNWidgets(3));
+    // One format for songs and rated tracks: artist and year.
+    expect(find.text('Alice in Chains · 1992'), findsNWidgets(3));
     expect(find.text('10 / 10'), findsWidgets);
     expect(find.text('Bad Moon Rising'), findsOneWidget);
   });
@@ -132,7 +133,8 @@ void main() {
     await pickMusic(tester);
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Grid'));
+    // Artists say "with photos".
+    await tester.tap(find.text('Grid with photos'));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistGridTile), findsWidgets);
     expect(find.byType(ArtistRow), findsNothing);
@@ -149,7 +151,7 @@ void main() {
     );
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('List with photos'));
+    await tester.tap(find.text('List with covers'));
     await tester.pumpAndSettle();
     expect(find.byType(EntryRow), findsWidgets);
     expect(

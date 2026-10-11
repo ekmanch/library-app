@@ -338,8 +338,10 @@ class _TrackListState extends State<_TrackList> {
                     Text(
                       rating == null ? 'Rate' : ratingLabel(rating.rating),
                       style: theme.textTheme.labelMedium!.copyWith(
+                        // An unrated track is quiet, so the list does not read
+                        // as a column of calls to action (A22).
                         color: rating == null
-                            ? theme.colorScheme.primary
+                            ? LibraryColors.of(context).placeholder
                             : theme.colorScheme.onSurface,
                       ),
                     ),
@@ -357,13 +359,19 @@ class _TrackListState extends State<_TrackList> {
             style: muted,
           ),
         ] else if (!_expanded && full.length > _TrackList.collapsedCount)
-          TextButton(
-            onPressed: () => setState(() => _expanded = true),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.onSurface,
-              textStyle: theme.textTheme.labelMedium,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => setState(() => _expanded = true),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                textStyle: theme.textTheme.labelMedium,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(48, 48),
+                alignment: Alignment.centerLeft,
+              ),
+              child: Text('Show all ${full.length} tracks'),
             ),
-            child: Text('Show all ${full.length} tracks'),
           ),
       ],
     );

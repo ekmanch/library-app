@@ -65,7 +65,10 @@ class EntryListBody extends StatelessWidget {
       sections: railSections ?? sectionEntries(entries, sort, today: today),
       plainSections: plainSections,
       grid: view == EntryView.grid,
-      rowExtent: EntryListMetrics.rowHeight(view),
+      rowExtent: EntryListMetrics.rowHeight(
+        view,
+        MediaQuery.textScalerOf(context),
+      ),
       gridRowExtent: (width) => EntryListMetrics.gridRowExtent(width, type),
       gridTopPadding: EntryListMetrics.gridTopPadding,
       gridColumns: EntryListMetrics.gridColumns,

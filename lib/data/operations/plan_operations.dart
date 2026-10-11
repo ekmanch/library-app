@@ -98,3 +98,19 @@ class RemovePlanItem extends LibraryOperation {
     );
   }
 }
+
+/// Turns a plan's Started switch on or off (S9). The app also turns it on
+/// when the plan's first date arrives.
+class SetPlanStarted extends LibraryOperation {
+  const SetPlanStarted(this.planId, this.started);
+
+  final String planId;
+  final bool started;
+
+  @override
+  Library apply(Library library) {
+    final plan = library.planById(planId);
+    if (plan == null || plan.started == started) return library;
+    return _replacePlan(library, plan.copyWith(started: started));
+  }
+}

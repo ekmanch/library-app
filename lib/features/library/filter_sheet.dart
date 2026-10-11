@@ -9,6 +9,7 @@ import '../../widgets/app_buttons.dart';
 import '../../widgets/chip_grid.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/sheet_frame.dart';
 import '../../widgets/tag_group.dart';
@@ -100,19 +101,18 @@ class _FilterSheetState extends State<FilterSheet> {
           const SizedBox(height: 12),
           SectionHeading('Status', padding: EdgeInsets.zero),
           const SizedBox(height: 8),
-          ChipGrid(
-            columns: 4,
-            children: [
-              for (final status in EntryStatus.values)
-                PillChip(
-                  label: status.label,
-                  selected: _draft.statuses.contains(status),
-                  style: PillChipStyle.accent,
-                  horizontalPadding: 4,
-                  onTap: () =>
-                      setState(() => _draft = _draft.toggleStatus(status)),
-                ),
-            ],
+          FitChipRow(
+            labels: [for (final s in EntryStatus.values) s.label],
+            builder: (i) {
+              final status = EntryStatus.values[i];
+              return PillChip(
+                label: status.label,
+                selected: _draft.statuses.contains(status),
+                style: PillChipStyle.accent,
+                onTap: () =>
+                    setState(() => _draft = _draft.toggleStatus(status)),
+              );
+            },
           ),
           const SizedBox(height: 12),
           if (_decades.isNotEmpty) ...[
@@ -157,12 +157,9 @@ class _FilterSheetState extends State<FilterSheet> {
           ),
           SectionHeading('Tags', padding: EdgeInsets.zero),
           const SizedBox(height: 8),
-          TextField(
+          SearchField(
+            hintText: 'Search tags',
             onChanged: (value) => setState(() => _tagQuery = value),
-            decoration: const InputDecoration(
-              hintText: 'Search tags',
-              isDense: true,
-            ),
           ),
           for (final MapEntry(key: category, value: names)
               in widget.library.tags.entries)

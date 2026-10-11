@@ -43,3 +43,66 @@ class ChipGrid extends StatelessWidget {
     );
   }
 }
+
+/// Chips in one row that share the width by the length of their labels, so
+/// "In progress" gets more room than "DNF" and no label is cut. When they
+/// do not fit (a large text size), the chips wrap onto more lines instead.
+class FitChipRow extends StatelessWidget {
+  const FitChipRow({
+    super.key,
+    required this.labels,
+    required this.builder,
+    this.gap = 6,
+    this.chipPadding = 14,
+  });
+
+  final List<String> labels;
+
+  /// Builds the chip for label [index].
+  final Widget Function(int index) builder;
+  final double gap;
+
+  /// The chip's side padding, counted in its natural width.
+  final double chipPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelMedium!;
+    final scaler = MediaQuery.textScalerOf(context);
+    double measure(String label) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+      return width + 2 * chipPadding + 2;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final natural = [for (final l in labels) measure(l)];
+        final total =
+            natural.fold(0.0, (a, b) => a + b) + gap * (labels.length - 1);
+        if (total > constraints.maxWidth) {
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [for (var i = 0; i < labels.length; i++) builder(i)],
+          );
+        }
+        final share = (constraints.maxWidth - total) / labels.length;
+        return Row(
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              if (i > 0) SizedBox(width: gap),
+              SizedBox(width: natural[i] + share, child: builder(i)),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}

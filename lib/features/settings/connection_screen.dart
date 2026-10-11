@@ -121,7 +121,7 @@ class ConnectionScreen extends ConsumerWidget {
                   const SectionHeading('Syncing', padding: _sectionPadding),
                   const SettingRow(
                     label: 'Check for changes',
-                    value: 'On open, then every 5 min',
+                    detail: 'When you open Libri, then every 5 minutes',
                     minHeight: 56,
                   ),
                 ],
@@ -140,7 +140,7 @@ class ConnectionScreen extends ConsumerWidget {
                   const SizedBox(height: 10),
                   AppButton(
                     label: 'Disconnect',
-                    kind: AppButtonKind.destructiveOutline,
+                    kind: AppButtonKind.destructive,
                     onPressed: () => _disconnect(context, ref),
                   ),
                 ],

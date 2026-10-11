@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../data/models/entry_status.dart';
@@ -21,7 +23,7 @@ class SegmentOption<T> {
   final String label;
 }
 
-/// A row of equal-width segments, one selected. 44 px tall.
+/// A row of segments, one selected. 48 dp tall, each at least 48 dp wide.
 class SegmentedControl<T> extends StatelessWidget {
   const SegmentedControl({
     super.key,
@@ -78,7 +80,10 @@ class SegmentedControl<T> extends StatelessWidget {
                   available: constraints.maxWidth,
                   measure: (label) => _textWidth(context, label, labelStyle),
                 );
-          return Row(
+          final total =
+              widths.fold(0.0, (a, b) => a + b) + gap * (segments.length - 1);
+          final row = Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               for (final (i, segment) in segments.indexed) ...[
                 if (i > 0) const SizedBox(width: gap),
@@ -103,6 +108,13 @@ class SegmentedControl<T> extends StatelessWidget {
               ],
             ],
           );
+          // At a large text size the labels may not fit: the segments keep
+          // their full labels and the row scrolls sideways.
+          if (total <= constraints.maxWidth) return row;
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: row,
+          );
         },
       ),
     );
@@ -111,9 +123,12 @@ class SegmentedControl<T> extends StatelessWidget {
   static const gap = 4.0;
   static const labelPadding = 8.0;
 
+  /// The touch target rule: no segment narrower than this.
+  static const minSegmentWidth = 48.0;
+
   /// Each segment gets its label width plus padding, and the leftover space
   /// is shared equally, like `flex: 1 1 auto` in the mockups. When the
-  /// labels do not fit, every segment gets an equal share and ellipsizes.
+  /// labels do not fit, each keeps its full width and the row scrolls.
   static List<double> segmentWidths({
     required List<String> labels,
     required double available,
@@ -122,9 +137,12 @@ class SegmentedControl<T> extends StatelessWidget {
     final n = labels.length;
     if (n == 0) return const [];
     final usable = available - gap * (n - 1);
-    final content = [for (final l in labels) measure(l) + 2 * labelPadding];
+    final content = [
+      for (final l in labels)
+        math.max(minSegmentWidth, measure(l) + 2 * labelPadding),
+    ];
     final sum = content.fold(0.0, (a, b) => a + b);
-    if (sum > usable) return List.filled(n, usable / n);
+    if (sum > usable) return content;
     final share = (usable - sum) / n;
     return [for (final c in content) c + share];
   }
@@ -173,7 +191,7 @@ class _Segment extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
-            height: 44,
+            height: 48,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(

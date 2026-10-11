@@ -79,7 +79,7 @@ class _NavItem extends StatelessWidget {
           onTap: onTap,
           customBorder: const StadiumBorder(),
           child: Container(
-            height: 44,
+            height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,

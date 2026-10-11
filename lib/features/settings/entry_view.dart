@@ -2,6 +2,15 @@
 enum EntryView { text, listWithPhotos, grid }
 
 extension EntryViewLabel on EntryView {
+  /// The menu label (A16): "with covers" for media and music albums, "with
+  /// photos" for music artists and songs.
+  String labelFor({required bool photos}) => switch (this) {
+    EntryView.text => 'Text',
+    EntryView.listWithPhotos =>
+      photos ? 'List with photos' : 'List with covers',
+    EntryView.grid => photos ? 'Grid with photos' : 'Grid with covers',
+  };
+
   String get label => switch (this) {
     EntryView.text => 'Text',
     EntryView.listWithPhotos => 'List with photos',

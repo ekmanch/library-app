@@ -159,9 +159,14 @@ void main() {
     expect(find.text('Edit entry'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Dracula'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Bram Stoker'), findsOneWidget);
+    // The test font's wide digits stack Author and Released, so the
+    // rest of the form sits further down the lazy list.
+    await scrollTo(tester, find.text('8 / 10'));
     expect(find.text('8 / 10'), findsOneWidget);
+    await scrollTo(tester, find.text('#horror'));
     expect(find.text('#horror'), findsOneWidget);
 
+    await scrollTo(tester, find.widgetWithText(PillChip, 'Audiobook'));
     await tester.tap(find.widgetWithText(PillChip, 'Audiobook'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
@@ -204,8 +209,9 @@ void main() {
       for (final p in match.platforms) {
         expect(find.widgetWithText(PillChip, p), findsOneWidget);
       }
-      // Platforms other games use come after the lookup's.
-      expect(find.widgetWithText(PillChip, 'Switch'), findsOneWidget);
+      // Only the platforms the game came out on: none borrowed from other
+      // games in the library.
+      expect(find.widgetWithText(PillChip, 'Switch'), findsNothing);
       expect(find.bySemanticsLabel('Other platform'), findsOneWidget);
       // Existing tags are selected; the rest are suggestions marked new.
       await scrollTo(tester, find.text('Suggested · tap to add'));
@@ -321,12 +327,8 @@ void main() {
         await scrollTo(tester, find.bySemanticsLabel('Other platform'));
         final pc = find.widgetWithText(PillChip, 'PC');
         expect(tester.widget<PillChip>(pc).selected, isTrue);
-        expect(
-          tester
-              .widget<PillChip>(find.widgetWithText(PillChip, 'PS5'))
-              .selected,
-          isFalse,
-        );
+        // Other games' platforms are not offered (only fetched ones).
+        expect(find.widgetWithText(PillChip, 'PlayStation 5'), findsNothing);
         await tester.tap(find.bySemanticsLabel('Other platform'));
         await tester.pumpAndSettle();
         await tester.enterText(hintedField('Type a platform'), 'Steam Deck');

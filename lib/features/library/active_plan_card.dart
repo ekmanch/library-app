@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/plan.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/fitted_title.dart';
 import '../plans/plan_progress.dart';
 
 /// The card on the library home for the plan in progress (A1).
@@ -48,13 +49,12 @@ class ActivePlanCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
+                          // Shrinks a step before cutting off, like the plan
+                          // header, so the year stays in view.
+                          FittedTitle(
                             planTitle(plan),
-                            style: theme.textTheme.titleLarge!.copyWith(
-                              fontSize: 20,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge!,
+                            sizes: const [20, 18, 16],
                           ),
                         ],
                       ),

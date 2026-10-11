@@ -14,7 +14,10 @@ void main() {
     expect(find.text('ekmanch/library'), findsOneWidget);
     expect(find.text('library.json'), findsOneWidget);
     expect(find.text('Saved on this phone'), findsOneWidget);
-    expect(find.text('On open, then every 5 min'), findsOneWidget);
+    expect(
+      find.text('When you open Libri, then every 5 minutes'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Sync now updates the last synced line', (tester) async {

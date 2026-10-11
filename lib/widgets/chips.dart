@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'app_icons.dart';
+import 'touch_target.dart';
 
 /// How a selected [PillChip] is shown.
 enum PillChipStyle {
@@ -62,53 +63,55 @@ class PillChip extends StatelessWidget {
     final border = selected
         ? (accent ? scheme.primaryContainer : Colors.transparent)
         : scheme.outline;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: Material(
-        color: background,
-        shape: StadiumBorder(side: BorderSide(color: border)),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const StadiumBorder(),
-          child: Container(
-            height: height,
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (checked && selected) ...[
-                  StrokeIcon(AppIcons.check, size: 14, color: foreground),
-                  const SizedBox(width: 6),
-                ],
-                if (dotColor != null) ...[
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: dotColor,
-                      shape: BoxShape.circle,
+    return TouchTarget(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: Material(
+          color: background,
+          shape: StadiumBorder(side: BorderSide(color: border)),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const StadiumBorder(),
+            child: Container(
+              height: height,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (checked && selected) ...[
+                    StrokeIcon(AppIcons.check, size: 14, color: foreground),
+                    const SizedBox(width: 6),
+                  ],
+                  if (dotColor != null) ...[
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium!.copyWith(
+                        color: foreground,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  if (badge != null) ...[
+                    const SizedBox(width: 6),
+                    ChipBadge(badge!),
+                  ],
                 ],
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium!.copyWith(
-                      color: foreground,
-                    ),
-                  ),
-                ),
-                if (badge != null) ...[
-                  const SizedBox(width: 6),
-                  ChipBadge(badge!),
-                ],
-              ],
+              ),
             ),
           ),
         ),
@@ -198,47 +201,49 @@ class DashedChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Semantics(
-      button: true,
-      label: semanticsLabel,
-      excludeSemantics: semanticsLabel != null,
-      child: Material(
-        color: Colors.transparent,
-        shape: const StadiumBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const StadiumBorder(),
-          child: CustomPaint(
-            painter: _DashedStadiumPainter(theme.colorScheme.outline),
-            child: Container(
-              height: height,
-              padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  StrokeIcon(
-                    AppIcons.plus,
-                    size: 14,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 6),
-                  // A long suggestion ("#post-apocalyptic" with its "new"
-                  // badge) is cut off rather than overflowing a 360 dp row.
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelMedium!.copyWith(
-                        fontWeight: FontWeight.w500,
+    return TouchTarget(
+      child: Semantics(
+        button: true,
+        label: semanticsLabel,
+        excludeSemantics: semanticsLabel != null,
+        child: Material(
+          color: Colors.transparent,
+          shape: const StadiumBorder(),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const StadiumBorder(),
+            child: CustomPaint(
+              painter: _DashedStadiumPainter(theme.colorScheme.outline),
+              child: Container(
+                height: height,
+                padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StrokeIcon(
+                      AppIcons.plus,
+                      size: 14,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 6),
+                    // A long suggestion ("#post-apocalyptic" with its "new"
+                    // badge) is cut off rather than overflowing a 360 dp row.
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium!.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                  if (badge != null) ...[
-                    const SizedBox(width: 6),
-                    ChipBadge(badge!),
+                    if (badge != null) ...[
+                      const SizedBox(width: 6),
+                      ChipBadge(badge!),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
