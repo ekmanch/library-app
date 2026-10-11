@@ -101,6 +101,30 @@ void main() {
     expect(find.byTooltip('New album or song'), findsOneWidget);
   });
 
+  testWidgets('the + button wears the open plan\'s seasonal accent', (
+    tester,
+  ) async {
+    await pumpApp(tester, const AppShell(), size: const Size(480, 844));
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    Color fabColor() => (tester
+        .widget<Material>(
+          find.descendant(
+            of: find.byType(AddButton),
+            matching: find.byType(Material),
+          ),
+        )
+        .color)!;
+    expect(fabColor(), Accents.defaultAccent.fill);
+    await tester.tap(find.text('Halloween 2026'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Add from All Halloween'), findsOneWidget);
+    expect(fabColor(), SeasonalAccents.halloween);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    expect(fabColor(), Accents.defaultAccent.fill);
+  });
+
   testWidgets('starts on Library and switches to Plans', (tester) async {
     await pumpShell(tester);
     expect(find.text('Library home'), findsOneWidget);

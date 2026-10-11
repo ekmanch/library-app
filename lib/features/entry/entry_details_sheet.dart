@@ -219,7 +219,7 @@ class EntryDetailsSheet extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: 'Edit',
-                  kind: AppButtonKind.neutral,
+                  kind: AppButtonKind.soft,
                   onPressed: () => openEditEntryForm(context, entry),
                 ),
               ),
@@ -227,7 +227,7 @@ class EntryDetailsSheet extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: 'Delete',
-                  kind: AppButtonKind.destructive,
+                  kind: AppButtonKind.softDestructive,
                   onPressed: delete,
                 ),
               ),

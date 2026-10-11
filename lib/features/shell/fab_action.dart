@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart' show Color;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +14,7 @@ class FabAction {
     required this.tab,
     required this.label,
     required this.onPressed,
+    this.accent,
   });
 
   /// The screen that set it, so a screen clears only its own action.
@@ -20,6 +22,10 @@ class FabAction {
   final ShellTab tab;
   final String label;
   final VoidCallback onPressed;
+
+  /// A seasonal accent for the button while a themed plan is open (S11,
+  /// S12); null keeps the user's accent.
+  final Color? accent;
 }
 
 class FabActionNotifier extends Notifier<FabAction?> {

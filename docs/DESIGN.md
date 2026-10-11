@@ -250,6 +250,15 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Not drawn yet: the "Include seasonal-only" switch in A2, the `seasonal_only` switch in A8, the "Rewatch" label on plan rows, the Album / Song switch in A8.
 - Some older Plans mockups (S4, S9) still show an earlier red for Delete; the correct one is in the theme file.
 
+## 10a. Decisions made while building
+
+- Section headers are uppercase, except decades ("1990s", not "1990S").
+- A plan header gives the name priority: it shrinks a little to fit on one line, then truncates with "…"; the year chip sits by the progress bar.
+- Every search box is the shared `SearchField`: one outline, the text inside it, no border on the inner field.
+- Ticking a plan item marks the entry Done and remembers the old status; unticking restores it unless the status changed in between or was Done already.
+- The "+" button changes with the screen: on a plan it opens the pool or adds a tagged entry, and wears the plan's seasonal accent.
+- Desktop builds use the same visual density as the phone, so Linux captures match the device.
+
 ## 11. Visual design
 
 Exact values are in `lib/theme/app_theme.dart`.

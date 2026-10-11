@@ -16,6 +16,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/segmented_control.dart';
 import '../entry/delete_entry_dialog.dart';
 import '../entry/entry_form_screen.dart';
 import '../entry/new_entry_screen.dart';
@@ -25,6 +26,7 @@ import '../shell/fab_action.dart';
 import '../shell/floating_nav_bar.dart';
 import 'plan_builders.dart';
 import 'plan_dialogs.dart';
+import 'plan_done.dart';
 import 'plan_entry_sheet.dart';
 import 'plan_form_screen.dart';
 import 'plan_progress.dart';
@@ -89,6 +91,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
   /// make a new entry with the plan's tags from the pool.
   void _publishFab(Plan plan) {
     final FabAction? action;
+    final accent = seasonOf(plan)?.accent;
     if (plan.tags.isEmpty) {
       action = null;
     } else if (_tab == PlanTab.thisPlan) {
@@ -96,6 +99,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
         owner: this,
         tab: widget.tab,
         label: 'Add from All ${plan.name}',
+        accent: accent,
         onPressed: () => setState(() => _tab = PlanTab.pool),
       );
     } else {
@@ -103,6 +107,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
         owner: this,
         tab: widget.tab,
         label: 'New ${plan.name} entry',
+        accent: accent,
         onPressed: () => openNewEntryScreen(context, tags: plan.tags),
       );
     }
@@ -111,21 +116,16 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
       final current = ref.read(fabActionProvider);
       if (action == null) {
         _fab.clear(this);
-      } else if (current?.owner != this || current?.label != action.label) {
+      } else if (current?.owner != this ||
+          current?.label != action.label ||
+          current?.accent != action.accent) {
         _fab.set(action);
       }
     });
   }
 
-  Future<void> _toggleDone(Plan plan, PlanItem item, Entry entry) async {
-    final repository = ref.read(libraryRepositoryProvider);
-    final done = !item.done;
-    await repository.apply(SetPlanItem(plan.id, item.copyWith(done: done)));
-    // Finishing it in the plan finishes it in the library too.
-    if (done && entry.status != EntryStatus.done) {
-      await repository.apply(SetStatus(entry.id, EntryStatus.done));
-    }
-  }
+  Future<void> _toggleDone(Plan plan, PlanItem item, Entry entry) =>
+      togglePlanItemDone(ref, plan: plan, item: item, entry: entry);
 
   Future<void> _openMenu(Plan plan) async {
     final action = await showPlanMenu(
@@ -160,7 +160,9 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
     Library library,
     BuildContext anchor,
   ) async {
-    final theme = Theme.of(context);
+    // The anchor sits inside the plan's theme, so a seasonal accent applies.
+    final theme = Theme.of(anchor);
+    final colors = LibraryColors.of(anchor);
     final button = anchor.findRenderObject() as RenderBox;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final origin = button.localToGlobal(Offset.zero, ancestor: overlay);
@@ -171,21 +173,21 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
       position: RelativeRect.fromLTRB(
         origin.dx,
         origin.dy + button.size.height + 4,
-        overlay.size.width - origin.dx - 180,
+        overlay.size.width - origin.dx - 170,
         0,
       ),
-      constraints: const BoxConstraints(minWidth: 180, maxWidth: 220),
+      constraints: const BoxConstraints(minWidth: 170, maxWidth: 170),
       items: [
         for (final other in years)
           PopupMenuItem<String>(
             value: other.id,
             height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: other.id == plan.id
-                    ? LibraryColors.of(context).neutralFill
-                    : null,
+                color: other.id == plan.id ? colors.neutralFill : null,
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.centerLeft,
@@ -195,10 +197,11 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
               ),
             ),
           ),
-        const PopupMenuDivider(height: 1),
+        PopupMenuDivider(height: 1, color: colors.navBorder),
         PopupMenuItem<String>(
           value: '',
           height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
           child: Text(
             'New year…',
             style: theme.textTheme.labelLarge!.copyWith(
@@ -384,162 +387,136 @@ class _Header extends StatelessWidget {
     final showYearChip = plan.year != null || years.length > 1;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, hasStrip ? 4 : 16, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, hasStrip ? 0 : 16, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
+              // No back arrow, as on the artboards: the system back and
+              // the navigation pill lead out of a plan.
+              if (season != null) ...[
+                // The title's line box has room for descenders below the
+                // letters; lift the icon so it sits on the caps.
+                Transform.translate(
+                  offset: const Offset(0, -3),
+                  child: SeasonalArtView(
+                    season!.icon,
+                    width: season == PlanSeason.christmas ? 36 : 34,
+                    height: season == PlanSeason.christmas ? 36 : 34,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
-                child: Row(
-                  children: [
-                    // No back arrow, as on the artboards: the system back
-                    // and the navigation pill lead out of a plan.
-                    if (season != null) ...[
-                      SeasonalArtView(season!.icon, width: 34, height: 34),
-                      const SizedBox(width: 8),
-                    ],
-                    Flexible(
-                      child: Text(
-                        plan.name,
-                        style: theme.textTheme.headlineMedium!.copyWith(
-                          fontSize: 30,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (showYearChip) ...[
-                      const SizedBox(width: 10),
-                      Builder(
-                        builder: (anchor) => Semantics(
-                          button: true,
-                          label: 'Choose year',
-                          excludeSemantics: true,
-                          child: Material(
-                            color: colors.selectedFill,
-                            shape: StadiumBorder(
-                              side: BorderSide(color: scheme.outline),
-                            ),
-                            child: InkWell(
-                              onTap: () => onPickYear(anchor),
-                              customBorder: const StadiumBorder(),
-                              child: Container(
-                                height: 44,
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  0,
-                                  10,
-                                  0,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      plan.year?.toString() ?? 'No year',
-                                      style: theme.textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    StrokeIcon(
-                                      AppIcons.chevronDown,
-                                      size: 18,
-                                      color: scheme.onSurface,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                child: FittedTitle(
+                  plan.name,
+                  style: theme.textTheme.headlineMedium!,
+                  sizes: const [32, 28, 24],
                 ),
               ),
-              IconButton(
-                key: menuKey,
-                onPressed: onMenu,
-                tooltip: 'Plan options',
-                icon: const StrokeIcon(AppIcons.more, size: 22),
+              Transform.translate(
+                offset: const Offset(10, 0),
+                child: IconButton(
+                  key: menuKey,
+                  onPressed: onMenu,
+                  tooltip: 'Plan options',
+                  icon: const StrokeIcon(AppIcons.more, size: 22),
+                ),
               ),
             ],
           ),
-          if (tab == PlanTab.thisPlan) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: fraction,
-                          minHeight: 8,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (showYearChip) ...[
+                Builder(
+                  builder: (anchor) => Semantics(
+                    button: true,
+                    label: 'Choose year',
+                    excludeSemantics: true,
+                    child: Material(
+                      color: colors.tray,
+                      shape: StadiumBorder(
+                        side: BorderSide(color: colors.trayBorder),
+                      ),
+                      child: InkWell(
+                        onTap: () => onPickYear(anchor),
+                        customBorder: const StadiumBorder(),
+                        child: Container(
+                          height: 40,
+                          padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                plan.year?.toString() ?? 'No year',
+                                style: theme.textTheme.labelLarge,
+                              ),
+                              const SizedBox(width: 4),
+                              StrokeIcon(
+                                AppIcons.chevronDown,
+                                size: 16,
+                                color: scheme.onSurface,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      if (season != null)
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment(fraction * 2 - 1, 0),
-                            child: Transform.translate(
-                              offset: const Offset(0, -2),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              if (tab == PlanTab.thisPlan) ...[
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SizedBox(
+                      height: 8,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: fraction,
+                              minHeight: 8,
+                            ),
+                          ),
+                          if (season != null)
+                            Positioned(
+                              left: constraints.maxWidth * fraction - 10,
+                              top: -6,
                               child: SeasonalArtView(
                                 season!.marker,
                                 width: 20,
                                 height: 20,
                               ),
                             ),
-                          ),
-                        ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(progressLabel(plan), style: theme.textTheme.labelMedium),
               ],
-            ),
-          ],
+            ],
+          ),
           if (plan.tags.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                for (final (i, t) in PlanTab.values.indexed) ...[
-                  if (i > 0) const SizedBox(width: 4),
-                  Expanded(
-                    child: Semantics(
-                      button: true,
-                      selected: t == tab,
-                      child: Material(
-                        color: t == tab
-                            ? colors.selectedFill
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                        child: InkWell(
-                          onTap: () => onTab(t),
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox(
-                            height: 44,
-                            child: Center(
-                              child: Text(
-                                t == PlanTab.thisPlan
-                                    ? 'This plan'
-                                    : 'All ${plan.name}',
-                                style: theme.textTheme.labelMedium!.copyWith(
-                                  color: t == tab
-                                      ? scheme.onSurface
-                                      : colors.soft,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+            SegmentedControl<PlanTab>(
+              segments: [
+                for (final t in PlanTab.values)
+                  SegmentOption(
+                    t,
+                    t == PlanTab.thisPlan ? 'This plan' : 'All ${plan.name}',
                   ),
-                ],
               ],
+              selected: tab,
+              trackColor: colors.tray,
+              equalWidths: true,
+              onChanged: onTab,
             ),
           ],
         ],
@@ -687,52 +664,51 @@ class _CheckRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = LibraryColors.of(context);
-    return Row(
-      children: [
-        Transform.translate(
-          offset: const Offset(-10, 0),
-          child: PlanCheck(
-            done: item.done,
-            title: entry.title,
-            onTap: onToggle,
-          ),
-        ),
-        Expanded(
-          child: InkWell(
-            onTap: onOpen,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 56),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    entry.title,
-                    style: theme.textTheme.titleMedium!.copyWith(
-                      color: item.done ? colors.muted : null,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.divider)),
+      ),
+      child: Row(
+        children: [
+          PlanCheck(done: item.done, title: entry.title, onTap: onToggle),
+          const SizedBox(width: 8),
+          Expanded(
+            child: InkWell(
+              onTap: onOpen,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      entry.title,
+                      style: theme.textTheme.titleMedium!.copyWith(
+                        color: item.done ? colors.muted : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      entrySubtitle(entry),
-                      if (item.repeat) 'Rewatch',
-                    ].where((s) => s.isNotEmpty).join(' · '),
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontStyle: FontStyle.italic,
+                    Text(
+                      [
+                        entrySubtitle(entry),
+                        if (item.repeat) 'Rewatch',
+                      ].where((s) => s.isNotEmpty).join(' · '),
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -772,46 +748,57 @@ class _Timeline extends StatelessWidget {
       ),
       children: [
         for (final group in groups)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Rail(group: group),
-                  const SizedBox(width: 12),
-                  Expanded(
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  // Wide enough for "Whenever" at the user's text size.
+                  width: 76 * MediaQuery.textScalerOf(context).scale(1),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.title,
+                          style: theme.textTheme.labelMedium!.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: switch (group.state) {
+                              TimelineState.current => scheme.primary,
+                              TimelineState.undated => colors.muted,
+                              _ => scheme.onSurface,
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          group.dates,
+                          style: theme.textTheme.bodySmall!.copyWith(
+                            fontSize: 12,
+                            fontStyle: FontStyle.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // The gap to the next group is inside the row, so the rail
+                // runs through it as one line (S2).
+                _Rail(group: group),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              group.title,
-                              style: theme.textTheme.labelMedium!.copyWith(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: switch (group.state) {
-                                  TimelineState.current => scheme.primary,
-                                  TimelineState.undated => colors.muted,
-                                  _ => scheme.onSurface,
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              group.dates,
-                              style: theme.textTheme.bodySmall!.copyWith(
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        for (final item in group.items)
+                        for (final (j, item) in group.items.indexed)
                           if (library.entryById(item.entry) case final entry?)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
+                              padding: EdgeInsets.only(top: j == 0 ? 0 : 8),
                               child: _TimelineCard(
                                 item: item,
                                 entry: entry,
@@ -826,8 +813,8 @@ class _Timeline extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
       ],
@@ -861,7 +848,7 @@ class _Rail extends StatelessWidget {
       ),
     );
     return SizedBox(
-      width: 10,
+      width: 2,
       child: fraction == null
           ? painter
           : Semantics(label: 'Today', child: painter),
@@ -882,13 +869,13 @@ class _RailPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const x = 4.0;
-    canvas.drawRect(Rect.fromLTWH(x, 0, 2, size.height), Paint()..color = line);
+    canvas.drawRect(Rect.fromLTWH(0, 0, 2, size.height), Paint()..color = line);
     final f = fraction;
     if (f == null) return;
     final y = size.height * f;
-    canvas.drawRect(Rect.fromLTWH(x, 0, 2, y), Paint()..color = fill);
-    canvas.drawCircle(Offset(x + 1, y), 5, Paint()..color = fill);
+    canvas.drawRect(Rect.fromLTWH(0, 0, 2, y), Paint()..color = fill);
+    // The today dot overhangs the 2 px column on both sides.
+    canvas.drawCircle(Offset(1, y), 5, Paint()..color = fill);
   }
 
   @override
@@ -924,50 +911,51 @@ class _TimelineCard extends StatelessWidget {
       child: Row(
         children: [
           PlanCheck(done: item.done, title: entry.title, onTap: onToggle),
+          const SizedBox(width: 2),
           Expanded(
             child: InkWell(
               onTap: onOpen,
               borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
                             entry.title,
                             style: theme.textTheme.titleMedium!.copyWith(
                               fontSize: 15.5,
                               height: 1.25,
                               color: item.done ? colors.muted : null,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            entryKindLabel(entry).toUpperCase(),
-                            style: theme.textTheme.labelSmall!.copyWith(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: colors.forType(entry.type),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        entrySubtitle(entry),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          entryKindLabel(entry).toUpperCase(),
+                          style: theme.textTheme.labelSmall!.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: colors.forType(entry.type),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      entrySubtitle(entry),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ],
@@ -1158,6 +1146,15 @@ class _Pool extends ConsumerWidget {
                               IconButton(
                                 onPressed: () => onExpand(entry.id),
                                 tooltip: 'More actions: ${entry.title}',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints.tightFor(
+                                  width: 44,
+                                  height: 44,
+                                ),
+                                style: IconButton.styleFrom(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 icon: const StrokeIcon(AppIcons.more, size: 20),
                               ),
                             ],
@@ -1213,9 +1210,62 @@ class _ActionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppButton(
       label: label,
-      kind: danger ? AppButtonKind.destructive : AppButtonKind.neutral,
+      kind: danger ? AppButtonKind.softDestructive : AppButtonKind.soft,
       compact: true,
+      horizontalPadding: 14,
       onPressed: onTap,
+    );
+  }
+}
+
+/// A one-line title that steps down through [sizes] until the text fits,
+/// and cuts off with an ellipsis at the smallest size (S11 to S14).
+class FittedTitle extends StatelessWidget {
+  const FittedTitle(
+    this.text, {
+    super.key,
+    required this.style,
+    required this.sizes,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  /// Font sizes to try, largest first.
+  final List<double> sizes;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final direction = Directionality.of(context);
+        TextStyle styled(double size) =>
+            style.copyWith(fontSize: size, letterSpacing: -0.02 * size);
+        var chosen = sizes.last;
+        for (final size in sizes) {
+          // Measure exactly what will be drawn, with a pixel to spare, so
+          // a borderline fit cannot come out as an ellipsis.
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: styled(size)),
+            textDirection: direction,
+            textScaler: scaler,
+            maxLines: 1,
+          )..layout();
+          final fits = painter.width + 1 <= constraints.maxWidth;
+          painter.dispose();
+          if (fits) {
+            chosen = size;
+            break;
+          }
+        }
+        return Text(
+          text,
+          style: styled(chosen),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
     );
   }
 }

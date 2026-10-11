@@ -58,6 +58,9 @@ class PlanFormScreen extends ConsumerStatefulWidget {
 
   bool get isEditing => plan != null;
 
+  /// Longer names would not fit a header even at the smallest size.
+  static const maxNameLength = 60;
+
   @override
   ConsumerState<PlanFormScreen> createState() => _PlanFormScreenState();
 }
@@ -133,16 +136,18 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
         exclude: widget.plan?.id,
       ),
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _source = picked;
-        if (_name.text.trim().isEmpty) _name.text = picked.name;
-        if (_year.text.trim().isEmpty) _year.text = '${nextYearFor(picked)}';
-        _tags = [...picked.tags];
-        _timeline = picked.timeline;
-        _seasonal = picked.seasonalTheme;
-      });
-    }
+    if (picked != null && mounted) setState(() => _useSource(picked));
+  }
+
+  /// Takes the source's tags and switches, and a name and year when none
+  /// were typed yet.
+  void _useSource(Plan source) {
+    _source = source;
+    if (_name.text.trim().isEmpty) _name.text = source.name;
+    if (_year.text.trim().isEmpty) _year.text = '${nextYearFor(source)}';
+    _tags = [...source.tags];
+    _timeline = source.timeline;
+    _seasonal = source.seasonalTheme;
   }
 
   Future<void> _save() async {
@@ -214,17 +219,25 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
       required bool value,
       required ValueChanged<bool> onChanged,
       required String help,
-    }) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(label, style: theme.textTheme.titleMedium)),
-            Switch(value: value, onChanged: onChanged),
-          ],
-        ),
-        Text(help, style: helpStyle),
-      ],
+    }) => Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label, style: theme.textTheme.titleMedium)),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
+          Text(help, style: helpStyle),
+        ],
+      ),
     );
 
     return Scaffold(
@@ -258,6 +271,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                             AppTextField(
                               controller: _name,
                               hintText: 'Summer vacation',
+                              maxLength: PlanFormScreen.maxNameLength,
                               autofocus: !editing && _name.text.isEmpty,
                               textCapitalization: TextCapitalization.sentences,
                               onChanged: (_) => setState(() {}),
@@ -267,7 +281,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                       ),
                       const SizedBox(width: 12),
                       SizedBox(
-                        width: 132,
+                        width: 104,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -301,6 +315,9 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                   const FieldLabel('Linked hashtags (optional)'),
                   FieldButton(
                     placeholder: _tags.isEmpty,
+                    padding: _tags.isEmpty
+                        ? const EdgeInsets.fromLTRB(14, 8, 12, 8)
+                        : const EdgeInsets.fromLTRB(8, 8, 12, 8),
                     semanticsLabel: _tags.isEmpty
                         ? 'Linked hashtags, none'
                         : 'Linked hashtags, ${_tags.map((t) => '#$t').join(', ')}',
@@ -320,7 +337,7 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                     style: helpStyle,
                   ),
                   if (season != null) ...[
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
                     switchRow(
                       label: 'Seasonal theme',
                       value: _seasonal,
@@ -340,7 +357,17 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                       ],
                       selected: _start,
                       style: SegmentedStyle.accent,
-                      onChanged: (start) => setState(() => _start = start),
+                      equalWidths: true,
+                      onChanged: (start) => setState(() {
+                        _start = start;
+                        // Offer the most recent plan to copy from.
+                        if (start == _Start.copy &&
+                            _source == null &&
+                            library != null) {
+                          final latest = _latestPlan(library);
+                          if (latest != null) _useSource(latest);
+                        }
+                      }),
                     ),
                     if (_start == _Start.copy) ...[
                       const SizedBox(height: 8),
@@ -376,31 +403,47 @@ class _PlanFormScreenState extends ConsumerState<PlanFormScreen> {
                       style: helpStyle,
                     ),
                   ],
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
                   switchRow(
                     label: 'Timeline',
                     value: _timeline,
                     onChanged: (on) => setState(() => _timeline = on),
-                    help: _timeline
-                        ? 'Entries sit on a timeline, each with a day or a '
-                              'period.'
-                        : 'A plain checklist without dates.',
+                    help: [
+                      _timeline
+                          ? 'Entries sit on a timeline, each with a day or a '
+                                'period.'
+                          : 'A plain checklist without dates.',
+                      if (!editing && _timeline == prefs.timelineDefault)
+                        'Starts ${_timeline ? 'on' : 'off'}, as set in '
+                            'Settings.',
+                    ].join(' '),
                   ),
-                  if (editing) ...[
-                    const SizedBox(height: 28),
-                    AppButton(
-                      label: 'Delete plan',
-                      kind: AppButtonKind.destructiveOutline,
-                      onPressed: _delete,
-                    ),
-                  ],
                 ],
               ),
             ),
+            if (editing)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: AppButton(
+                  label: 'Delete plan',
+                  kind: AppButtonKind.destructiveOutline,
+                  onPressed: _delete,
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  /// The plan with the latest year, the last in the file on a tie.
+  Plan? _latestPlan(Library library) {
+    Plan? best;
+    for (final plan in library.plans) {
+      if (plan.id == widget.plan?.id) continue;
+      if (best == null || (plan.year ?? 0) >= (best.year ?? 0)) best = plan;
+    }
+    return best;
   }
 }
 

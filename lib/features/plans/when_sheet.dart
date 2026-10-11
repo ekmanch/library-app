@@ -123,18 +123,21 @@ class _WhenSheetState extends State<WhenSheet> {
               PillChip(
                 label: 'This week',
                 selected: false,
+                style: PillChipStyle.accent,
                 horizontalPadding: 13,
                 onTap: () => _pickWeek(0),
               ),
               PillChip(
                 label: 'Next week',
                 selected: false,
+                style: PillChipStyle.accent,
                 horizontalPadding: 13,
                 onTap: () => _pickWeek(1),
               ),
               PillChip(
                 label: 'No date',
                 selected: false,
+                style: PillChipStyle.accent,
                 horizontalPadding: 13,
                 onTap: () => setState(() {
                   _from = null;
@@ -146,13 +149,16 @@ class _WhenSheetState extends State<WhenSheet> {
           const SizedBox(height: 12),
           Row(
             children: [
-              IconButton(
-                onPressed: () => setState(
-                  () => _month = DateTime(_month.year, _month.month - 1),
+              Transform.translate(
+                offset: const Offset(-12, 0),
+                child: IconButton(
+                  onPressed: () => setState(
+                    () => _month = DateTime(_month.year, _month.month - 1),
+                  ),
+                  tooltip: 'Previous month',
+                  color: scheme.onSurface,
+                  icon: const StrokeIcon(AppIcons.back, size: 20),
                 ),
-                tooltip: 'Previous month',
-                color: scheme.onSurface,
-                icon: const StrokeIcon(AppIcons.back, size: 20),
               ),
               Expanded(
                 child: Text(
@@ -161,13 +167,16 @@ class _WhenSheetState extends State<WhenSheet> {
                   style: theme.textTheme.titleMedium,
                 ),
               ),
-              IconButton(
-                onPressed: () => setState(
-                  () => _month = DateTime(_month.year, _month.month + 1),
+              Transform.translate(
+                offset: const Offset(12, 0),
+                child: IconButton(
+                  onPressed: () => setState(
+                    () => _month = DateTime(_month.year, _month.month + 1),
+                  ),
+                  tooltip: 'Next month',
+                  color: scheme.onSurface,
+                  icon: const StrokeIcon(AppIcons.chevronRight, size: 20),
                 ),
-                tooltip: 'Next month',
-                color: scheme.onSurface,
-                icon: const StrokeIcon(AppIcons.chevronRight, size: 20),
               ),
             ],
           ),
@@ -191,20 +200,23 @@ class _WhenSheetState extends State<WhenSheet> {
             ],
           ),
           for (var row = 0; row < cells.length ~/ 7; row++)
-            Row(
-              children: [
-                for (final day in cells.sublist(row * 7, row * 7 + 7))
-                  Expanded(
-                    child: day == null
-                        ? const SizedBox(height: 44)
-                        : _DayCell(
-                            day: day,
-                            from: _from,
-                            to: _to,
-                            onTap: () => _tap(day),
-                          ),
-                  ),
-              ],
+            Padding(
+              padding: EdgeInsets.only(top: row == 0 ? 0 : 2),
+              child: Row(
+                children: [
+                  for (final day in cells.sublist(row * 7, row * 7 + 7))
+                    Expanded(
+                      child: day == null
+                          ? const SizedBox(height: 44)
+                          : _DayCell(
+                              day: day,
+                              from: _from,
+                              to: _to,
+                              onTap: () => _tap(day),
+                            ),
+                    ),
+                ],
+              ),
             ),
           Container(
             margin: const EdgeInsets.only(top: 6),
@@ -246,7 +258,6 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final colors = LibraryColors.of(context);
     final lo = from, hi = to ?? from;
     final isEnd = lo != null && (day == lo || day == hi);
     final inRange =
@@ -270,7 +281,8 @@ class _DayCell extends StatelessWidget {
         child: Container(
           height: 44,
           decoration: BoxDecoration(
-            color: band ? colors.selectedFill : null,
+            // A tenth of white, a touch quieter than the selected fill.
+            color: band ? scheme.onSurface.withValues(alpha: 0.10) : null,
             borderRadius: bandRadius,
           ),
           child: Center(

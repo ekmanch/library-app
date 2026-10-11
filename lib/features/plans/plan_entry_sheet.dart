@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
-import '../../data/models/entry_status.dart';
 import '../../data/operations/operations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -19,6 +18,7 @@ import '../settings/display_preferences.dart';
 import '../settings/entry_view.dart';
 import 'plan_dates.dart';
 import 'plan_dialogs.dart';
+import 'plan_done.dart';
 import 'plan_note_sheet.dart';
 import 'when_sheet.dart';
 
@@ -70,14 +70,8 @@ class PlanEntrySheet extends ConsumerWidget {
         ref.watch(displayPreferencesProvider).viewForEntry(entry) !=
         EntryView.text;
 
-    Future<void> toggleDone() async {
-      final done = !item.done;
-      await repository.apply(SetPlanItem(plan.id, item.copyWith(done: done)));
-      // Finishing it in the plan finishes it in the library too.
-      if (done && entry.status != EntryStatus.done) {
-        await repository.apply(SetStatus(entry.id, EntryStatus.done));
-      }
-    }
+    Future<void> toggleDone() =>
+        togglePlanItemDone(ref, plan: plan, item: item, entry: entry);
 
     Future<void> pickRating() async {
       final choice = await showRatingSheet(
@@ -207,7 +201,7 @@ class PlanEntrySheet extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: 'Edit',
-                  kind: AppButtonKind.neutral,
+                  kind: AppButtonKind.soft,
                   onPressed: () => openEditEntryForm(context, entry),
                 ),
               ),
@@ -215,7 +209,7 @@ class PlanEntrySheet extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: 'Remove',
-                  kind: AppButtonKind.neutral,
+                  kind: AppButtonKind.soft,
                   onPressed: remove,
                 ),
               ),

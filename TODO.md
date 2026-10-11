@@ -68,6 +68,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] Year chip on the plan header: switch between plans with the same name, "New year…" copies the plan (added after the canvas revision)
 - [x] "This plan / All #tag" tabs on the plan screen; S4 rows get Add / In year, and Edit entry, Remove #tag, Delete behind "⋮"; the "+" button changes with the tab (added after the canvas revision)
 - [x] S10 "Start with: Empty / Copy a plan", S5 "Next up" on the active card, a plan note editor from S7 and S8 (added after the canvas revision)
+- [x] Capture every screen, sheet and dialog built so far, also at the S25's 360 dp and at text scale 1.3; one shared search field for every search box
 
 ### 1f. Settings and states
 - [ ] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version)
@@ -77,6 +78,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [ ] D8 Light theme pass over every screen
 
 ### 1g. Phase 1 wrap-up
+- [ ] Screen sizes pass: every screen at 320, 360, 384 and 412 dp and at text scale 1.3; fixed widths that break become flowing layouts
 - [ ] Walk through every artboard next to the app and list the differences
 - [x] Reconsider the "See all" link: it jumps to a different screen (A4) and that was not intuitive. A clearer label or a different affordance. (Resolved by the canvas revision of 2026-10-10: the type view is the home with a chip picked.)
 - [ ] Accessibility pass: contrast, touch targets, screen reader labels, large font scale

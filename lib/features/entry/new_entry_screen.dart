@@ -8,6 +8,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/section_heading.dart';
 import 'entry_form_screen.dart';
 import 'lookup_matches.dart';
@@ -99,48 +100,12 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    height: 52,
-                    padding: const EdgeInsets.only(left: 14, right: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.colorScheme.primary),
-                    ),
-                    child: Row(
-                      children: [
-                        StrokeIcon(AppIcons.search, color: colors.muted),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _query,
-                            autofocus: query.isEmpty,
-                            onChanged: (_) => setState(() {}),
-                            textInputAction: TextInputAction.search,
-                            textCapitalization: TextCapitalization.words,
-                            style: theme.textTheme.bodyLarge!.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: 'Title',
-                              filled: false,
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                        if (query.isNotEmpty)
-                          IconButton(
-                            onPressed: () {
-                              _query.clear();
-                              setState(() {});
-                            },
-                            tooltip: 'Clear',
-                            icon: const StrokeIcon(AppIcons.close, size: 18),
-                          ),
-                      ],
-                    ),
+                  SearchField(
+                    controller: _query,
+                    hintText: 'Title',
+                    autofocus: query.isEmpty,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => setState(() {}),
                   ),
                 ],
               ),

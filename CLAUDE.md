@@ -13,7 +13,7 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 
 - **Never commit, amend, push, tag or create a branch unless I explicitly ask for it in that message.** Finishing a task is not a request to commit. A general instruction earlier in the conversation is not one either.
 - When a task is done, end your reply with a **suggested commit message** in a code block so I can use it myself.
-- Commit message style: `type(scope): Subject (phase N)`. The type is one of feat, fix, doc, test, asset, git, chore; the scope names the area or file; the subject is short and imperative with no trailing period; the phase is the TODO.md phase the work belongs to, with its letter where there is one, e.g. `feat(music): Add artist list with alphabet rail (phase 1d)`. One logical change per commit. Add a body only when the why is not obvious.
+- Commit message style: `type(scope): Subject (phase N)`. The type is one of feat, fix, doc, test, asset, git, chore; the scope names the area or file; the subject is short and imperative with no trailing period; the phase is the TODO.md phase the work belongs to, with its letter where there is one, e.g. `feat(music): Add artist list with alphabet rail (phase 1d)`. One logical change per commit. Prefer a single line with no body. When one line cannot make the change clear (for example a commit that bundles several fixes), add a brief body of a few sentences, never more.
 - Never touch the `ekmanch/library` data repo from this project except through the app's own sync code, and never during development unless I ask. Use the fixture file for testing.
 - Phases 0 and 1 never write to the data repo. Switching `ekmanch/library` from Markdown to JSON as the source of truth, including reversing its pre-commit hook so Markdown is generated from JSON, happens on a feature branch in that repo at the start of the wiring phase (TODO.md phase 3), and not before.
 
@@ -25,6 +25,8 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 - To look at a screen, run `flutter test integration_test/screenshots_test.dart -d linux`; it writes PNGs to `screenshots/` (git-ignored) from inside the app. Never capture the desktop with a system screenshot tool.
 - The fixture is small. To try long lists (the jump rail and the grid's fast scroll) on a device, run with `--dart-define=LONG_LISTS=true`; `lib/dev/long_lists.dart` then pads every type with generated entries. Development only, never on by default.
 - The fixture is small. To try long lists (the jump rail and the grid's fast scroll) on a device, run with `--dart-define=LONG_LISTS=true`; `lib/dev/long_lists.dart` then pads every type with generated entries. Development only, never on by default.
+- Verifying a screen: capture it at 390 × 844 and again at 360 dp with text scale 1.3 (the second test in `screenshots_test.dart`). Every screen, sheet and dialog gets a capture when it is built. Before calling a phase done, have a subagent that did not write the code compare each capture with its artboard and list the differences.
+- UI that repeats across screens (search box, chips, buttons, rows) is one shared widget in `lib/widgets/`, never copied.
 - Ask before adding a package. Say what it is for and what the alternative is.
 - Ask before changing anything that DESIGN.md marks as settled. Proposals are welcome; silent changes are not.
 - UI text uses American spelling ("color", "favorite") and sentence case.

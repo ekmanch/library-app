@@ -30,6 +30,8 @@ class SegmentedControl<T> extends StatelessWidget {
     required this.onChanged,
     this.style = SegmentedStyle.neutral,
     this.inset = false,
+    this.trackColor,
+    this.equalWidths = false,
   });
 
   final List<SegmentOption<T>> segments;
@@ -41,6 +43,12 @@ class SegmentedControl<T> extends StatelessWidget {
   /// of the surface color.
   final bool inset;
 
+  /// A track color of its own, without a border (the plan header's tabs).
+  final Color? trackColor;
+
+  /// Every segment the same width, like a two-column grid (S10, S1 tabs).
+  final bool equalWidths;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -51,17 +59,27 @@ class SegmentedControl<T> extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: inset ? theme.scaffoldBackgroundColor : scheme.surface,
+        color:
+            trackColor ??
+            (inset ? theme.scaffoldBackgroundColor : scheme.surface),
         borderRadius: BorderRadius.circular(14),
-        border: inset ? null : Border.all(color: colors.divider),
+        border: inset || trackColor != null
+            ? null
+            : Border.all(color: colors.divider),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final widths = segmentWidths(
-            labels: [for (final s in segments) s.label],
-            available: constraints.maxWidth,
-            measure: (label) => _textWidth(context, label, labelStyle),
-          );
+          final widths = equalWidths
+              ? List.filled(
+                  segments.length,
+                  (constraints.maxWidth - gap * (segments.length - 1)) /
+                      segments.length,
+                )
+              : segmentWidths(
+                  labels: [for (final s in segments) s.label],
+                  available: constraints.maxWidth,
+                  measure: (label) => _textWidth(context, label, labelStyle),
+                );
           return Row(
             children: [
               for (final (i, segment) in segments.indexed) ...[
@@ -78,6 +96,9 @@ class SegmentedControl<T> extends StatelessWidget {
                     foreground: accent
                         ? scheme.onPrimaryContainer
                         : scheme.onSurface,
+                    unselectedForeground: trackColor != null
+                        ? colors.soft
+                        : scheme.onSurfaceVariant,
                     onTap: () => onChanged(segment.value),
                   ),
                 ),
@@ -130,6 +151,7 @@ class _Segment extends StatelessWidget {
     required this.selected,
     required this.background,
     required this.foreground,
+    required this.unselectedForeground,
     required this.onTap,
   });
 
@@ -138,11 +160,11 @@ class _Segment extends StatelessWidget {
   final bool selected;
   final Color background;
   final Color foreground;
+  final Color unselectedForeground;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Semantics(
       button: true,
       selected: selected,
@@ -165,9 +187,7 @@ class _Segment extends StatelessWidget {
                   softWrap: false,
                   overflow: TextOverflow.ellipsis,
                   style: style.copyWith(
-                    color: selected
-                        ? foreground
-                        : theme.colorScheme.onSurfaceVariant,
+                    color: selected ? foreground : unselectedForeground,
                   ),
                 ),
               ),

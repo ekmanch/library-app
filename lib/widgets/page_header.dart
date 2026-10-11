@@ -28,7 +28,7 @@ class PageHeader extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final hasBack = onBack != null;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, hasBack ? 16 : 24, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 4),
       child: Row(
         children: [
           if (hasBack)
@@ -38,9 +38,18 @@ class PageHeader extends StatelessWidget {
                 onPressed: onBack,
                 tooltip: 'Back',
                 color: Theme.of(context).colorScheme.onSurface,
-                icon: const StrokeIcon(AppIcons.back, size: 24),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const StrokeIcon(AppIcons.back, size: 22),
               ),
             ),
+          if (hasBack) const SizedBox(width: 4),
           if (leading != null) ...[leading!, const SizedBox(width: 6)],
           Expanded(
             child: Text(

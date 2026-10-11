@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_providers.dart';
@@ -14,6 +15,7 @@ import 'package:library_app/theme/app_theme.dart';
 import 'package:library_app/widgets/app_buttons.dart';
 import 'package:library_app/widgets/chips.dart';
 
+import '../../helpers/fonts.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -78,6 +80,102 @@ void main() {
     });
   });
 
+  for (final (planId, name) in const [
+    ('halloween-2026', 'Halloween'),
+    ('christmas-2026', 'Christmas'),
+  ]) {
+    testWidgets('$name fits in full on a narrow phone', (tester) async {
+      // Real glyph widths: the test font's square glyphs would never fit.
+      await loadAppFonts();
+      await pumpApp(
+        tester,
+        PlanScreen(planId: planId, tab: ShellTab.plans),
+        size: const Size(360, 780),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      expect(paragraph.didExceedMaxLines, isFalse);
+      // Short names keep the full size now that the year chip has moved.
+      expect(tester.widget<Text>(find.text(name)).style!.fontSize, 32);
+    });
+  }
+
+  testWidgets('at text scale 1.3 the name still fits on one line', (
+    tester,
+  ) async {
+    await loadAppFonts();
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(
+      tester,
+      const PlanScreen(planId: 'halloween-2026', tab: ShellTab.plans),
+      size: const Size(360, 780),
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.text('Halloween'),
+    );
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(tester.widget<Text>(find.text('Halloween')).maxLines, 1);
+  });
+
+  testWidgets('a longer name steps down, the longest is cut off', (
+    tester,
+  ) async {
+    await loadAppFonts();
+    final fixture = loadFixture();
+    Future<Text> titled(String name) async {
+      await pumpApp(
+        tester,
+        const PlanScreen(planId: 'christmas-2026', tab: ShellTab.plans),
+        size: const Size(360, 780),
+        library: fixture.copyWith(
+          plans: [
+            for (final p in fixture.plans)
+              p.id == 'christmas-2026' ? p.copyWith(name: name) : p,
+          ],
+        ),
+      );
+      return tester.widget<Text>(find.text(name));
+    }
+
+    final medium = await titled('Christmas classics');
+    expect(medium.style!.fontSize, anyOf(28, 24));
+    expect(
+      tester
+          .renderObject<RenderParagraph>(find.text('Christmas classics'))
+          .didExceedMaxLines,
+      isFalse,
+    );
+  });
+
+  testWidgets('the longest names are cut off at the smallest size', (
+    tester,
+  ) async {
+    await loadAppFonts();
+    final fixture = loadFixture();
+    const name = 'Christmas movies, books and albums for the whole family';
+    await pumpApp(
+      tester,
+      const PlanScreen(planId: 'christmas-2026', tab: ShellTab.plans),
+      size: const Size(360, 780),
+      library: fixture.copyWith(
+        plans: [
+          for (final p in fixture.plans)
+            p.id == 'christmas-2026' ? p.copyWith(name: name) : p,
+        ],
+      ),
+    );
+    final text = tester.widget<Text>(find.text(name));
+    expect(text.style!.fontSize, 24);
+    expect(text.maxLines, 1);
+    expect(text.overflow, TextOverflow.ellipsis);
+    expect(
+      tester.renderObject<RenderParagraph>(find.text(name)).didExceedMaxLines,
+      isTrue,
+    );
+  });
+
   group('timeline (S2)', () {
     testWidgets('dated groups with the rail and today, then Whenever', (
       tester,
@@ -103,6 +201,23 @@ void main() {
         find.byKey(const Key('timeline-today')),
         inRange ? findsOneWidget : findsNothing,
       );
+    });
+
+    testWidgets('the rail is one continuous line through the gaps', (
+      tester,
+    ) async {
+      await open(tester, 'halloween-2026');
+      final rails = find.byWidgetPredicate(
+        (w) =>
+            w is CustomPaint &&
+            w.painter.runtimeType.toString() == '_RailPainter',
+      );
+      expect(rails, findsAtLeastNWidgets(3));
+      final rects = [for (var i = 0; i < 3; i++) tester.getRect(rails.at(i))];
+      for (var i = 1; i < rects.length; i++) {
+        expect(rects[i].top, closeTo(rects[i - 1].bottom, 0.01));
+        expect(rects[i].left, rects[i - 1].left);
+      }
     });
 
     testWidgets('the entry sheet has a When row that opens the picker', (

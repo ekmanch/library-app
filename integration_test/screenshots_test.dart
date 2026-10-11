@@ -57,6 +57,13 @@ Future<void> pickChip(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// Taps the scrim just below the top of the frame, outside the sheet.
+Future<void> closeSheet(WidgetTester tester) async {
+  final barrier = find.byType(ModalBarrier).last;
+  await tester.tapAt(tester.getTopLeft(barrier) + const Offset(195, 30));
+  await tester.pumpAndSettle();
+}
+
 Future<void> pickView(WidgetTester tester, String label) async {
   await tester.tap(find.byTooltip('Change view'));
   await tester.pumpAndSettle();
@@ -274,6 +281,194 @@ void main() {
         .setThemeMode(ThemeMode.light);
     await tester.pumpAndSettle();
     await capture(tester, 'd8-home-light');
+  });
+
+  testWidgets('the screens the first pass skips', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Library').first),
+    );
+
+    // A10: a filter nothing matches.
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(const LibraryFilter(tags: {'horror', 'cozy', 'jazz'}));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a10-empty-filter');
+    container.read(libraryFilterProvider.notifier).clear();
+    await tester.pumpAndSettle();
+
+    // A20: Movies as a list with covers.
+    await pickChip(tester, 'Movies');
+    await pickView(tester, 'List with photos');
+    await capture(tester, 'a20-movies-list-covers');
+    await pickView(tester, 'Text');
+
+    // A19: an artist with photos.
+    await pickChip(tester, 'Music');
+    await pickView(tester, 'List with photos');
+    await tester.tap(find.text('Alice in Chains'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a19-artist-photos');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await pickView(tester, 'Text');
+
+    // D13: a song whose album is saved.
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fill in the details myself'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Song'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.hintText == 'Title',
+      ),
+      'Rooster',
+    );
+    final optional = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == 'Optional',
+    );
+    await tester.enterText(optional.at(0), 'Alice in Chains');
+    await tester.enterText(optional.at(1), 'Dirt');
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd13-replace-album');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
+
+    // S8 and the plan note; the linked tags and copy-from sheets.
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Christmas 2026'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Die Hard'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's8-plan-entry-no-timeline');
+    await tester.tap(find.text('Add a note'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'plan-note-sheet');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(195, 30));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Plan options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('#christmas'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's9-linked-tags-sheet');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Plans'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy a plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Copy from'));
+    await tester.pumpAndSettle();
+    await capture(tester, 's10-copy-from-sheet');
+  });
+
+  testWidgets('a narrow phone at a larger text size', (tester) async {
+    // The Galaxy S25 is 360 logical pixels wide; 1.3 is a common font
+    // setting. The app is framed to that size inside the Linux window.
+    const size = Size(360, 780);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+        ],
+        child: Center(
+          child: RepaintBoundary(
+            key: _root,
+            child: SizedBox.fromSize(
+              size: size,
+              child: MediaQuery(
+                data: MediaQueryData(
+                  size: size,
+                  textScaler: const TextScaler.linear(1.3),
+                ),
+                child: const LibraryApp(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-a1-home');
+    await pickChip(tester, 'Movies');
+    await capture(tester, 'narrow-a4-movies');
+    await tester.scrollUntilVisible(
+      find.text('The Mummy'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('The Mummy').last);
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-a6-details');
+    await closeSheet(tester);
+    await pickChip(tester, 'All');
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Halloween 2026'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-s2-halloween');
+    await tester.tap(find.text('All Halloween'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-s4-pool');
+    await tester.tap(find.text('This plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('The Mummy'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-s7-plan-entry');
+    await closeSheet(tester);
+    // Back on the Library tab the "+" starts a new entry.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Library'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AddButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-a13-new-entry');
+    await tester.tap(find.text('GAME · 2013'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'narrow-a8-form');
   });
 
   testWidgets('plans: overview, checklist, timeline, pool, dialogs', (

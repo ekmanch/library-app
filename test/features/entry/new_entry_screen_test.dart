@@ -66,6 +66,12 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'Carrie');
     await tester.pumpAndSettle();
+    // One outline around the whole field, none on the text field itself.
+    final decoration = tester
+        .widget<TextField>(find.byType(TextField))
+        .decoration!;
+    expect(decoration.enabledBorder, InputBorder.none);
+    expect(decoration.focusedBorder, InputBorder.none);
     expect(find.text('IS IT ONE OF THESE?'), findsOneWidget);
     expect(rowTitled('Carrie'), findsNWidgets(4));
     expect(find.text('MOVIE · 1976'), findsOneWidget);

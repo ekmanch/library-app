@@ -21,6 +21,13 @@ enum AppButtonKind {
 
   /// Plain text, 44 px tall: "Cancel" under a stack of choices.
   text,
+
+  /// Raised fill with 14 px corners, main text: Edit on a details sheet
+  /// (A6, S7) and the actions under a pool row (S4).
+  soft,
+
+  /// Like [soft] with red text: Delete on a details sheet.
+  softDestructive,
 }
 
 /// A 48 px stadium button. Use the theme's styles; never set colors here.
@@ -32,6 +39,7 @@ class AppButton extends StatelessWidget {
     this.kind = AppButtonKind.primary,
     this.icon,
     this.compact = false,
+    this.horizontalPadding,
   });
 
   final String label;
@@ -43,6 +51,9 @@ class AppButton extends StatelessWidget {
 
   /// 44 px tall and only as wide as its label, e.g. "Done" on a sheet.
   final bool compact;
+
+  /// Side padding of a [compact] button; 18 by default.
+  final double? horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -68,13 +79,16 @@ class AppButton extends StatelessWidget {
             ],
           );
     final compactStyle = compact
-        ? const ButtonStyle(
-            minimumSize: WidgetStatePropertyAll(Size(0, 44)),
+        ? ButtonStyle(
+            minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
             padding: WidgetStatePropertyAll(
-              EdgeInsets.symmetric(horizontal: 18),
+              EdgeInsets.symmetric(horizontal: horizontalPadding ?? 18),
             ),
           )
         : null;
+    final softShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    );
     ButtonStyle? style(ButtonStyle? kindStyle) => compactStyle == null
         ? kindStyle
         : (kindStyle ?? const ButtonStyle()).merge(compactStyle);
@@ -119,6 +133,28 @@ class AppButton extends StatelessWidget {
       AppButtonKind.text => TextButton(
         onPressed: onPressed,
         style: style(null),
+        child: child,
+      ),
+      AppButtonKind.soft => FilledButton(
+        onPressed: onPressed,
+        style: style(
+          FilledButton.styleFrom(
+            backgroundColor: colors.surfaceHigh,
+            foregroundColor: scheme.onSurface,
+            shape: softShape,
+          ),
+        ),
+        child: child,
+      ),
+      AppButtonKind.softDestructive => FilledButton(
+        onPressed: onPressed,
+        style: style(
+          FilledButton.styleFrom(
+            backgroundColor: colors.surfaceHigh,
+            foregroundColor: colors.dangerText,
+            shape: softShape,
+          ),
+        ),
         child: child,
       ),
     };

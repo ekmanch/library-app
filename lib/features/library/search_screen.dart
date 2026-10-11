@@ -9,6 +9,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/section_heading.dart';
 import 'library_search.dart';
 
@@ -37,7 +38,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final library = ref.watch(libraryProvider).value;
     final query = _controller.text;
@@ -54,47 +54,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.only(left: 14, right: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: theme.colorScheme.primary),
-                      ),
-                      child: Row(
-                        children: [
-                          StrokeIcon(AppIcons.search, color: colors.muted),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              autofocus: true,
-                              onChanged: (_) => setState(() {}),
-                              textInputAction: TextInputAction.search,
-                              style: theme.textTheme.bodyLarge!.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: searchHint(widget.type),
-                                filled: false,
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ),
-                          if (query.isNotEmpty)
-                            IconButton(
-                              onPressed: () {
-                                _controller.clear();
-                                setState(() {});
-                              },
-                              tooltip: 'Clear search',
-                              icon: const StrokeIcon(AppIcons.close, size: 18),
-                            ),
-                        ],
-                      ),
+                    child: SearchField(
+                      controller: _controller,
+                      hintText: searchHint(widget.type),
+                      autofocus: true,
+                      clearTooltip: 'Clear search',
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
                   TextButton(

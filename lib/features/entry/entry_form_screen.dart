@@ -671,6 +671,9 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   const FieldLabel('Tags'),
                   FieldButton(
                     placeholder: _tags.isEmpty,
+                    padding: _tags.isEmpty
+                        ? const EdgeInsets.fromLTRB(14, 8, 12, 8)
+                        : const EdgeInsets.fromLTRB(8, 8, 12, 8),
                     semanticsLabel: _tags.isEmpty
                         ? 'Tags, none chosen'
                         : 'Tags, ${_tags.map((t) => '#$t').join(', ')}',

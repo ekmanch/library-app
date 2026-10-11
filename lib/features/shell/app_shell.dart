@@ -7,6 +7,8 @@ import '../entry/new_entry_screen.dart';
 import '../plans/plan_form_screen.dart';
 import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
+import '../settings/display_preferences.dart';
+import '../../theme/app_theme.dart';
 import '../plans/plans_screen.dart';
 import 'fab_action.dart';
 import 'floating_nav_bar.dart';
@@ -140,13 +142,25 @@ class _AppShellState extends ConsumerState<AppShell> {
                       // A screen inside the tab may claim the button (S1, S4).
                       final fab = ref.watch(fabActionProvider);
                       final claimed = fab != null && fab.tab == _tab;
-                      return AddButton(
+                      final button = AddButton(
                         label: claimed
                             ? fab.label
                             : _tab == ShellTab.library
                             ? newEntryLabel(ref.watch(homeTypeProvider))
                             : 'New plan',
                         onPressed: claimed ? fab.onPressed : _add,
+                      );
+                      final seasonal = claimed ? fab.accent : null;
+                      if (seasonal == null) return button;
+                      // Inside a themed plan the button wears its accent.
+                      final theme = Theme.of(context);
+                      return Theme(
+                        data: buildTheme(
+                          brightness: theme.brightness,
+                          accent: ref.watch(displayPreferencesProvider).accent,
+                          seasonal: seasonal,
+                        ),
+                        child: button,
                       );
                     },
                   ),

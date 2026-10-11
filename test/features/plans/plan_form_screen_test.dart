@@ -23,7 +23,12 @@ void main() {
     expect(find.text('New plan'), findsOneWidget);
     expect(find.text('Seasonal theme'), findsNothing);
     expect(find.text('Start with'), findsOneWidget);
-    expect(find.text('A plain checklist without dates.'), findsOneWidget);
+    expect(
+      find.text(
+        'A plain checklist without dates. Starts off, as set in Settings.',
+      ),
+      findsOneWidget,
+    );
     final create = find.widgetWithText(FilledButton, 'Create');
     expect(tester.widget<FilledButton>(create).onPressed, isNull);
     await tester.enterText(hinted('Summer vacation'), 'Summer vacation');
@@ -71,6 +76,21 @@ void main() {
     expect(plan.timeline, isTrue);
   });
 
+  testWidgets('a plan name stops at 60 characters', (tester) async {
+    await pumpApp(tester, const PlanFormScreen.create());
+    await tester.enterText(hinted('Summer vacation'), 'x' * 80);
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(hinted('Summer vacation'))
+          .controller!
+          .text
+          .length,
+      60,
+    );
+    expect(find.text('60/60'), findsNothing); // No counter.
+  });
+
   testWidgets('a bad year blocks Create', (tester) async {
     await pumpApp(tester, const PlanFormScreen.create());
     await tester.enterText(hinted('Summer vacation'), 'X');
@@ -85,27 +105,36 @@ void main() {
     );
   });
 
-  testWidgets('"Copy a plan" picks a source and copies its open items', (
-    tester,
-  ) async {
-    final container = await pumpApp(tester, const PlanFormScreen.create());
-    await tester.tap(find.text('Copy a plan'));
-    await tester.pumpAndSettle();
-    expect(find.text('Choose a plan to copy'), findsOneWidget);
-    await tester.tap(find.text('Choose a plan to copy'));
-    await tester.pumpAndSettle();
-    expect(find.text('Copy from'), findsOneWidget);
-    await tester.tap(find.text('Christmas 2026'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(TextField, 'Christmas'), findsWidgets);
-    expect(find.widgetWithText(TextField, '2027'), findsWidgets);
-    expect(find.text('#christmas'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
-    await tester.pumpAndSettle();
-    final plan = repo(container).current!.planById('christmas-2027')!;
-    expect(plan.items.length, 6);
-    expect(plan.tags, ['christmas']);
-  });
+  testWidgets(
+    '"Copy a plan" offers the latest plan and copies its open items',
+    (tester) async {
+      final container = await pumpApp(tester, const PlanFormScreen.create());
+      await tester.tap(find.text('Copy a plan'));
+      await tester.pumpAndSettle();
+      // The most recent plan is offered and fills the form.
+      expect(find.text('Copy from Christmas 2026'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Christmas'), findsWidgets);
+      expect(find.widgetWithText(TextField, '2027'), findsWidgets);
+      expect(find.text('#christmas'), findsOneWidget);
+      // The sheet can change it.
+      await tester.tap(find.text('Copy from Christmas 2026'));
+      await tester.pumpAndSettle();
+      expect(find.text('Copy from'), findsOneWidget);
+      await tester.tap(find.text('Halloween 2025'));
+      await tester.pumpAndSettle();
+      expect(find.text('Copy from Halloween 2025'), findsOneWidget);
+      expect(find.text('#halloween'), findsOneWidget);
+      await tester.tap(find.text('Copy from Halloween 2025'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Christmas 2026'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.pumpAndSettle();
+      final plan = repo(container).current!.planById('christmas-2027')!;
+      expect(plan.items.length, 6);
+      expect(plan.tags, ['christmas']);
+    },
+  );
 
   testWidgets('S9: edit saves, and Delete plan removes it', (tester) async {
     final fixture = loadFixture();

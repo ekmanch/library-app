@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/entry.dart';
 import '../../data/models/plan.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_dialog.dart';
 import 'plan_builders.dart';
@@ -88,14 +89,16 @@ Future<PlanMenuAction?> showPlanMenu(
   BuildContext anchor, {
   required Plan plan,
 }) {
-  final theme = Theme.of(context);
+  // The anchor sits inside the plan's theme, so a seasonal accent applies.
+  final theme = Theme.of(anchor);
+  final colors = LibraryColors.of(anchor);
   final button = anchor.findRenderObject() as RenderBox;
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
   final origin = button.localToGlobal(Offset.zero, ancestor: overlay);
   final position = RelativeRect.fromLTRB(
-    origin.dx + button.size.width - 230,
-    origin.dy + button.size.height + 4,
-    overlay.size.width - origin.dx - button.size.width,
+    overlay.size.width - 16 - 230,
+    origin.dy + button.size.height - 4,
+    16,
     0,
   );
   PopupMenuItem<PlanMenuAction> item(
@@ -105,7 +108,7 @@ Future<PlanMenuAction?> showPlanMenu(
   }) => PopupMenuItem(
     value: action,
     height: 52,
-    padding: const EdgeInsets.symmetric(horizontal: 16),
+    padding: const EdgeInsets.symmetric(horizontal: 22),
     child: Text(
       label,
       style: theme.textTheme.titleMedium!.copyWith(color: color),
@@ -123,7 +126,7 @@ Future<PlanMenuAction?> showPlanMenu(
     items: [
       item(PlanMenuAction.edit, 'Edit plan'),
       item(PlanMenuAction.copy, 'Copy to a new year'),
-      const PopupMenuDivider(height: 9),
+      PopupMenuDivider(height: 9, color: colors.navBorder),
       item(
         PlanMenuAction.delete,
         'Delete plan',

@@ -37,6 +37,7 @@ class AppTextField extends StatelessWidget {
     this.textCapitalization = TextCapitalization.sentences,
     this.onChanged,
     this.onSubmitted,
+    this.maxLength,
   });
 
   final TextEditingController? controller;
@@ -49,6 +50,9 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
+  /// Stops typing past this many characters; no counter is shown.
+  final int? maxLength;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -56,6 +60,7 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       autofocus: autofocus,
       maxLines: maxLines,
+      maxLength: maxLength,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
       onChanged: onChanged,
@@ -68,6 +73,7 @@ class AppTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         errorText: errorText,
+        counterText: '',
         fillColor: theme.colorScheme.surface,
         contentPadding: EdgeInsets.symmetric(
           horizontal: 14,
@@ -87,12 +93,16 @@ class FieldButton extends StatelessWidget {
     required this.onTap,
     this.placeholder = false,
     this.semanticsLabel,
+    this.padding = const EdgeInsets.fromLTRB(14, 8, 12, 8),
   });
 
   final Widget child;
   final VoidCallback onTap;
   final bool placeholder;
   final String? semanticsLabel;
+
+  /// 14 px in front of text; chips sit 8 px in (A8, S9).
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +123,7 @@ class FieldButton extends StatelessWidget {
           customBorder: shape,
           child: Container(
             constraints: const BoxConstraints(minHeight: 52),
-            padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+            padding: padding,
             child: Row(
               children: [
                 Expanded(

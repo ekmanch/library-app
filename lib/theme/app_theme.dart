@@ -169,6 +169,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     required this.selectedFill,
     required this.navFill,
     required this.navBorder,
+    required this.tray,
+    required this.trayBorder,
     required this.scrim,
     required this.movies,
     required this.shows,
@@ -208,6 +210,13 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
 
   /// Border of the floating navigation pill; transparent on light.
   final Color navBorder;
+
+  /// A translucent dark well behind a segmented pair or a chip on a plan
+  /// header (S1): darker than the page on dark, a neutral fill on light.
+  final Color tray;
+
+  /// Hairline around a chip on that tray.
+  final Color trayBorder;
   final Color scrim;
 
   final Color movies;
@@ -253,6 +262,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     selectedFill: Color(0x24FFFFFF),
     navFill: Color(0xFF2A2D31),
     navBorder: Color(0xFF3A3E44),
+    tray: Color(0x660A090D),
+    trayBorder: Color(0x38FFFFFF),
     scrim: Color(0xCC08090A),
     movies: Color(0xFFF2B544),
     shows: Color(0xFF7FB7FF),
@@ -281,6 +292,8 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     selectedFill: Color(0xFFE9EBEE),
     navFill: Color(0xFFFFFFFF),
     navBorder: Color(0x00000000),
+    tray: Color(0xFFE9EBEE),
+    trayBorder: Color(0xFFD5D9DE),
     scrim: Color(0x99000000),
     movies: Color(0xFFC79400),
     shows: Color(0xFF1D5FBF),
@@ -413,6 +426,10 @@ ThemeData buildTheme({
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
+    // The same sizes on every platform: Material would shrink buttons and
+    // fields by 8 px on desktop, and the Linux build is for checking
+    // screens against the canvas.
+    visualDensity: VisualDensity.standard,
     fontFamily: 'Figtree',
     colorScheme: scheme,
     scaffoldBackgroundColor: background,
@@ -497,10 +514,14 @@ ThemeData buildTheme({
         (states) => states.contains(WidgetState.selected) ? onFill : ext.muted,
       ),
       trackColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.selected) ? accentFill : ext.divider,
+        (states) => states.contains(WidgetState.selected)
+            ? accentFill
+            : ext.neutralFill,
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      // An (empty) thumb icon keeps the thumb 24 px when off too, as in
+      // the mockups, instead of Material's shrunken 16 px dot.
+      thumbIcon: const WidgetStatePropertyAll(Icon(null)),
     ),
     badgeTheme: BadgeThemeData(
       backgroundColor: accentFill,
@@ -514,6 +535,14 @@ ThemeData buildTheme({
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: accentInk),
       ),
     ),
   );

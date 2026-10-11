@@ -1,0 +1,70 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/library_providers.dart';
+import '../../data/models/entry.dart';
+import '../../data/models/entry_status.dart';
+import '../../data/models/plan.dart';
+import '../../data/models/plan_item.dart';
+import '../../data/operations/operations.dart';
+
+/// The status an entry had before a plan check marked it Done, by plan
+/// item, so unticking can put it back. Session state on the device; it is
+/// not part of `library.json`.
+class StatusBeforeDoneNotifier extends Notifier<Map<String, EntryStatus>> {
+  @override
+  Map<String, EntryStatus> build() => const {};
+
+  void remember(String key, EntryStatus status) =>
+      state = {...state, key: status};
+
+  void forget(String key) {
+    if (!state.containsKey(key)) return;
+    state = {...state}..remove(key);
+  }
+
+  /// Returns and forgets the remembered status.
+  EntryStatus? take(String key) {
+    final status = state[key];
+    if (status != null) forget(key);
+    return status;
+  }
+}
+
+final statusBeforeDoneProvider =
+    NotifierProvider<StatusBeforeDoneNotifier, Map<String, EntryStatus>>(
+      StatusBeforeDoneNotifier.new,
+    );
+
+String planItemKey(String planId, String entryId) => '$planId/$entryId';
+
+/// Ticks or unticks a plan item (S1, S2, S7, S8).
+///
+/// Ticking also marks the entry Done when it was not, and remembers what
+/// it was. Unticking puts that status back, but only if the entry is still
+/// Done; a status changed elsewhere in between stays. An entry that was
+/// already Done when ticked is left alone when unticked.
+Future<void> togglePlanItemDone(
+  WidgetRef ref, {
+  required Plan plan,
+  required PlanItem item,
+  required Entry entry,
+}) async {
+  final repository = ref.read(libraryRepositoryProvider);
+  final memory = ref.read(statusBeforeDoneProvider.notifier);
+  final key = planItemKey(plan.id, entry.id);
+  final done = !item.done;
+  await repository.apply(SetPlanItem(plan.id, item.copyWith(done: done)));
+  if (done) {
+    if (entry.status == EntryStatus.done) {
+      memory.forget(key);
+    } else {
+      memory.remember(key, entry.status);
+      await repository.apply(SetStatus(entry.id, EntryStatus.done));
+    }
+  } else {
+    final previous = memory.take(key);
+    if (previous != null && entry.status == EntryStatus.done) {
+      await repository.apply(SetStatus(entry.id, previous));
+    }
+  }
+}
