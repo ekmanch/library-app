@@ -514,7 +514,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                         PillChip(
                           label: type.label,
                           selected: type == _type,
-                          dotColor: colors.dotForType(type),
+                          dotColor: colors.forType(type),
                           horizontalPadding: 4,
                           onTap: () => _pickType(type),
                         ),

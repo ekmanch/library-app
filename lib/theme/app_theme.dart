@@ -288,10 +288,6 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     MediaType.anime => anime,
   };
 
-  /// The dot on a type chip or a rail. Dots keep the bright hues on both
-  /// themes (D8); only text in a type color darkens on light.
-  Color dotForType(MediaType t) => dark.forType(t);
-
   static LibraryColors of(BuildContext context) =>
       Theme.of(context).extension<LibraryColors>()!;
 
@@ -315,7 +311,7 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     books: Color(0xFF8FD694),
     games: Color(0xFFFF8F7A),
     music: Color(0xFFC4A7FF),
-    anime: Color(0xFF5FD4C8),
+    anime: Color(0xFFFF8CC1),
     cardShadow: [],
     navShadow: [
       BoxShadow(color: Color(0x80000000), blurRadius: 24, offset: Offset(0, 8)),
@@ -327,7 +323,9 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     skeleton: Color(0xFF1D1F22),
   );
 
-  // Values from the light mockups D8 and S6. The type colors are settled.
+  // Values from the light mockups D8 and S6. The type colors follow the D8
+  // note: same lightness as the dark set with as much color as they hold,
+  // about 4.1:1 on white or more (Movies 3.8:1, so gold stays gold).
   static const light = LibraryColors(
     surfaceHigh: Color(0xFFE9EBEE),
     dialog: Color(0xFFFFFFFF),
@@ -343,12 +341,12 @@ class LibraryColors extends ThemeExtension<LibraryColors> {
     tray: Color(0xFFE9EBEE),
     trayBorder: Color(0xFFD5D9DE),
     scrim: Color(0x99000000),
-    movies: Color(0xFFC79400),
-    shows: Color(0xFF1D5FBF),
-    books: Color(0xFF1E7B34),
-    games: Color(0xFFC2410C),
-    music: Color(0xFF6D3FD1),
-    anime: Color(0xFF0F766E),
+    movies: Color(0xFFA87C00),
+    shows: Color(0xFF0A78E0),
+    books: Color(0xFF1A9136),
+    games: Color(0xFFD63A1F),
+    music: Color(0xFF7C3AED),
+    anime: Color(0xFFC8157E),
     cardShadow: [
       BoxShadow(color: Color(0x1A14161C), blurRadius: 2, offset: Offset(0, 1)),
       BoxShadow(color: Color(0x1A14161C), blurRadius: 18, offset: Offset(0, 6)),

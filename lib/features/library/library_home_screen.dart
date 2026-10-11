@@ -198,7 +198,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                         PillChip(
                           label: t.label,
                           selected: type == t,
-                          dotColor: colors.dotForType(t),
+                          dotColor: colors.forType(t),
                           onTap: () => _pickType(t),
                         ),
                       ],
