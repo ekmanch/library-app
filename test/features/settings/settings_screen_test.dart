@@ -58,8 +58,8 @@ void main() {
         findsOneWidget,
       );
 
-      expect(find.textContaining('themed artwork'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('GAMES'), 150);
+      expect(find.textContaining('themed artwork'), findsOneWidget);
       await tester.tap(find.byType(Switch).at(1));
       await tester.pumpAndSettle();
       expect(prefs().seasonalThemeDefault, isFalse);
@@ -79,7 +79,8 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, const SettingsScreen());
-    await tester.scrollUntilVisible(find.text('Library source'), 200);
+    // Scroll past the row, so it is fully inside the short viewport.
+    await tester.scrollUntilVisible(find.text('Version 0.1.0'), 200);
     await tester.tap(find.text('Library source'));
     await tester.pumpAndSettle();
     expect(find.byType(ConnectionScreen), findsOneWidget);

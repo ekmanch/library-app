@@ -92,7 +92,12 @@ void main() {
   });
 
   testWidgets('the Albums tab is a flat list by title', (tester) async {
-    await pumpApp(tester, const LibraryHomeScreen());
+    // Tall enough for every album row to be built; the list is lazy.
+    await pumpApp(
+      tester,
+      const LibraryHomeScreen(),
+      size: const Size(360, 1200),
+    );
     await pickMusic(tester);
     await pickTab(tester, 'Albums');
     final rows = tester

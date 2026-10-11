@@ -1,6 +1,7 @@
 // Captures the app for a visual check against the design canvas. Writes
-// screenshots/<name>.png (git-ignored) from the app process. Run on the
-// Linux dev target:
+// screenshots/<name>.png (git-ignored) from the app process. The Linux
+// window is the phone's 360 x 780 dp (Galaxy S25), so a capture is
+// 720 x 1560 px. Run on the Linux dev target:
 //
 //   flutter test integration_test/screenshots_test.dart -d linux
 import 'dart:async';
@@ -60,10 +61,10 @@ Future<void> pickChip(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
-/// Taps the scrim just below the top of the frame, outside the sheet.
+/// Closes the open sheet with the system back, like the phone's gesture.
+/// A tall sheet (A22) can leave no scrim to tap on a 780 dp screen.
 Future<void> closeSheet(WidgetTester tester) async {
-  final barrier = find.byType(ModalBarrier).last;
-  await tester.tapAt(tester.getTopLeft(barrier) + const Offset(195, 30));
+  await tester.binding.handlePopRoute();
   await tester.pumpAndSettle();
 }
 
@@ -185,8 +186,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    await tester.tapAt(const Offset(195, 30)); // Close the sheet.
-    await tester.pumpAndSettle();
+    await closeSheet(tester);
     await tester.tap(find.widgetWithText(PillChip, 'All'));
     await tester.pumpAndSettle();
 
@@ -232,8 +232,7 @@ void main() {
     await tester.tap(find.text('Dirt'));
     await tester.pumpAndSettle();
     await capture(tester, 'a22-album-details');
-    await tester.tapAt(const Offset(195, 30)); // Close the sheet.
-    await tester.pumpAndSettle();
+    await closeSheet(tester);
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Albums'));
@@ -370,8 +369,7 @@ void main() {
     await capture(tester, 'plan-note-sheet');
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
-    await tester.tapAt(const Offset(195, 30));
-    await tester.pumpAndSettle();
+    await closeSheet(tester);
     await tester.tap(find.byTooltip('Plan options'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit plan'));
@@ -399,10 +397,9 @@ void main() {
     await capture(tester, 's10-copy-from-sheet');
   });
 
-  testWidgets('a narrow phone at a larger text size', (tester) async {
-    // The Galaxy S25 is 360 logical pixels wide; 1.3 is a common font
-    // setting. The app is framed to that size inside the Linux window.
-    const size = Size(360, 780);
+  testWidgets('the phone at a larger text size', (tester) async {
+    // 1.3 is a common font setting. The window is already the phone's
+    // 360 x 780 dp (see linux/runner/my_application.cc).
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -410,27 +407,20 @@ void main() {
             FixtureLibraryRepository(),
           ),
         ],
-        child: Center(
-          child: RepaintBoundary(
-            key: _root,
-            child: SizedBox.fromSize(
-              size: size,
-              child: MediaQuery(
-                data: MediaQueryData(
-                  size: size,
-                  textScaler: const TextScaler.linear(1.3),
-                ),
-                child: const LibraryApp(),
-              ),
-            ),
+        child: RepaintBoundary(
+          key: _root,
+          child: MediaQuery(
+            data: MediaQueryData.fromView(tester.view)
+                .copyWith(textScaler: const TextScaler.linear(1.3)),
+            child: const LibraryApp(),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-a1-home');
+    await capture(tester, 'large-text-a1-home');
     await pickChip(tester, 'Movies');
-    await capture(tester, 'narrow-a4-movies');
+    await capture(tester, 'large-text-a4-movies');
     await tester.scrollUntilVisible(
       find.text('The Mummy'),
       200,
@@ -439,22 +429,22 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('The Mummy').last);
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-a6-details');
+    await capture(tester, 'large-text-a6-details');
     await closeSheet(tester);
     await pickChip(tester, 'All');
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Halloween 2026'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-s2-halloween');
+    await capture(tester, 'large-text-s2-halloween');
     await tester.tap(find.text('All Halloween'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-s4-pool');
+    await capture(tester, 'large-text-s4-pool');
     await tester.tap(find.text('This plan'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('The Mummy'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-s7-plan-entry');
+    await capture(tester, 'large-text-s7-plan-entry');
     await closeSheet(tester);
     // Back on the Library tab the "+" starts a new entry.
     await tester.tap(
@@ -468,43 +458,43 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'The Last of Us');
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-a13-new-entry');
+    await capture(tester, 'large-text-a13-new-entry');
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-a8-form');
+    await capture(tester, 'large-text-a8-form');
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    // S6, D6, F3, F4 and A12 on the narrow phone.
+    // S6, D6, F3 and A12 at the larger text size.
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-s6-settings');
+    await capture(tester, 'large-text-s6-settings');
     await tester.scrollUntilVisible(find.text('Library source'), 200);
     await tester.tap(find.text('Library source'));
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-d6-connection');
+    await capture(tester, 'large-text-d6-connection');
     await tester.tap(find.text('Replace token'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'github_pat_example');
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-f3-connect');
+    await capture(tester, 'large-text-f3-connect');
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    final narrowContainer = ProviderScope.containerOf(
+    final largeTextContainer = ProviderScope.containerOf(
       tester.element(find.text('Library').first),
     );
-    narrowContainer
+    largeTextContainer
         .read(syncBannerProvider.notifier)
         .show(SyncBanner.couldNotSave);
     await tester.pumpAndSettle();
-    await capture(tester, 'narrow-a12-could-not-save');
-    narrowContainer.read(syncBannerProvider.notifier).clear();
+    await capture(tester, 'large-text-a12-could-not-save');
+    largeTextContainer.read(syncBannerProvider.notifier).clear();
     await tester.pumpAndSettle();
   });
 
@@ -899,8 +889,7 @@ void main() {
     await capture(tester, 'd4-remove');
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    await tester.tapAt(const Offset(195, 30));
-    await tester.pumpAndSettle();
+    await closeSheet(tester);
     await tester.tap(
       find.descendant(
         of: find.byType(FloatingNavBar),
@@ -969,9 +958,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Grid'));
     await tester.pumpAndSettle();
-    final gesture = await tester.startGesture(const Offset(372, 330));
+    final gesture = await tester.startGesture(const Offset(342, 330));
     await tester.pump();
-    await gesture.moveTo(const Offset(372, 520));
+    await gesture.moveTo(const Offset(342, 520));
     await tester.pump(const Duration(milliseconds: 250));
     await capture(tester, 'l4-grid-thumb');
     await gesture.up();

@@ -78,7 +78,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] D8 Light theme pass over every screen (every screen is captured in light by `screenshots_test.dart`; a reviewer compared them and the banners, the inset status segments and the type-chip dots were fixed)
 
 ### 1g. Phase 1 wrap-up
-- [ ] Screen sizes pass: every screen at 320, 360, 384 and 412 dp and at text scale 1.3; fixed widths that break become flowing layouts
+- [ ] Screen sizes pass: every screen at 360 (Galaxy S25), 402 (iPhone 17), 412 (Galaxy Ultra and Plus) and 440 dp (iPhone 17 Pro Max), each at text scale 1.0 and 1.3; fixed widths that break become flowing layouts
 - [ ] Walk through every artboard next to the app and list the differences
 - [ ] The tag search boxes in the filter sheet (A2) and the tag picker (D14) are filled fields without the shared search outline; decide whether they should be the shared `SearchField`
 - [ ] D6: the Disconnect outline is a step dimmer than Replace token in the mockup; the value column wraps on the 360 dp phone at text scale 1.3

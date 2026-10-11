@@ -21,7 +21,7 @@ Future<ProviderContainer> pumpApp(
   WidgetTester tester,
   Widget home, {
   Library? library,
-  Size size = const Size(390, 844),
+  Size size = const Size(360, 780),
   DisplayPreferences? prefs,
   LibraryRepository? repository,
 }) async {

@@ -274,4 +274,4 @@ Exact values are in `lib/theme/app_theme.dart`.
 - One accent color chosen by the user in Settings, from a Vivid group and a Pastel group. Default: Hot pink. On the light theme a darker "ink" version of the accent is used.
 - Each type has its own color, used for section headings, dots and labels. On the light theme the headings use darker versions of the same hues.
 - Seasonal accents: Halloween orange, Christmas green, only inside a themed plan.
-- Phone frame in the mockups is 390 × 844. Side padding is 20 px. Touch targets are at least 44 px.
+- Phone frame in the mockups is 390 × 844. The target phone, the Galaxy S25 (1080 × 2340 at 480 dpi), is 360 × 780 dp, and the Linux dev window and the captures use that size. Side padding is 20 px. Touch targets are at least 44 px.
