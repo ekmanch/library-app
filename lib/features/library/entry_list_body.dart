@@ -46,7 +46,7 @@ class EntryListBody extends StatelessWidget {
   final List<EntrySection>? railSections;
 
   /// Sections to show with headers when the list is too short for a rail
-  /// (A3 groups filtered results by type). Null means a flat list.
+  /// (L6 groups filtered results by type). Null means a flat list.
   final List<EntrySection>? plainSections;
 
   /// The line under a grid tile's title; the status by default.

@@ -13,6 +13,7 @@ import '../library/cover_placeholder.dart';
 import '../library/entry_list_body.dart';
 import '../library/entry_list_views.dart';
 import '../library/entry_sections.dart';
+import '../library/home_type_provider.dart';
 import '../library/library_sort.dart';
 import '../library/sectioned_list_body.dart';
 import '../library/view_menu.dart';
@@ -45,14 +46,13 @@ class MusicTypeBody extends ConsumerStatefulWidget {
 }
 
 class _MusicTypeBodyState extends ConsumerState<MusicTypeBody> {
-  MusicTab _tab = MusicTab.artists;
-
   @override
   Widget build(BuildContext context) {
+    final tab = ref.watch(homeMusicTabProvider);
     final theme = Theme.of(context);
     final color = LibraryColors.of(context).music;
     final prefs = ref.watch(displayPreferencesProvider);
-    final view = prefs.viewForMusic(_tab);
+    final view = prefs.viewForMusic(tab);
     final artists = artistIndex(widget.entries);
     final albums = widget.entries
         .where((e) => e.kind != MusicKind.song)
@@ -68,10 +68,10 @@ class _MusicTypeBodyState extends ConsumerState<MusicTypeBody> {
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
           child: SegmentedControl<MusicTab>(
             segments: [
-              for (final tab in MusicTab.values) SegmentOption(tab, tab.label),
+              for (final t in MusicTab.values) SegmentOption(t, t.label),
             ],
-            selected: _tab,
-            onChanged: (tab) => setState(() => _tab = tab),
+            selected: tab,
+            onChanged: ref.read(homeMusicTabProvider.notifier).set,
           ),
         ),
         Padding(
@@ -90,16 +90,16 @@ class _MusicTypeBodyState extends ConsumerState<MusicTypeBody> {
               ),
               ViewMenuButton(
                 current: view,
-                photos: _tab != MusicTab.albums,
+                photos: tab != MusicTab.albums,
                 onChanged: (v) => ref
                     .read(displayPreferencesProvider.notifier)
-                    .setMusicView(_tab, v),
+                    .setMusicView(tab, v),
               ),
             ],
           ),
         ),
         Expanded(
-          child: switch (_tab) {
+          child: switch (tab) {
             MusicTab.artists => ArtistList(
               key: const ValueKey(MusicTab.artists),
               artists: artists,

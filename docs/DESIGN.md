@@ -13,7 +13,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 
 | Thing | Decision |
 |---|---|
-| Statuses | Want, In progress, Done, DNF. Music has no DNF: a song is minutes long, so "did not finish" only makes sense for long-form media. A song has no In progress either; albums do. |
+| Statuses | Want, In progress, Done, DNF. Movies and music have no In progress: a movie or an album is watched or heard in one sitting, so it goes straight from Want to Done. Music has no DNF either: a song is minutes long, so "did not finish" only makes sense for long-form media. Movies keep DNF. Shows, books, games and anime have all four. |
 | Rating | 1 to 10, optional, picked in a sheet (D11), never a slider |
 | Favorite | The `#favorite` tag stays, alongside the rating |
 | Row content | Title plus an italic subtitle. Subtitle is the year; for books and music it is creator and year; for a song it is album and year. No tags in rows. |
@@ -38,8 +38,8 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | ID | Screen | Notes |
 |---|---|---|
 | A1 | Library home | Type chips; active plan card; two entries per type under a heading that shows the type's count. Rows are ordered In progress, then Want (newest added), then Done, then DNF. Tapping a heading or a chip picks that type, and the home becomes the type's list in place (A4) with no separate screen: status segments, count, sort and view replace the plan card and the headings, and the search hint becomes "Search movies". Picking a type resets the status segment to All. The active plan is the first plan with items that are not all done; finished plans live on S5. Seasonal-only entries are hidden from the home, the type lists and filtered results unless the switch in A2 is on; search still finds them. |
-| A2 | Filter sheet | Type, Status, Released, Tags. Within Type, Status and Released any choice matches; all selected tags must match. Tags are in collapsible groups by category. Released is a scrolling row built from the library: one chip per decade, labeled with the full decade ("1980s", not "80s"), from the earliest to the latest decade that has an entry, gaps filled in so the row never jumps, plus Older when anything is from before 1960. A new decade appears as soon as an entry from it exists. Has an "Include seasonal-only" switch; when on it counts as one active filter and shows as a removable chip. |
-| A3 | Filtered results | Removable chips and the count stay put; the rows scroll, grouped by type. Long results get a rail (L5, L6). |
+| A2 | Filter sheet | Type, Status, Kind, Released, Tags. Within Type, Status, Kind and Released any choice matches; all selected tags must match. Tags are in collapsible groups by category. Released is a scrolling row built from the library: one chip per decade, labeled with the full decade ("1980s", not "80s"), from the earliest to the latest decade that has an entry, gaps filled in so the row never jumps, plus Older when anything is from before 1960. A new decade appears as soon as an entry from it exists. Has an "Include seasonal-only" switch; when on it counts as one active filter and shows as a removable chip. The Status chips follow the chosen types: In progress only shows when a chosen type can have it (or no type is chosen), and a status the chosen types cannot have is dropped. Kind (Albums, Songs) shows under Status only while Music is chosen, narrows music entries only, and is dropped when Music is unticked. The sheet and the home stay in sync (A3, A11, A23, A24): anything the home's chips can show is not a results screen, anything more opens results (L5, L6). A filter with exactly one type keeps that type picked underneath, so removing the extra filters lands on that type's view; a filter with no type or several types puts the home on All. "Clear all", "Clear filters" and the sheet's Reset clear the type, the status segment and the music tab too. |
+| A3 | Filter opened from a type view | The sheet starts with what the home shows: the picked type and its status segment (Movies + Done), or Music and the music tab's kind (Albums or Songs). Music on Artists starts with Music only, since Artists is a way of browsing, not a filter. On All it starts with nothing chosen. |
 | A4 | Type picked, text view | The home with a type chip picked: status segments, count, sort link, view button. A status with nothing in it shows one line, "Nothing marked want yet." |
 | A5 | Search | |
 | A6 | Entry details sheet | Cover spot, status, rating row, Note, About, tags, plans, Edit, Delete |
@@ -47,7 +47,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A8 | Add / edit entry | Rating row opens D11. Tag picker is the only place tags are created. |
 | A9 | Delete confirmation | |
 | A10 | Empty states | |
-| A11 | First-time setup | Replaced by the F row |
+| A11 | Filter result: one type and one status is the type view | One type with at most one status, and nothing else, shows that type's view with the status segment picked, and the sheet's button reads "Show 5 movies". Music has no status segment, so music with a status opens results. |
 | A12 | Sync and errors | |
 | A13 | New entry: pick a match | A new entry starts here, then opens A8 prefilled. "Fill in the details myself" skips the lookup. |
 | A14 | Music by artist, text view | See section 5 |
@@ -59,9 +59,11 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A20 | Type picked, list with covers | |
 | A21 | Type picked, grid with covers | Title on up to two lines, then the year only, never the status ("Not released yet" without a year); music grids show the artist instead. The check badge on the cover's upper-right corner means Done. L4 follows the same rule. |
 | A22 | Album details with track ratings | See section 5 |
+| A23 | Filter result: Music + Songs is the Music view | For music the kind plays the status segment's part: Music + Songs opens the Music view on Songs ("Show 3 songs"), and Music alone opens it on Artists ("Show 12 music entries"). Music with both kinds, or with a status, opens results. |
+| A24 | Filter result: Music + Albums is the Music view | Same as A23, on Albums ("Show 9 albums"). |
 | L1, L2, L3 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
 | L4 | Long grid with fast scroll | Same rule. The grid keeps no headers; a thumb on the right appears while scrolling and can be dragged, and a bubble next to it names the section at the top of the screen. |
-| L5 | Filtered results, one type | Same rule. When every result is of one type, sections follow the sort, headers in that type's color, rail of short labels. |
+| L5 | Filtered results, one type | Removable chips and the count stay put; the rows scroll, grouped by type. Same rule. When every result is of one type, sections follow the sort, headers in that type's color, rail of short labels. |
 | L6 | Filtered results, several types | Same rule. One section per type in type order, headers in the type colors, and the rail shows one colored dot per type instead of labels; the current dot is a little larger. A short result list keeps its type headings and no rail. |
 
 ### Plans (S row)
@@ -117,7 +119,7 @@ Plan rules:
 
 ### First run (F row)
 
-Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 Splash, F2 Welcome to Libri, F3 Connect GitHub, F4 Your library file: new or existing, F5 Create a new library, F6 Pick an existing file, F7 All set. They replace A11.
+Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 Splash, F2 Welcome to Libri, F3 Connect GitHub, F4 Your library file: new or existing, F5 Create a new library, F6 Pick an existing file, F7 All set. They replace the old first-time setup artboard.
 
 ## 5. Music
 
@@ -270,7 +272,7 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Platform chips in the entry form are only the platforms the game came out on (fetched) plus the entry's own; "Other…" adds anything else. Aliases merge into one spelled-out name.
 - A sheet is at most 88% of the screen tall, the tag picker 78%, so the screen behind stays in view.
 - Segmented controls that do not fit at a large text size keep their full labels and scroll sideways; the filter sheet's status chips share the row by label length and wrap when they do not fit.
-- A filter that is only one type is not a results screen: the home picks that type instead (the L6 note).
+- A filter that is only one type, with at most one status (for music, at most one kind), is not a results screen: the home picks that type and its status segment or music tab instead (the L6 note; see A2, A11, A23).
 - A filter that matches nothing spells itself out: "No books are both in progress and tagged #christmas. Remove a filter to see more." The empty state's button clears the filters, so the chip row has no "Clear all" then.
 - The active plan card's name shrinks a step (20, 18, 16 px) before cutting off, like the plan header.
 - At a large text size on a small phone, a timeline card puts its type label above the title so the title gets the full width, and the entry form stacks the creator and Released fields so neither is cut.

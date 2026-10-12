@@ -74,7 +74,7 @@ class SectionedListBody<T> extends StatefulWidget {
   final List<ListSection<T>> sections;
 
   /// Sections to show with headers when the list is too short for a rail
-  /// (A3 groups filtered results by type). Null means a flat list.
+  /// (L6 groups filtered results by type). Null means a flat list.
   final List<ListSection<T>>? plainSections;
 
   /// True for the grid: no headers, a thumb instead of a rail.

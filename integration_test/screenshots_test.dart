@@ -28,11 +28,18 @@ import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/features/sync/sync_state.dart';
 import 'package:library_app/main.dart';
+import 'package:library_app/widgets/segmented_control.dart';
 import 'package:library_app/widgets/chips.dart';
 
 /// Wraps the whole app, including sheets, dialogs and menus in the root
 /// overlay, so a capture shows what the user sees.
 final _root = GlobalKey();
+
+/// A status segment of the type view.
+Finder segment(String label) => find.descendant(
+  of: find.byType(StatusSegmentedControl),
+  matching: find.text(label),
+);
 
 Future<void> capture(WidgetTester tester, String name) async {
   final boundary =
@@ -96,6 +103,19 @@ void main() {
     await tester.tap(find.widgetWithText(PillChip, 'Movies'));
     await tester.pumpAndSettle();
     await capture(tester, 'a4-movies-text');
+
+    // The filter sheet opened from Movies with Done picked, and its result:
+    // the type view with Done picked, not a results screen.
+    await tester.tap(segment('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a3-filter-from-movies-done');
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a11-movies-done');
+    await tester.tap(segment('All'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await capture(tester, 'a16-view-menu');
@@ -110,7 +130,7 @@ void main() {
     await tester.tap(find.widgetWithText(PillChip, 'All'));
     await tester.pumpAndSettle();
 
-    // A2 and A3: filter to shows tagged horror.
+    // A2 and L5: filter to shows tagged horror.
     await tester.tap(find.byTooltip('Filters'));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -124,7 +144,7 @@ void main() {
     await capture(tester, 'a2-filter-sheet');
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
-    await capture(tester, 'a3-filtered');
+    await capture(tester, 'l5-filtered-short');
     await tester.tap(find.text('Clear all'));
     await tester.pumpAndSettle();
 
@@ -241,6 +261,34 @@ void main() {
     await tester.tap(find.text('Songs'));
     await tester.pumpAndSettle();
     await capture(tester, 'a14-music-songs');
+
+    // A3 for music: opened from Songs, the sheet has Music + Songs; Albums
+    // instead comes back as the Albums tab (A24).
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a3-filter-from-music-songs');
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a23-music-songs');
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    final kind = find.descendant(
+      of: find.byType(FilterSheet),
+      matching: find.widgetWithText(PillChip, 'Songs'),
+    );
+    await tester.tap(kind);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FilterSheet),
+        matching: find.widgetWithText(PillChip, 'Albums'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a24-music-albums');
+    await tester.tap(find.text('Songs'));
+    await tester.pumpAndSettle();
 
     // D12: saving an album whose song is already saved.
     await tester.tap(find.byType(AddButton));
@@ -421,6 +469,18 @@ void main() {
     await capture(tester, 'large-text-a1-home');
     await pickChip(tester, 'Movies');
     await capture(tester, 'large-text-a4-movies');
+    await tester.ensureVisible(segment('Done'));
+    await tester.tap(segment('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-a3-filter-from-movies-done');
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-a11-movies-done');
+    await tester.ensureVisible(segment('All'));
+    await tester.tap(segment('All'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('The Mummy'),
       200,
@@ -635,6 +695,16 @@ void main() {
     await tester.tap(find.widgetWithText(PillChip, 'Movies'));
     await tester.pumpAndSettle();
     await shot('a4-movies-text');
+    await tester.tap(segment('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    await shot('a3-filter-from-movies-done');
+    await tester.tap(find.textContaining('Show '));
+    await tester.pumpAndSettle();
+    await shot('a11-movies-done');
+    await tester.tap(segment('All'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await shot('a16-view-menu');
@@ -656,7 +726,7 @@ void main() {
     await shot('a2-filter-sheet');
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
-    await shot('a3-filtered');
+    await shot('l5-filtered-short');
     await tapText('Clear all');
     await tapText('Search titles and tags');
     await tester.enterText(find.byType(TextField), 'hal');

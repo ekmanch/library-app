@@ -189,8 +189,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     super.dispose();
   }
 
-  List<EntryStatus> get _statusOptions =>
-      EntryStatus.optionsFor(_type, kind: _kind);
+  List<EntryStatus> get _statusOptions => EntryStatus.optionsFor(_type);
 
   String? get _releasedError {
     final text = _released.text.trim();
@@ -542,12 +541,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                         SegmentOption(MusicKind.song, 'Song'),
                       ],
                       selected: _kind ?? MusicKind.album,
-                      onChanged: (kind) => setState(() {
-                        _kind = kind;
-                        if (!_statusOptions.contains(_status)) {
-                          _status = EntryStatus.want;
-                        }
-                      }),
+                      onChanged: (kind) => setState(() => _kind = kind),
                     ),
                   ],
                   const SizedBox(height: 14),
@@ -691,7 +685,6 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   StatusSegmentedControl(
                     selected: _status,
                     type: _type,
-                    kind: _kind,
                     style: SegmentedStyle.accent,
                     onChanged: (status) {
                       if (status != null) setState(() => _status = status);

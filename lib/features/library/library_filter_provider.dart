@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../music/music_tab.dart';
 import 'home_type_provider.dart';
 import 'library_filter.dart';
 
@@ -10,20 +11,25 @@ class LibraryFilterNotifier extends Notifier<LibraryFilter> {
 
   void set(LibraryFilter filter) => _apply(filter);
 
-  void clear() => state = LibraryFilter.none;
+  /// Clears every filter, the type included, so the home shows All.
+  void clear() => _apply(LibraryFilter.none);
 
   void remove(ActiveFilterChip chip) => _apply(chip.remove(state));
 
-  /// A lone type filter becomes the type view: the filter clears and the
-  /// home picks that type, as if its chip had been tapped.
+  /// The home's type follows the filter: one type picks it, none or several
+  /// pick All. A filter the home's chips can show (one type, at most one
+  /// status, or for music at most one kind) is not a results screen: it
+  /// clears and the home shows that type's view with its status segment or
+  /// music tab picked (A11, A23, A24).
   void _apply(LibraryFilter filter) {
-    final type = filter.onlyType;
-    if (type == null) {
-      state = filter;
-      return;
-    }
-    state = LibraryFilter.none;
-    ref.read(homeTypeProvider.notifier).set(type);
+    final types = filter.types;
+    final view = filter.typeView;
+    state = view == null ? filter : LibraryFilter.none;
+    ref
+        .read(homeTypeProvider.notifier)
+        .set(types.length == 1 ? types.single : null);
+    ref.read(homeStatusProvider.notifier).set(view?.status);
+    ref.read(homeMusicTabProvider.notifier).set(MusicTab.forKind(view?.kind));
   }
 }
 

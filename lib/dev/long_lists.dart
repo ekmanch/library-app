@@ -27,7 +27,7 @@ Library padForLongLists(Library library, {int perType = 120}) {
           : i % 4 == 3
           ? MusicKind.song
           : MusicKind.album;
-      final statuses = EntryStatus.optionsFor(type, kind: kind ?? base.kind);
+      final statuses = EntryStatus.optionsFor(type);
       extra.add(
         base.copyWith(
           id: '${type.name}/long-$i',

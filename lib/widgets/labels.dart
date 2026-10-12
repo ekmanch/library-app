@@ -1,5 +1,6 @@
 import '../data/models/entry_status.dart';
 import '../data/models/media_type.dart';
+import '../data/models/music_kind.dart';
 import '../data/models/tag_category.dart';
 
 /// UI words for the enums. American spelling, sentence case.
@@ -40,7 +41,11 @@ extension MediaTypeLabel on MediaType {
 
 /// "7 movies", "1 book", "3 anime". Music lists use [musicCountLabel]; in
 /// mixed contexts it falls back to "entries".
-String countLabel(MediaType type, int count) {
+String countLabel(MediaType type, int count) =>
+    '$count ${countNoun(type, count)}';
+
+/// The noun of [countLabel]: "movie", "movies".
+String countNoun(MediaType type, int count) {
   final (one, many) = switch (type) {
     MediaType.movies => ('movie', 'movies'),
     MediaType.shows => ('show', 'shows'),
@@ -49,7 +54,18 @@ String countLabel(MediaType type, int count) {
     MediaType.music => ('entry', 'entries'),
     MediaType.anime => ('anime', 'anime'),
   };
-  return '$count ${count == 1 ? one : many}';
+  return count == 1 ? one : many;
+}
+
+extension MusicKindLabel on MusicKind {
+  /// For the filter sheet's Kind chips: "Albums", "Songs".
+  String get label => switch (this) {
+    MusicKind.album => 'Albums',
+    MusicKind.song => 'Songs',
+  };
+
+  /// Mid-sentence: "albums", "songs".
+  String get plural => label.toLowerCase();
 }
 
 extension TagCategoryLabel on TagCategory {

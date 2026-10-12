@@ -173,7 +173,7 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
     await a.tap(find.widgetWithText(PillChip, '#horror'));
     await a.check('A2 filter sheet');
     await a.tap(find.textContaining('Show '));
-    await a.check('A3 filtered');
+    await a.check('L5 filtered');
     await a.tapText('Clear all');
   });
   await a.step('search', () async {

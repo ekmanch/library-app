@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
 import '../../data/models/entry.dart';
-import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/plan.dart';
@@ -16,6 +15,7 @@ import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
+import '../music/music_tab.dart';
 import '../music/artist_screen.dart';
 import '../music/music_type_body.dart';
 import '../plans/plan_progress.dart';
@@ -43,7 +43,7 @@ import 'view_menu.dart';
 /// type under tappable headings. With a type chip or heading picked it
 /// becomes that type's list in place (A4, A20, A21): status segments, count,
 /// sort and view; Music gets its artist, album and song tabs instead (A14).
-/// Also shows filtered results (A3) and the empty states of A10.
+/// Also shows filtered results (L5, L6) and the empty states of A10.
 class LibraryHomeScreen extends ConsumerStatefulWidget {
   const LibraryHomeScreen({
     super.key,
@@ -69,19 +69,26 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
-  /// The status segment with a type picked; null means All.
-  EntryStatus? _status;
-
   void _pickType(MediaType? type) {
     ref.read(homeTypeProvider.notifier).set(type);
-    setState(() => _status = null);
+    ref.read(homeStatusProvider.notifier).set(null);
+    ref.read(homeMusicTabProvider.notifier).set(MusicTab.artists);
   }
 
+  /// Opens the filter sheet. With no filter active it starts with what the
+  /// home shows: the picked type and its status segment or music tab (A3).
   Future<void> _openFilters(Library library) async {
+    final filter = ref.read(libraryFilterProvider);
     final result = await showFilterSheet(
       context,
       library: library,
-      initial: ref.read(libraryFilterProvider),
+      initial: filter.isActive
+          ? filter
+          : LibraryFilter.ofTypeView(
+              ref.read(homeTypeProvider),
+              status: ref.read(homeStatusProvider),
+              kind: ref.read(homeMusicTabProvider).kind,
+            ),
     );
     if (result != null) ref.read(libraryFilterProvider.notifier).set(result);
   }
@@ -306,8 +313,9 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
             openArtistScreen(context, artist, onOpenEntry: widget.onOpenEntry),
       );
     }
+    final status = ref.watch(homeStatusProvider);
     final shown = sortEntries(
-      visible.where((e) => _status == null || e.status == _status),
+      visible.where((e) => status == null || e.status == status),
       prefs.sortFor(type),
     );
     final view = prefs.viewFor(type);
@@ -318,10 +326,10 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
           child: StatusSegmentedControl(
-            selected: _status,
+            selected: status,
             type: type,
             includeAll: true,
-            onChanged: (s) => setState(() => _status = s),
+            onChanged: ref.read(homeStatusProvider.notifier).set,
           ),
         ),
         Padding(
@@ -354,7 +362,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
               ? Padding(
                   padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
                   child: Text(
-                    'Nothing marked ${_status!.lowerLabel} yet.',
+                    'Nothing marked ${status!.lowerLabel} yet.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium!.copyWith(
                       color: LibraryColors.of(context).muted,
@@ -375,7 +383,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     );
   }
 
-  /// Filtered results (A3): removable chips and the count stay put, the
+  /// Filtered results (L5, L6): removable chips and the count stay put, the
   /// rows scroll. Grouped by type; a long list gets a rail (L5, L6).
   Widget _filtered(
     Library library,

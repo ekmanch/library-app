@@ -127,7 +127,7 @@ bool showJumpRail({
   required double viewportHeight,
 }) => sectionCount >= 2 && contentHeight >= 3 * viewportHeight;
 
-/// Filtered results with several types (A3, L6): one section per type, in
+/// Filtered results with several types (L6): one section per type, in
 /// type order, each with its color for the header and the rail dot.
 List<EntrySection> sectionEntriesByType(
   List<Entry> sorted,

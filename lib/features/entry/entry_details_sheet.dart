@@ -122,7 +122,6 @@ class EntryDetailsSheet extends ConsumerWidget {
           StatusSegmentedControl(
             selected: entry.status,
             type: entry.type,
-            kind: entry.kind,
             style: SegmentedStyle.accent,
             inset: true,
             onChanged: (status) {

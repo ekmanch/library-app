@@ -166,7 +166,7 @@ Future<void> _walk(_Walk w) async {
     await w.tap(find.widgetWithText(PillChip, '#horror'));
     await w.shot('a2-filter-sheet');
     await w.tap(find.textContaining('Show '));
-    await w.shot('a3-filtered');
+    await w.shot('l5-filtered-short');
     await w.tapText('Clear all');
   });
   await w.step('a5 search', () async {

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/released.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_sort.dart';
@@ -114,6 +115,76 @@ void main() {
     });
   });
 
+  group('status options', () {
+    test('follow the chosen types', () {
+      expect(LibraryFilter.none.statusOptions, EntryStatus.values);
+      expect(const LibraryFilter(types: {MediaType.movies}).statusOptions, [
+        EntryStatus.want,
+        EntryStatus.done,
+        EntryStatus.dnf,
+      ]);
+      expect(const LibraryFilter(types: {MediaType.music}).statusOptions, [
+        EntryStatus.want,
+        EntryStatus.done,
+      ]);
+      expect(
+        const LibraryFilter(types: {MediaType.music, MediaType.books})
+            .statusOptions,
+        EntryStatus.values,
+      );
+    });
+
+    test('a type toggle drops statuses the types cannot have', () {
+      const filter = LibraryFilter(
+        types: {MediaType.books},
+        statuses: {EntryStatus.inProgress, EntryStatus.dnf, EntryStatus.done},
+      );
+      final movies = filter
+          .toggleType(MediaType.movies)
+          .toggleType(MediaType.books);
+      expect(movies.statuses, {EntryStatus.dnf, EntryStatus.done});
+      expect(movies.toggleType(MediaType.movies).statuses, movies.statuses);
+      final music = movies.toggleType(MediaType.music);
+      expect(music.statuses, {EntryStatus.dnf, EntryStatus.done});
+      expect(music.toggleType(MediaType.movies).statuses, {EntryStatus.done});
+    });
+  });
+
+  group('kind', () {
+    final song = dirt.copyWith(id: 'music/song', kind: MusicKind.song);
+
+    test('narrows music only', () {
+      const songs = LibraryFilter(kinds: {MusicKind.song});
+      expect(songs.matches(song), isTrue);
+      expect(songs.matches(dirt), isFalse); // An album.
+      expect(songs.matches(mummy), isTrue); // Not music.
+    });
+
+    test('is dropped with Music, and counts as a chip', () {
+      final filter = LibraryFilter.none
+          .toggleType(MediaType.music)
+          .toggleKind(MusicKind.album);
+      expect(filter.count, 2);
+      expect(filter.chips.map((c) => c.label), ['Music', 'Albums']);
+      expect(filter.toggleType(MediaType.music).kinds, isEmpty);
+      expect(filter.toggleType(MediaType.movies).kinds, {MusicKind.album});
+    });
+
+    test('one kind is a music tab; a status or both kinds are results', () {
+      const music = LibraryFilter(types: {MediaType.music});
+      expect(music.typeView, (type: MediaType.music, status: null, kind: null));
+      expect(
+        music.copyWith(kinds: {MusicKind.song}).typeView?.kind,
+        MusicKind.song,
+      );
+      expect(
+        music.copyWith(kinds: {MusicKind.song, MusicKind.album}).typeView,
+        isNull,
+      );
+      expect(music.copyWith(statuses: {EntryStatus.done}).typeView, isNull);
+    });
+  });
+
   group('sortEntries', () {
     test('newest added first, then by title', () {
       final sorted = sortEntries(fixture.entries, LibrarySort.newestAdded);
@@ -151,7 +222,7 @@ void main() {
   });
 
   test('homeOrder: in progress, want, done, dnf; newest added first', () {
-    final ordered = homeOrder(fixture.entriesOfType(MediaType.movies));
+    final ordered = homeOrder(fixture.entriesOfType(MediaType.books));
     final statuses = ordered.map((e) => e.status).toList();
     int rank(EntryStatus s) => const {
       EntryStatus.inProgress: 0,

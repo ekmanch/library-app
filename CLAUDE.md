@@ -13,7 +13,7 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 
 - **Never commit, amend, push, tag or create a branch unless I explicitly ask for it in that message.** Finishing a task is not a request to commit. A general instruction earlier in the conversation is not one either.
 - When a task is done, end your reply with a **suggested commit message** in a code block so I can use it myself.
-- Commit message style: `type(scope): Subject (phase N)`. The type is one of feat, fix, doc, test, asset, git, chore; the scope names the area or file; the subject is short and imperative with no trailing period; the phase is the TODO.md phase the work belongs to, with its letter where there is one, e.g. `feat(music): Add artist list with alphabet rail (phase 1d)`. One logical change per commit. Prefer a single line with no body. When one line cannot make the change clear (for example a commit that bundles several fixes), add a brief body of a few sentences, never more.
+- Commit message style: `type(scope): Subject (phase N)`. The type is one of feat, fix, doc, test, asset, git, chore; the scope names the area or file; the subject is short and imperative with no trailing period; the phase is the TODO.md phase the work belongs to, with its letter where there is one, e.g. `feat(music): Add artist list with alphabet rail (phase 1d)`. One logical change per commit. Prefer a single line with no body. When one line cannot make the change clear (for example a commit that bundles several fixes), add a brief body of a few sentences, never more. Wrap body lines at 72 characters at most, with a blank line between the header and the body; the header may run longer.
 - Never touch the `ekmanch/library` data repo from this project except through the app's own sync code, and never during development unless I ask. Use the fixture file for testing.
 - Phases 0 and 1 never write to the data repo. Switching `ekmanch/library` from Markdown to JSON as the source of truth, including reversing its pre-commit hook so Markdown is generated from JSON, happens on a feature branch in that repo at the start of the wiring phase (TODO.md phase 3), and not before.
 
@@ -30,7 +30,9 @@ Phone-first Flutter app (Android, Samsung Galaxy S25; a Linux desktop build may 
 - Ask before adding a package. Say what it is for and what the alternative is.
 - Ask before changing anything that DESIGN.md marks as settled. Proposals are welcome; silent changes are not.
 - UI text uses American spelling ("color", "favorite") and sentence case.
-- Run the formatter, the analyzer and the tests before saying a task is done, and tell me if any of them fail:
+- Test in proportion to the change. For a fix or a small feature, first work out what the change could plausibly break: the code it touches, what calls that code, and the screens that show it. Then check only that: run the test files for those areas (for example `flutter test test/features/library/`), capture only the affected screens (one walk with `--plain-name`, e.g. `flutter test integration_test/screenshots_test.dart -d linux --plain-name "library screens in dark and light"`), and look only at those captures. Say in the reply what you checked and why that was enough. Do not rerun every walk, the sizes walk or the accessibility audit for a local change.
+- The full pass runs at the end of a phase, and when a change reaches every screen (the theme, a widely used widget in `lib/widgets/`, the models, the codec or the repository): all of `flutter test`, every screenshot walk at 360 and at 1.3, the sizes walk, the accessibility audit, and the subagent review of the captures against the artboards.
+- Always run the formatter and the analyzer before saying a task is done (they are fast and catch breakage anywhere), plus the tests chosen above, and tell me if any of them fail:
 
 ```bash
 dart format .
@@ -41,7 +43,7 @@ flutter analyze
 ```
 
 ```bash
-flutter test
+flutter test test/features/library/  # The affected areas; plain `flutter test` for a full pass.
 ```
 
 ## Code conventions

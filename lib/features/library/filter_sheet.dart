@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/entry.dart';
-import '../../data/models/entry_status.dart';
 import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
+import '../../data/models/music_kind.dart';
 import '../../data/models/tag_category.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/chip_grid.dart';
@@ -55,6 +55,27 @@ class _FilterSheetState extends State<FilterSheet> {
   List<Decade> get _decades =>
       Decade.optionsFor(widget.library.entries.map((e) => e.year));
 
+  /// "Show 5 movies" when the result is a type view, else "Show 9 entries".
+  static String _showLabel(int count, TypeView? view) {
+    if (count == 0) return 'No entries match';
+    final (one, many) = switch (view) {
+      null => ('entry', 'entries'),
+      (type: MediaType.music, kind: final kind?, status: _) => (
+        kind == MusicKind.song ? 'song' : 'album',
+        kind.plural,
+      ),
+      (type: MediaType.music, kind: null, status: _) => (
+        'music entry',
+        'music entries',
+      ),
+      (:final type, kind: _, status: _) => (
+        countNoun(type, 1),
+        countNoun(type, 2),
+      ),
+    };
+    return 'Show $count ${count == 1 ? one : many}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,11 +94,7 @@ class _FilterSheetState extends State<FilterSheet> {
         child: const Text('Reset'),
       ),
       footer: AppButton(
-        label: switch (count) {
-          0 => 'No entries match',
-          1 => 'Show 1 entry',
-          _ => 'Show $count entries',
-        },
+        label: _showLabel(count, _draft.typeView),
         onPressed: count == 0 ? null : () => Navigator.pop(context, _draft),
       ),
       child: Column(
@@ -102,9 +119,9 @@ class _FilterSheetState extends State<FilterSheet> {
           SectionHeading('Status', padding: EdgeInsets.zero),
           const SizedBox(height: 8),
           FitChipRow(
-            labels: [for (final s in EntryStatus.values) s.label],
+            labels: [for (final s in _draft.statusOptions) s.label],
             builder: (i) {
-              final status = EntryStatus.values[i];
+              final status = _draft.statusOptions[i];
               return PillChip(
                 label: status.label,
                 selected: _draft.statuses.contains(status),
@@ -114,6 +131,23 @@ class _FilterSheetState extends State<FilterSheet> {
               );
             },
           ),
+          if (_draft.offersKind) ...[
+            const SizedBox(height: 12),
+            SectionHeading('Kind', padding: EdgeInsets.zero),
+            const SizedBox(height: 8),
+            FitChipRow(
+              labels: [for (final k in MusicKind.values) k.label],
+              builder: (i) {
+                final kind = MusicKind.values[i];
+                return PillChip(
+                  label: kind.label,
+                  selected: _draft.kinds.contains(kind),
+                  style: PillChipStyle.accent,
+                  onTap: () => setState(() => _draft = _draft.toggleKind(kind)),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 12),
           if (_decades.isNotEmpty) ...[
             SectionHeading('Released', padding: EdgeInsets.zero),

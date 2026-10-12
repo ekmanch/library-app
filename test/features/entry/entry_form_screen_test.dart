@@ -108,7 +108,7 @@ void main() {
       of: find.byType(StatusSegmentedControl),
       matching: find.text(label),
     );
-    expect(inStatus('In progress'), findsOneWidget);
+    expect(inStatus('In progress'), findsNothing);
     await tester.tap(find.text('Song'));
     await tester.pumpAndSettle();
     expect(find.text('Album'), findsNWidgets(2)); // Segment and field label.

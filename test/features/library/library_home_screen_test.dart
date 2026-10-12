@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/music_kind.dart';
+import 'package:library_app/features/music/music_tab.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
 import 'package:library_app/features/library/cover_placeholder.dart';
 import 'package:library_app/features/library/entry_list_body.dart';
+import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
@@ -14,6 +17,7 @@ import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/settings/entry_view.dart';
 import 'package:library_app/widgets/chips.dart';
 import 'package:library_app/widgets/entry_row.dart';
+import 'package:library_app/widgets/labels.dart';
 import 'package:library_app/widgets/section_heading.dart';
 import 'package:library_app/widgets/segmented_control.dart';
 
@@ -67,7 +71,7 @@ void main() {
     );
     expect(find.bySemanticsLabel('Show all movies'), findsOneWidget);
 
-    // Movies: first two rows in home order start with the in-progress one.
+    // Movies: first two rows in home order start with the newest wanted one.
     final rows = tester.widgetList<EntryRow>(find.byType(EntryRow)).toList();
     expect(rows.first.title, 'Paddington 2');
     expect(find.byType(StatusSegmentedControl), findsNothing);
@@ -149,10 +153,10 @@ void main() {
       ),
     );
     await pickChip(tester, 'Movies');
-    await tester.tap(inSegments('In progress'));
+    await tester.tap(inSegments('DNF'));
     await tester.pumpAndSettle();
     expect(find.text('0 movies'), findsOneWidget);
-    expect(find.text('Nothing marked in progress yet.'), findsOneWidget);
+    expect(find.text('Nothing marked DNF yet.'), findsOneWidget);
     expect(find.byType(EntryRow), findsNothing);
   });
 
@@ -294,6 +298,7 @@ void main() {
     expect(find.text('Filters'), findsOneWidget);
     await tester.tap(find.widgetWithText(PillChip, 'Games'));
     await tester.tap(find.widgetWithText(PillChip, 'Want'));
+    await tester.tap(find.widgetWithText(PillChip, 'Done'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Show '), findsOneWidget);
     await tester.tap(find.textContaining('Show '));
@@ -314,6 +319,239 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(libraryFilterProvider).isActive, isFalse);
     expect(container.read(homeTypeProvider), MediaType.games);
+  });
+
+  group('the filter sheet and the home stay in sync', () {
+    Finder sheetChip(String label) => find.descendant(
+      of: find.byType(FilterSheet),
+      matching: find.widgetWithText(PillChip, label),
+    );
+    bool selected(WidgetTester tester, String label) =>
+        tester.widget<PillChip>(sheetChip(label)).selected;
+
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('Filters'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> show(WidgetTester tester) async {
+      await tester.tap(find.textContaining('Show '));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('it opens with the picked type chosen, and none on All', (
+      tester,
+    ) async {
+      await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Movies');
+      await openSheet(tester);
+      expect(selected(tester, 'Movies'), isTrue);
+      expect(selected(tester, 'Music'), isFalse);
+      // Movies are never in progress, so the sheet does not offer it.
+      expect(sheetChip('In progress'), findsNothing);
+      expect(sheetChip('DNF'), findsOneWidget);
+      await tester.tapAt(const Offset(20, 20)); // Dismiss.
+      await tester.pumpAndSettle();
+
+      await pickChip(tester, 'All');
+      await openSheet(tester);
+      for (final type in MediaType.values) {
+        expect(selected(tester, type.label), isFalse);
+      }
+      expect(sheetChip('In progress'), findsOneWidget);
+    });
+
+    testWidgets('it opens with the picked status segment chosen too (A3)', (
+      tester,
+    ) async {
+      await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Movies');
+      await tester.tap(inSegments('Done'));
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+      expect(selected(tester, 'Movies'), isTrue);
+      expect(selected(tester, 'Done'), isTrue);
+      expect(selected(tester, 'Want'), isFalse);
+      final done = fixture
+          .entriesOfType(MediaType.movies)
+          .where((e) => !e.seasonalOnly && e.status == EntryStatus.done)
+          .length;
+      expect(find.text('Show ${countLabel(MediaType.movies, done)}'), findsOne);
+    });
+
+    testWidgets('one type and one status is the type view, not results', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      await openSheet(tester);
+      await tester.tap(sheetChip('Books'));
+      await tester.tap(sheetChip('Done'));
+      await tester.pumpAndSettle();
+      await show(tester);
+      expect(container.read(libraryFilterProvider).isActive, isFalse);
+      expect(container.read(homeTypeProvider), MediaType.books);
+      expect(container.read(homeStatusProvider), EntryStatus.done);
+      expect(
+        tester
+            .widget<StatusSegmentedControl>(find.byType(StatusSegmentedControl))
+            .selected,
+        EntryStatus.done,
+      );
+    });
+
+    testWidgets('removing the extra filter returns to the type view', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Books');
+      // Five segments scroll sideways at 360 dp.
+      await tester.ensureVisible(inSegments('Done'));
+      await tester.tap(inSegments('Done'));
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+      await tester.tap(sheetChip('Want'));
+      await tester.pumpAndSettle();
+      await show(tester);
+      expect(container.read(libraryFilterProvider).statuses, {
+        EntryStatus.want,
+        EntryStatus.done,
+      });
+
+      // Removing Want leaves Books + Done: the books view, Done picked.
+      await tester.tap(find.bySemanticsLabel('Remove Want'));
+      await tester.pumpAndSettle();
+      expect(container.read(libraryFilterProvider).isActive, isFalse);
+      expect(container.read(homeTypeProvider), MediaType.books);
+      expect(container.read(homeStatusProvider), EntryStatus.done);
+    });
+
+    Future<void> pickMusicTab(WidgetTester tester, String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SegmentedControl<MusicTab>),
+          matching: find.text(label),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Kind shows only with Music chosen', (tester) async {
+      await pumpApp(tester, const LibraryHomeScreen());
+      await openSheet(tester);
+      expect(find.text('KIND'), findsNothing);
+      await tester.tap(sheetChip('Music'));
+      await tester.pumpAndSettle();
+      expect(find.text('KIND'), findsOneWidget);
+      await tester.tap(sheetChip('Songs'));
+      await tester.tap(sheetChip('Music'));
+      await tester.pumpAndSettle();
+      expect(find.text('KIND'), findsNothing);
+      // Unticking Music drops Songs too: nothing is chosen.
+      final all = fixture.entries.where((e) => !e.seasonalOnly).length;
+      expect(find.text('Show $all entries'), findsOneWidget);
+    });
+
+    testWidgets('the music tab and the kind follow each other', (tester) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Music');
+
+      // Artists: Music only, no kind.
+      await openSheet(tester);
+      expect(selected(tester, 'Music'), isTrue);
+      expect(selected(tester, 'Albums'), isFalse);
+      expect(selected(tester, 'Songs'), isFalse);
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      // Songs: Music + Songs, and back again lands on Songs (A23).
+      await pickMusicTab(tester, 'Songs');
+      await openSheet(tester);
+      expect(selected(tester, 'Songs'), isTrue);
+      expect(selected(tester, 'Albums'), isFalse);
+      expect(find.text('Show 2 songs'), findsOneWidget);
+      await tester.tap(sheetChip('Songs'));
+      await tester.tap(sheetChip('Albums'));
+      await tester.pumpAndSettle();
+      await show(tester);
+
+      // Music + Albums is the Albums tab, not results (A24).
+      expect(container.read(libraryFilterProvider).isActive, isFalse);
+      expect(container.read(homeTypeProvider), MediaType.music);
+      expect(container.read(homeMusicTabProvider), MusicTab.albums);
+
+      // Music alone goes to Artists.
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(const LibraryFilter(types: {MediaType.music}));
+      await tester.pumpAndSettle();
+      expect(container.read(homeMusicTabProvider), MusicTab.artists);
+    });
+
+    testWidgets('Music with both kinds is results', (tester) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(
+            const LibraryFilter(
+              types: {MediaType.music},
+              kinds: {MusicKind.album, MusicKind.song},
+            ),
+          );
+      await tester.pumpAndSettle();
+      expect(container.read(libraryFilterProvider).isActive, isTrue);
+      expect(find.text('Albums'), findsOneWidget); // Its removable chip.
+    });
+
+    testWidgets('music with a status is results: music has no segments', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      container
+          .read(libraryFilterProvider.notifier)
+          .set(
+            const LibraryFilter(
+              types: {MediaType.music},
+              statuses: {EntryStatus.done},
+            ),
+          );
+      await tester.pumpAndSettle();
+      expect(container.read(libraryFilterProvider).isActive, isTrue);
+      expect(container.read(homeTypeProvider), MediaType.music);
+    });
+
+    testWidgets('dropping the type in the sheet takes the home to All', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Movies');
+      await openSheet(tester);
+      await tester.tap(sheetChip('Movies'));
+      await tester.tap(sheetChip('Want'));
+      await tester.pumpAndSettle();
+      await show(tester);
+      expect(container.read(homeTypeProvider), isNull);
+      container.read(libraryFilterProvider.notifier).clear();
+      await tester.pumpAndSettle();
+      expect(find.text('Search titles and tags'), findsOneWidget);
+    });
+
+    testWidgets('Clear all clears the type and the status too', (tester) async {
+      final container = await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Shows');
+      // Five segments scroll sideways at 360 dp.
+      await tester.ensureVisible(inSegments('Done'));
+      await tester.tap(inSegments('Done'));
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+      await tester.tap(sheetChip('Want'));
+      await tester.pumpAndSettle();
+      await show(tester);
+      await tester.tap(find.text('Clear all'));
+      await tester.pumpAndSettle();
+      expect(container.read(libraryFilterProvider).isActive, isFalse);
+      expect(container.read(homeTypeProvider), isNull);
+      expect(container.read(homeStatusProvider), isNull);
+    });
   });
 
   testWidgets('a filter with no matches spells itself out (A10)', (

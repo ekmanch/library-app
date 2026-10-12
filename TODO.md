@@ -29,7 +29,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] A20, A21 List with covers and grid with covers (placeholder images)
 - [x] View menu (as A16) and remembering the view per type
 - [x] A2 Filter sheet: type, status, released, tags in collapsible groups, "Include seasonal-only" switch
-- [x] A3 Filtered results with removable chips
+- [x] L5, L6 Filtered results with removable chips
 - [x] A5 Search
 - [x] A10 Empty states
 - [x] L1, L2, L3 Long lists: section headers (decade, month added, letter) with a jump rail on the right in the text and list views, shown when the list is three screens tall or more and has two sections or more
@@ -73,7 +73,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 ### 1f. Settings and states
 - [x] S6 Settings: theme, accent color (Vivid and Pastel groups), timeline default, seasonal theme default, About row (name and version); also the default game platform from the canvas, used by A8
 - [x] D6 Library connection (UI only)
-- [x] F1 to F7 First run (UI only): splash, welcome, connect GitHub, new or existing library file, create, pick, all set (replaces A11)
+- [x] F1 to F7 First run (UI only): splash, welcome, connect GitHub, new or existing library file, create, pick, all set (replaces the old first-time setup artboard)
 - [x] A12 Sync and error banners, D7 First load (driven by fake states)
 - [x] D8 Light theme pass over every screen (every screen is captured in light by `screenshots_test.dart`; a reviewer compared them and the banners, the inset status segments and the type-chip dots were fixed)
 
@@ -85,6 +85,9 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] Reconsider the "See all" link: it jumps to a different screen (A4) and that was not intuitive. A clearer label or a different affordance. (Resolved by the canvas revision of 2026-10-10: the type view is the home with a chip picked.)
 - [x] Accessibility pass: contrast, touch targets, screen reader labels, large font scale (`test/accessibility/a11y_audit_test.dart` walks every screen in dark, light and at 1.3; 48 dp targets, AA inks and type colors except Movies by decision)
 - [x] Widget tests for filtering, sorting, the similar-tag check and the replace dialogs
+- [x] The filter sheet and the home stay in sync: the sheet opens with the picked type and status segment, and one type plus at most one status shows as the type view (A2)
+- [x] Movies and music have no In progress status; the filter sheet's status chips follow the chosen types
+- [x] Kind filter (Albums, Songs) for music in the filter sheet; Music + one kind is that Music tab (A23, A24), and the sheet opens with the picked tab's kind (A3)
 
 ## Phase 2: Local data
 
@@ -98,7 +101,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
 
 - [ ] On a feature branch in `ekmanch/library`, reverse the pre-commit hook so JSON is the source and Markdown is generated from it
-- [ ] Script that converts today's `library.json` (v1) to v2: flat entries, `dropped` becomes `dnf`, `year` becomes `released`, "Compilations" becomes "Various Artists", plan rows become `want` entries tagged with their season, seasonal favorites merge into entries
+- [ ] Script that converts today's `library.json` (v1) to v2: flat entries, `dropped` becomes `dnf`, `year` becomes `released`, "Compilations" becomes "Various Artists", plan rows become `want` entries tagged with their season, seasonal favorites merge into entries, in-progress movies and albums become `want`
 - [ ] The migration script writes the file in the app's canonical encoding (see DESIGN.md section 8), so the app's first save is not a full rewrite
 - [ ] Check the id scheme for books, games, shows and anime against today's ids before migrating
 - [ ] Generate the Markdown files and PDFs from the JSON (GitHub Action), instead of the other way around

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
-import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/models/track.dart';
 import 'package:library_app/data/operations/operations.dart';
@@ -23,32 +22,41 @@ void main() {
     expect(UpdateEntry(mummy.copyWith(id: 'nope')).apply(library), library);
   });
 
-  test('music cannot be set to DNF, and a song not to In progress', () {
+  test('movies and music are never In progress, and music never DNF', () {
+    expect(EntryStatus.optionsFor(MediaType.movies), [
+      EntryStatus.want,
+      EntryStatus.done,
+      EntryStatus.dnf,
+    ]);
     expect(EntryStatus.optionsFor(MediaType.music), [
       EntryStatus.want,
-      EntryStatus.inProgress,
       EntryStatus.done,
     ]);
-    expect(EntryStatus.optionsFor(MediaType.music, kind: MusicKind.song), [
-      EntryStatus.want,
-      EntryStatus.done,
-    ]);
-    expect(EntryStatus.optionsFor(MediaType.movies), EntryStatus.values);
+    for (final type in [
+      MediaType.shows,
+      MediaType.books,
+      MediaType.games,
+      MediaType.anime,
+    ]) {
+      expect(EntryStatus.optionsFor(type), EntryStatus.values);
+    }
     expect(
       () => SetStatus(dirt.id, EntryStatus.dnf).apply(sampleLibrary()),
       throwsArgumentError,
     );
-    final song = dirt.copyWith(kind: MusicKind.song, tracks: null);
-    final withSong = sampleLibrary().copyWith(entries: [mummy, song]);
     expect(
-      () => SetStatus(song.id, EntryStatus.inProgress).apply(withSong),
+      () => SetStatus(dirt.id, EntryStatus.inProgress).apply(sampleLibrary()),
       throwsArgumentError,
     );
-    final album = SetStatus(
-      dirt.id,
-      EntryStatus.inProgress,
-    ).apply(sampleLibrary()).entryById(dirt.id)!;
-    expect(album.status, EntryStatus.inProgress);
+    expect(
+      () => SetStatus(mummy.id, EntryStatus.inProgress).apply(sampleLibrary()),
+      throwsArgumentError,
+    );
+    final movie = SetStatus(
+      mummy.id,
+      EntryStatus.dnf,
+    ).apply(sampleLibrary()).entryById(mummy.id)!;
+    expect(movie.status, EntryStatus.dnf);
   });
 
   test('SetRating sets and clears', () {

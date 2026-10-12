@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 import '../../data/models/media_type.dart';
+import '../../data/models/music_kind.dart';
 import '../../widgets/labels.dart';
 
 /// A release decade in the filter sheet: "Older" for everything before
@@ -65,14 +66,16 @@ class Decade implements Comparable<Decade> {
   String toString() => label;
 }
 
-/// The filter sheet's choices (A2). Within type, status and released any
-/// choice matches; every chosen tag must be on the entry. Seasonal-only
-/// entries are hidden unless [includeSeasonalOnly] is on.
+/// The filter sheet's choices (A2). Within type, status, kind and released
+/// any choice matches; every chosen tag must be on the entry. Kind (albums,
+/// songs) only narrows music. Seasonal-only entries are hidden unless
+/// [includeSeasonalOnly] is on.
 @immutable
 class LibraryFilter {
   const LibraryFilter({
     this.types = const {},
     this.statuses = const {},
+    this.kinds = const {},
     this.decades = const {},
     this.tags = const {},
     this.includeSeasonalOnly = false,
@@ -80,6 +83,7 @@ class LibraryFilter {
 
   final Set<MediaType> types;
   final Set<EntryStatus> statuses;
+  final Set<MusicKind> kinds;
   final Set<Decade> decades;
   final Set<String> tags;
   final bool includeSeasonalOnly;
@@ -90,6 +94,7 @@ class LibraryFilter {
   bool get isEmpty =>
       types.isEmpty &&
       statuses.isEmpty &&
+      kinds.isEmpty &&
       decades.isEmpty &&
       tags.isEmpty &&
       !includeSeasonalOnly;
@@ -103,6 +108,7 @@ class LibraryFilter {
         ? parts.join()
         : '${parts.sublist(0, parts.length - 1).join(', ')} $word ${parts.last}';
     String plural(MediaType t) => switch (t) {
+      MediaType.music when kinds.length == 1 => kinds.single.plural,
       MediaType.music => 'albums or songs',
       _ => t.label.toLowerCase(),
     };
@@ -144,21 +150,52 @@ class LibraryFilter {
     return 'No $subject are $what. $tail';
   }
 
-  /// The type when a single type is the only filter. That is not a results
-  /// screen: the home shows that type's view instead (the L6 note).
-  MediaType? get onlyType =>
-      types.length == 1 &&
-          statuses.isEmpty &&
-          decades.isEmpty &&
-          tags.isEmpty &&
-          !includeSeasonalOnly
-      ? types.single
-      : null;
+  /// The type view that shows this filter, when the home's chips can: one
+  /// type and at most one status, nothing else (A11). For music the kind
+  /// plays the status segment's part: at most one kind and no status, so
+  /// Music + Songs is the Songs tab (A23) and Music + Albums the Albums tab
+  /// (A24). That is not a results screen.
+  TypeView? get typeView {
+    if (types.length != 1 ||
+        decades.isNotEmpty ||
+        tags.isNotEmpty ||
+        includeSeasonalOnly) {
+      return null;
+    }
+    final type = types.single;
+    if (type == MediaType.music) {
+      if (statuses.isNotEmpty || kinds.length > 1) return null;
+      return (type: type, status: null, kind: kinds.firstOrNull);
+    }
+    if (statuses.length > 1) return null;
+    return (type: type, status: statuses.firstOrNull, kind: null);
+  }
+
+  /// What the home's type view shows, as a filter: the sheet opens with it.
+  static LibraryFilter ofTypeView(
+    MediaType? type, {
+    EntryStatus? status,
+    MusicKind? kind,
+  }) => LibraryFilter(types: {?type}, statuses: {?status}, kinds: {?kind});
+
+  /// The Kind group shows only with music chosen.
+  bool get offersKind => types.contains(MediaType.music);
+
+  /// The status chips for the chosen types: no In progress when only movies
+  /// and music are chosen, no DNF when only music is. All of them with no
+  /// type chosen.
+  List<EntryStatus> get statusOptions => types.isEmpty
+      ? EntryStatus.values
+      : [
+          for (final s in EntryStatus.values)
+            if (types.any((t) => EntryStatus.optionsFor(t).contains(s))) s,
+        ];
 
   /// Number shown on the filter button badge.
   int get count =>
       types.length +
       statuses.length +
+      kinds.length +
       decades.length +
       tags.length +
       (includeSeasonalOnly ? 1 : 0);
@@ -167,6 +204,11 @@ class LibraryFilter {
     if (entry.seasonalOnly && !includeSeasonalOnly) return false;
     if (types.isNotEmpty && !types.contains(entry.type)) return false;
     if (statuses.isNotEmpty && !statuses.contains(entry.status)) return false;
+    if (kinds.isNotEmpty &&
+        entry.type == MediaType.music &&
+        !kinds.contains(entry.kind ?? MusicKind.album)) {
+      return false;
+    }
     if (decades.isNotEmpty && !decades.contains(Decade.of(entry.year))) {
       return false;
     }
@@ -178,12 +220,14 @@ class LibraryFilter {
   LibraryFilter copyWith({
     Set<MediaType>? types,
     Set<EntryStatus>? statuses,
+    Set<MusicKind>? kinds,
     Set<Decade>? decades,
     Set<String>? tags,
     bool? includeSeasonalOnly,
   }) => LibraryFilter(
     types: types ?? this.types,
     statuses: statuses ?? this.statuses,
+    kinds: kinds ?? this.kinds,
     decades: decades ?? this.decades,
     tags: tags ?? this.tags,
     includeSeasonalOnly: includeSeasonalOnly ?? this.includeSeasonalOnly,
@@ -192,20 +236,33 @@ class LibraryFilter {
   static Set<T> _toggled<T>(Set<T> set, T value) =>
       set.contains(value) ? (set.toSet()..remove(value)) : {...set, value};
 
-  LibraryFilter toggleType(MediaType t) => copyWith(types: _toggled(types, t));
+  /// Toggles a type and drops any chosen status the types can no longer
+  /// have, and the kind without music, so a hidden chip never filters.
+  LibraryFilter toggleType(MediaType t) {
+    final next = copyWith(types: _toggled(types, t));
+    final options = next.statusOptions;
+    return next.copyWith(
+      statuses: statuses.where(options.contains).toSet(),
+      kinds: next.offersKind ? kinds : const {},
+    );
+  }
+
   LibraryFilter toggleStatus(EntryStatus s) =>
       copyWith(statuses: _toggled(statuses, s));
+  LibraryFilter toggleKind(MusicKind k) => copyWith(kinds: _toggled(kinds, k));
   LibraryFilter toggleDecade(Decade d) =>
       copyWith(decades: _toggled(decades, d));
   LibraryFilter toggleTag(String tag) => copyWith(tags: _toggled(tags, tag));
 
-  /// The removable chips of A3, in sheet order.
+  /// The removable chips of L5 and L6, in sheet order.
   List<ActiveFilterChip> get chips => [
     for (final t in MediaType.values)
       if (types.contains(t)) ActiveFilterChip(t.label, (f) => f.toggleType(t)),
     for (final s in EntryStatus.values)
       if (statuses.contains(s))
         ActiveFilterChip(s.label, (f) => f.toggleStatus(s)),
+    for (final k in MusicKind.values)
+      if (kinds.contains(k)) ActiveFilterChip(k.label, (f) => f.toggleKind(k)),
     for (final d in decades.toList()..sort())
       ActiveFilterChip(d.label, (f) => f.toggleDecade(d)),
     for (final tag in tags) ActiveFilterChip('#$tag', (f) => f.toggleTag(tag)),
@@ -221,6 +278,7 @@ class LibraryFilter {
       other is LibraryFilter &&
       setEquals(other.types, types) &&
       setEquals(other.statuses, statuses) &&
+      setEquals(other.kinds, kinds) &&
       setEquals(other.decades, decades) &&
       setEquals(other.tags, tags) &&
       other.includeSeasonalOnly == includeSeasonalOnly;
@@ -229,11 +287,16 @@ class LibraryFilter {
   int get hashCode => Object.hash(
     Object.hashAllUnordered(types),
     Object.hashAllUnordered(statuses),
+    Object.hashAllUnordered(kinds),
     Object.hashAllUnordered(decades),
     Object.hashAllUnordered(tags),
     includeSeasonalOnly,
   );
 }
+
+/// The home's type view: the picked type, its status segment and, for
+/// music, the Albums or Songs tab (null kind is the Artists tab).
+typedef TypeView = ({MediaType type, EntryStatus? status, MusicKind? kind});
 
 /// One active filter and how to remove it.
 class ActiveFilterChip {
