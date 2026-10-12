@@ -10,4 +10,9 @@ abstract class LibraryOperation {
   const LibraryOperation();
 
   Library apply(Library library);
+
+  /// A short, readable account of the change in the imperative, such as
+  /// "Mark The Mummy as done": the commit message when saving to GitHub.
+  /// [before] is the library the operation is applied to, for the titles.
+  String summary(Library before);
 }

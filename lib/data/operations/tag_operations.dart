@@ -20,4 +20,7 @@ class AddTag extends LibraryOperation {
     tags.putIfAbsent(category, () => []).add(name);
     return library.copyWith(tags: tags);
   }
+
+  @override
+  String summary(Library before) => 'Add the tag #$name';
 }

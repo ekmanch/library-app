@@ -36,8 +36,7 @@ List<SetPlanStarted> dueStarts(Library library, {DateTime? today}) => [
 int doneCount(Plan plan) => plan.items.where((i) => i.done).length;
 
 /// "Halloween 2026", or just the name when there is no year.
-String planTitle(Plan plan) =>
-    plan.year == null ? plan.name : '${plan.name} ${plan.year}';
+String planTitle(Plan plan) => plan.title;
 
 /// The plan shown on the library home card: the first active one.
 Plan? activePlan(Library library, {DateTime? today}) {

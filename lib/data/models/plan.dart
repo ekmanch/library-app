@@ -39,6 +39,9 @@ abstract class Plan with _$Plan {
     return first;
   }
 
+  /// The name with the year, as the UI shows it: "Halloween 2026".
+  String get title => year == null ? name : '$name $year';
+
   PlanItem? itemFor(String entryId) {
     for (final item in items) {
       if (item.entry == entryId) return item;

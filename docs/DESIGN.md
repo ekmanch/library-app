@@ -286,6 +286,7 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - The A12 banner sits under the title on both top-level screens, Library and Plans, so a failed save is seen wherever you are.
 - Until phase 4, Disconnect in D6 goes straight back to the splash (F1); a confirmation comes with the real token handling.
 - "Replace token" in D6 opens the Connect GitHub step (F3) on its own, with a Save token button and no step label.
+- Every operation has a one-line summary in the imperative ("Mark The Mummy as done", "Tick The Mummy in Halloween 2026"), for the commit messages of phase 4.
 - The About version comes from `lib/app_info.dart`, kept equal to pubspec.yaml by a test, until a package reads it from the build.
 
 ## 11. Visual design

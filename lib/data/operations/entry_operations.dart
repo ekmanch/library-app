@@ -5,6 +5,18 @@ import '../models/library.dart';
 import '../models/track.dart';
 import 'library_operation.dart';
 
+/// The entry's title for a summary, or its id when it is gone.
+String _title(Library library, String entryId) =>
+    library.entryById(entryId)?.title ?? entryId;
+
+/// Mid-sentence status words: "want", "in progress", "done", "DNF".
+String _statusWord(EntryStatus status) => switch (status) {
+  EntryStatus.want => 'want',
+  EntryStatus.inProgress => 'in progress',
+  EntryStatus.done => 'done',
+  EntryStatus.dnf => 'DNF',
+};
+
 /// Replaces the entry with the same id in place. Missing: unchanged.
 Library _replaceEntry(Library library, Entry entry) {
   final index = library.entries.indexWhere((e) => e.id == entry.id);
@@ -33,6 +45,10 @@ class SetStatus extends LibraryOperation {
     }
     return _replaceEntry(library, entry.copyWith(status: status));
   }
+
+  @override
+  String summary(Library before) =>
+      'Mark ${_title(before, entryId)} as ${_statusWord(status)}';
 }
 
 class SetRating extends LibraryOperation {
@@ -50,6 +66,11 @@ class SetRating extends LibraryOperation {
     if (entry == null) return library;
     return _replaceEntry(library, entry.copyWith(rating: rating));
   }
+
+  @override
+  String summary(Library before) => rating == null
+      ? 'Clear the rating of ${_title(before, entryId)}'
+      : 'Rate ${_title(before, entryId)} $rating of 10';
 }
 
 /// Appends an entry. The caller builds the id with [EntryId.generate]; if
@@ -71,6 +92,9 @@ class AddEntry extends LibraryOperation {
       ],
     );
   }
+
+  @override
+  String summary(Library before) => 'Add ${entry.title}';
 }
 
 /// Replaces an entry in place, keeping its id and position.
@@ -84,6 +108,9 @@ class UpdateEntry extends LibraryOperation {
     if (library.entryById(entry.id) == null) return library;
     return _replaceEntry(library, entry).withUnusedTagsRemoved();
   }
+
+  @override
+  String summary(Library before) => 'Edit ${entry.title}';
 }
 
 /// Removes an entry everywhere: from the list and from every plan.
@@ -107,6 +134,9 @@ class DeleteEntry extends LibraryOperation {
         )
         .withUnusedTagsRemoved();
   }
+
+  @override
+  String summary(Library before) => 'Delete ${_title(before, entryId)}';
 }
 
 bool _sameTrack(Track a, Track b) =>
@@ -136,6 +166,10 @@ class RateTrack extends LibraryOperation {
     }
     return _replaceEntry(library, entry.copyWith(tracks: tracks));
   }
+
+  @override
+  String summary(Library before) =>
+      'Rate ${track.title} on ${_title(before, entryId)} ${track.rating} of 10';
 }
 
 /// Removes a track's rating. When no rated tracks remain the `tracks` field
@@ -158,5 +192,19 @@ class ClearTrackRating extends LibraryOperation {
       library,
       entry.copyWith(tracks: tracks.isEmpty ? null : tracks),
     );
+  }
+
+  @override
+  String summary(Library before) {
+    var name = title;
+    if (trackId != null) {
+      for (final track in before.entryById(entryId)?.tracks ?? const []) {
+        if (track.id == trackId) name = track.title;
+      }
+    }
+    final album = _title(before, entryId);
+    return name == null || name.isEmpty
+        ? 'Clear a track rating on $album'
+        : 'Clear the rating of $name on $album';
   }
 }

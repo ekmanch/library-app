@@ -84,4 +84,58 @@ void main() {
       library,
     );
   });
+  test('plan operations summarize themselves', () {
+    final library = sampleLibrary();
+    final item = halloweenPlan.items.single;
+    expect(
+      AddPlan(halloweenPlan.copyWith(year: 2027)).summary(library),
+      'Add the plan Halloween 2027',
+    );
+    expect(
+      UpdatePlan(halloweenPlan).summary(library),
+      'Edit the plan Halloween 2026',
+    );
+    expect(
+      const DeletePlan('christmas-2026').summary(library),
+      'Delete the plan Christmas',
+    );
+    expect(
+      SetPlanItem('christmas-2026', PlanItem(entry: dirt.id)).summary(library),
+      'Add Dirt to Christmas',
+    );
+    expect(
+      SetPlanItem(halloweenPlan.id, item.copyWith(done: true)).summary(library),
+      'Tick The Mummy in Halloween 2026',
+    );
+    expect(
+      SetPlanItem(
+        halloweenPlan.id,
+        item.copyWith(note: 'With popcorn'),
+      ).summary(library),
+      'Edit the note on The Mummy in Halloween 2026',
+    );
+    expect(
+      SetPlanItem(halloweenPlan.id, item.copyWith(when: null)).summary(library),
+      'Clear the date of The Mummy in Halloween 2026',
+    );
+    expect(
+      SetPlanItem(
+        halloweenPlan.id,
+        item.copyWith(done: true, note: 'x'),
+      ).summary(library),
+      'Edit The Mummy in Halloween 2026',
+    );
+    expect(
+      RemovePlanItem(halloweenPlan.id, mummy.id).summary(library),
+      'Remove The Mummy from Halloween 2026',
+    );
+    expect(
+      const SetPlanStarted('christmas-2026', true).summary(library),
+      'Start Christmas',
+    );
+    expect(
+      const AddTag('cozy', TagCategory.mood).summary(library),
+      'Add the tag #cozy',
+    );
+  });
 }

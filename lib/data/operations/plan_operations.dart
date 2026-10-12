@@ -4,6 +4,13 @@ import '../models/plan.dart';
 import '../models/plan_item.dart';
 import 'library_operation.dart';
 
+/// The plan's title for a summary, or its id when it is gone.
+String _planTitle(Library library, String planId) =>
+    library.planById(planId)?.title ?? planId;
+
+String _entryTitle(Library library, String entryId) =>
+    library.entryById(entryId)?.title ?? entryId;
+
 Library _replacePlan(Library library, Plan plan) {
   final index = library.plans.indexWhere((p) => p.id == plan.id);
   if (index < 0) return library;
@@ -28,6 +35,9 @@ class AddPlan extends LibraryOperation {
       ],
     );
   }
+
+  @override
+  String summary(Library before) => 'Add the plan ${plan.title}';
 }
 
 /// Replaces a plan in place, keeping its id and position.
@@ -41,6 +51,9 @@ class UpdatePlan extends LibraryOperation {
     if (library.planById(plan.id) == null) return library;
     return _replacePlan(library, plan).withUnusedTagsRemoved();
   }
+
+  @override
+  String summary(Library before) => 'Edit the plan ${plan.title}';
 }
 
 class DeletePlan extends LibraryOperation {
@@ -55,6 +68,10 @@ class DeletePlan extends LibraryOperation {
         .copyWith(plans: library.plans.where((p) => p.id != planId).toList())
         .withUnusedTagsRemoved();
   }
+
+  @override
+  String summary(Library before) =>
+      'Delete the plan ${_planTitle(before, planId)}';
 }
 
 /// Adds an item to a plan, or replaces the item for the same entry in place.
@@ -77,6 +94,29 @@ class SetPlanItem extends LibraryOperation {
     }
     return _replacePlan(library, plan.copyWith(items: items));
   }
+
+  /// Names the one thing that changed when it can: adding, ticking, the
+  /// note or the date.
+  @override
+  String summary(Library before) {
+    final title = _entryTitle(before, item.entry);
+    final plan = _planTitle(before, planId);
+    final old = before.planById(planId)?.itemFor(item.entry);
+    if (old == null) return 'Add $title to $plan';
+    final changed = old.copyWith(done: item.done);
+    if (old.done != item.done && changed == item) {
+      return item.done ? 'Tick $title in $plan' : 'Untick $title in $plan';
+    }
+    if (old.copyWith(note: item.note) == item) {
+      return 'Edit the note on $title in $plan';
+    }
+    if (old.copyWith(when: item.when) == item) {
+      return item.when == null
+          ? 'Clear the date of $title in $plan'
+          : 'Set the date of $title in $plan';
+    }
+    return 'Edit $title in $plan';
+  }
 }
 
 /// Removes an entry from one plan. The entry itself stays.
@@ -97,6 +137,10 @@ class RemovePlanItem extends LibraryOperation {
       ),
     );
   }
+
+  @override
+  String summary(Library before) =>
+      'Remove ${_entryTitle(before, entryId)} from ${_planTitle(before, planId)}';
 }
 
 /// Turns a plan's Started switch on or off (S9). The app also turns it on
@@ -113,4 +157,9 @@ class SetPlanStarted extends LibraryOperation {
     if (plan == null || plan.started == started) return library;
     return _replacePlan(library, plan.copyWith(started: started));
   }
+
+  @override
+  String summary(Library before) => started
+      ? 'Start ${_planTitle(before, planId)}'
+      : 'Mark ${_planTitle(before, planId)} as not started';
 }

@@ -154,4 +154,34 @@ void main() {
       expect(one.entryById(dirt.id)!.tracks!.single.title, 'Rooster');
     });
   });
+  test('entry operations summarize themselves', () {
+    final library = sampleLibrary();
+    expect(
+      SetStatus(mummy.id, EntryStatus.done).summary(library),
+      'Mark The Mummy as done',
+    );
+    expect(
+      SetStatus(mummy.id, EntryStatus.dnf).summary(library),
+      'Mark The Mummy as DNF',
+    );
+    expect(SetRating(mummy.id, 8).summary(library), 'Rate The Mummy 8 of 10');
+    expect(
+      SetRating(mummy.id, null).summary(library),
+      'Clear the rating of The Mummy',
+    );
+    expect(AddEntry(mummy).summary(library), 'Add The Mummy');
+    expect(UpdateEntry(mummy).summary(library), 'Edit The Mummy');
+    expect(DeleteEntry(dirt.id).summary(library), 'Delete Dirt');
+    expect(
+      RateTrack(
+        dirt.id,
+        const Track(title: 'Rooster', rating: 9),
+      ).summary(library),
+      'Rate Rooster on Dirt 9 of 10',
+    );
+    expect(
+      ClearTrackRating(dirt.id, trackId: 'mb:1').summary(library),
+      'Clear the rating of Rooster on Dirt',
+    );
+  });
 }
