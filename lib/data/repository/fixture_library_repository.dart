@@ -39,7 +39,9 @@ class FixtureLibraryRepository implements LibraryRepository {
 
   @override
   Future<Library> apply(LibraryOperation operation) async {
-    final next = operation.apply(await load());
+    await load();
+    // Read after the await: another change may have landed meanwhile.
+    final next = operation.apply(_library!);
     _library = next;
     _changes.add(next);
     return next;
