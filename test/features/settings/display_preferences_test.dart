@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/preferences/preferences_store.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/features/library/library_sort.dart';
+import 'package:library_app/features/music/music_tab.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
+import 'package:library_app/features/settings/entry_view.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/theme/app_theme.dart';
 
@@ -54,5 +59,65 @@ void main() {
     expect(prefs.themeMode, ThemeMode.dark);
     expect(prefs.accent, Accents.hotPink);
     expect(prefs.copyWith(themeMode: ThemeMode.light).accent, Accents.hotPink);
+  });
+  final changed = DisplayPreferences(
+    themeMode: ThemeMode.light,
+    accent: Accents.pastel.first,
+    viewByType: const {MediaType.movies: EntryView.grid},
+    musicViewByTab: const {MusicTab.songs: EntryView.listWithPhotos},
+    sortByType: const {MediaType.books: LibrarySort.titleAz},
+    filteredSort: LibrarySort.yearNewest,
+    artistSort: LibrarySort.titleAz,
+    timelineDefault: true,
+    seasonalThemeDefault: false,
+    defaultPlatform: null,
+  );
+
+  test('preferences survive the stored form', () {
+    expect(DisplayPreferences.fromJson(changed.toJson()), changed);
+    expect(
+      DisplayPreferences.fromJson(const DisplayPreferences().toJson()),
+      const DisplayPreferences(),
+    );
+    expect(DisplayPreferences.fromJson(const {}), const DisplayPreferences());
+  });
+
+  test('unknown or broken values fall back to the defaults', () {
+    final prefs = DisplayPreferences.fromJson(const {
+      'theme': 'sepia',
+      'accent': 'vivid/Plaid',
+      'view': {'movies': 'carousel', 'podcasts': 'grid', 'books': 'grid'},
+      'sort': 'titleAz',
+      'timeline_default': 'yes',
+      'default_platform': 5,
+    });
+    expect(prefs.themeMode, ThemeMode.dark);
+    expect(prefs.accent, Accents.hotPink);
+    expect(prefs.viewByType, {MediaType.books: EntryView.grid});
+    expect(prefs.sortByType, isEmpty);
+    expect(prefs.timelineDefault, isFalse);
+    expect(prefs.defaultPlatform, isNull);
+  });
+
+  test('every change is saved to the store; the start values are not', () {
+    final store = MemoryPreferencesStore();
+    final container = ProviderContainer(
+      overrides: [
+        preferencesStoreProvider.overrideWithValue(store),
+        initialDisplayPreferencesProvider.overrideWithValue(changed),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(displayPreferencesProvider.notifier);
+    expect(container.read(displayPreferencesProvider), changed);
+    expect(store.saved, isEmpty);
+
+    notifier.setView(MediaType.games, EntryView.listWithPhotos);
+    expect(
+      DisplayPreferences.fromJson(store.saved).viewFor(MediaType.games),
+      EntryView.listWithPhotos,
+    );
+    notifier.setThemeMode(ThemeMode.dark);
+    expect(store.saved['theme'], 'dark');
   });
 }

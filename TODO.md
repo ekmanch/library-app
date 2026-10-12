@@ -92,9 +92,9 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 ## Phase 2: Local data
 
-- [ ] Persist the library to a local file through a `LocalLibraryRepository`, so changes survive a restart
+- [x] Persist the library to a local file through a `LocalLibraryRepository`, so changes survive a restart (`library.json` in the app documents directory, seeded from the fixture on a new install; `LONG_LISTS` stays in memory)
 - [x] Operations layer: every change is a small named operation with a human-readable summary (`LibraryOperation.summary`, e.g. "Mark The Mummy as done")
-- [ ] Store display preferences on the device
+- [x] Store display preferences on the device (`preferences.json` behind `PreferencesStore`, never synced)
 - [x] Rewatch detection: adding a Done entry to a plan marks the plan item as a repeat (done in A7, phase 1c)
 
 ### 2a. Differences found by the phase 2 capture review
