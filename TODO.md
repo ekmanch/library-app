@@ -97,6 +97,16 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [ ] Store display preferences on the device
 - [x] Rewatch detection: adding a Done entry to a plan marks the plan item as a repeat (done in A7, phase 1c)
 
+### 2a. Differences found by the phase 2 capture review
+
+Phase 2 changed no UI; a reviewer compared every capture with its artboard and found these older differences. Some may already be settled by the phase 1g walkthrough; check before fixing.
+
+- [ ] D6 and S6: the values in the setting rows (Repository, Data file, Access token, Library source, Version) sit mid-row; the artboards put them flush right
+- [ ] S2: the timeline card's type label sits above the title even at text scale 1.0 on a 360 dp phone (the narrow threshold in `plan_screen.dart` is always hit); DESIGN.md 10a allows this only at a large text size
+- [ ] A22, S7, S8: the album details and the plan entry sheets have no cover spot, unlike the artboards and A6; A6 at text scale 1.3 hides it too
+- [ ] F3: "How do I create a token?" looks disabled (dim grey); the artboard draws it in the normal foreground
+- [ ] Minor: the A1 card's "X of Y done" sits on the title row, not the ACTIVE PLAN row; the A13 match subtitles and A18 artist names cut to one line instead of two; the A21 Done badge colors are inverted and a one-line title leaves a gap above the year; A19 count and sort are on two rows; the A10 icon is the filter sliders, not the magnifier; the A8 creator field cuts its text with no ellipsis; the L5 "Clear all" wraps; the S4 action row wraps; the S5 Not started row says "Linked to #christmas" instead of "4 entries · starts Dec 1"; the L3 letter rail is packed into the middle
+
 ## Phase 3: Migrating the data repo
 
 Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
