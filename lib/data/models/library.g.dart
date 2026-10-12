@@ -36,11 +36,12 @@ Map<String, dynamic> _$LibraryToJson(_Library instance) => <String, dynamic>{
 };
 
 const _$TagCategoryEnumMap = {
-  TagCategory.genre: 'Genre',
-  TagCategory.animationStyle: 'Animation style',
-  TagCategory.gameGenre: 'Game genre',
+  TagCategory.genre: 'Genres',
+  TagCategory.gameGenre: 'Game genres',
+  TagCategory.musicGenre: 'Music genres',
   TagCategory.mood: 'Mood',
   TagCategory.season: 'Season',
   TagCategory.creators: 'Creators',
+  TagCategory.animationStyle: 'Animation style',
   TagCategory.other: 'Other',
 };

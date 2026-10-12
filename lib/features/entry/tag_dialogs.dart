@@ -66,15 +66,7 @@ Future<SimilarTagChoice?> showSimilarTagDialog(
 }
 
 /// The order of the category chips in D10.
-const newTagCategories = [
-  TagCategory.genre,
-  TagCategory.mood,
-  TagCategory.season,
-  TagCategory.creators,
-  TagCategory.gameGenre,
-  TagCategory.animationStyle,
-  TagCategory.other,
-];
+const newTagCategories = TagCategory.values;
 
 /// D10: confirm a new tag and pick its category. Null means cancel.
 Future<TagCategory?> showNewTagDialog(

@@ -70,12 +70,13 @@ extension MusicKindLabel on MusicKind {
 
 extension TagCategoryLabel on TagCategory {
   String get label => switch (this) {
-    TagCategory.genre => 'Genre',
-    TagCategory.animationStyle => 'Animation style',
-    TagCategory.gameGenre => 'Game genre',
+    TagCategory.genre => 'Genres',
+    TagCategory.gameGenre => 'Game genres',
+    TagCategory.musicGenre => 'Music genres',
     TagCategory.mood => 'Mood',
     TagCategory.season => 'Season',
     TagCategory.creators => 'Creators',
+    TagCategory.animationStyle => 'Animation style',
     TagCategory.other => 'Other',
   };
 }

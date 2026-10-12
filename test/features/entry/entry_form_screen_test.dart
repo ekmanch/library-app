@@ -9,6 +9,7 @@ import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/released.dart';
 import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/features/entry/tag_picker_sheet.dart';
 import 'package:library_app/features/entry/entry_form_screen.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/entry/lookup_matches.dart';
@@ -258,7 +259,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Create a new tag?'), findsOneWidget);
       expect(
-        find.text('It will be added to your tag list under Game genre.'),
+        find.text('It will be added to your tag list under Game genres.'),
         findsOneWidget,
       );
       await tester.tap(find.text('Create tag'));
@@ -377,7 +378,7 @@ void main() {
     testWidgets('picks existing tags from their groups', (tester) async {
       final container = await openPicker(tester);
       // Every category is open (D14).
-      expect(find.text('GENRE'), findsOneWidget);
+      expect(find.text('GENRES'), findsOneWidget);
       expect(find.text('MOOD'), findsOneWidget);
       await tester.tap(find.widgetWithText(PillChip, '#horror'));
       await tester.ensureVisible(find.widgetWithText(PillChip, '#dark'));
@@ -388,6 +389,25 @@ void main() {
       expect(find.text('#dark'), findsOneWidget);
       await add(tester);
       expect(repo(container).current!.entries.last.tags, ['horror', 'dark']);
+    });
+
+    testWidgets('game and music genres show only for their type (D14)', (
+      tester,
+    ) async {
+      await openPicker(tester);
+      expect(find.text('GAME GENRES'), findsNothing);
+      expect(find.text('MUSIC GENRES'), findsNothing);
+      // A search finds any tag.
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(TagPickerSheet),
+          matching: find.byType(TextField),
+        ),
+        'metro',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('GAME GENRES'), findsOneWidget);
+      expect(find.widgetWithText(PillChip, '#metroidvania'), findsOneWidget);
     });
 
     testWidgets('a similar tag is offered instead (D9)', (tester) async {
@@ -415,7 +435,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Create a new tag?'), findsOneWidget);
       expect(
-        find.text('It will be added to your tag list under Genre.'),
+        find.text('It will be added to your tag list under Genres.'),
         findsOneWidget,
       );
       await tester.tap(find.widgetWithText(PillChip, 'Mood'));

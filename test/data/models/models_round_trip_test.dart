@@ -137,7 +137,7 @@ void main() {
       final library = sampleLibrary();
       final json = library.toJson();
       expect(json['version'], 2);
-      expect((json['tags'] as Map).keys, ['Genre', 'Mood', 'Season']);
+      expect((json['tags'] as Map).keys, ['Genres', 'Mood', 'Season']);
       expect(Library.fromJson(json), library);
     });
 

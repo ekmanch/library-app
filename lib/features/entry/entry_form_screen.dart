@@ -288,7 +288,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final category = await showNewTagDialog(
       context,
       name: tag,
-      initial: _defaultCategory,
+      initial: TagCategory.defaultFor(_type),
     );
     if (category == null || !mounted) return;
     setState(() {
@@ -296,11 +296,6 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       _tags.add(tag);
     });
   }
-
-  TagCategory get _defaultCategory => switch (_type) {
-    MediaType.games => TagCategory.gameGenre,
-    _ => TagCategory.genre,
-  };
 
   void _pickType(MediaType type) {
     setState(() {
@@ -327,7 +322,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       library: library,
       selected: _tags,
       created: _newTags,
-      defaultCategory: _defaultCategory,
+      type: _type,
     );
     if (pick == null || !mounted) return;
     setState(() {

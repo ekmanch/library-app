@@ -1,7 +1,7 @@
 {
   "version": 2,
   "tags": {
-    "Genre": [
+    "Genres": [
       "horror",
       "scifi",
       "fantasy",
@@ -11,7 +11,18 @@
       "thriller",
       "crime",
       "mystery",
-      "romance",
+      "romance"
+    ],
+    "Game genres": [
+      "rpg",
+      "platformer",
+      "roguelike",
+      "puzzle",
+      "survival-horror",
+      "strategy",
+      "metroidvania"
+    ],
+    "Music genres": [
       "metal",
       "grunge",
       "rock",
@@ -20,20 +31,6 @@
       "hip-hop",
       "jazz",
       "folk"
-    ],
-    "Animation style": [
-      "2d",
-      "3d",
-      "stop-motion"
-    ],
-    "Game genre": [
-      "rpg",
-      "platformer",
-      "roguelike",
-      "puzzle",
-      "survival-horror",
-      "strategy",
-      "metroidvania"
     ],
     "Mood": [
       "lighthearted",
@@ -49,6 +46,11 @@
     "Creators": [
       "ghibli",
       "fromsoftware"
+    ],
+    "Animation style": [
+      "2d",
+      "3d",
+      "stop-motion"
     ],
     "Other": [
       "favorite",
@@ -871,7 +873,6 @@
       "tags": [
         "2d",
         "scifi",
-        "jazz",
         "classic"
       ],
       "note": "",

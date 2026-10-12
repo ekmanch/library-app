@@ -3,6 +3,7 @@ import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/released.dart';
+import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_sort.dart';
 
@@ -182,6 +183,36 @@ void main() {
         isNull,
       );
       expect(music.copyWith(statuses: {EntryStatus.done}).typeView, isNull);
+    });
+  });
+
+  group('tag groups', () {
+    List<TagCategory> groups(LibraryFilter f) => [
+      for (final (category, _) in f.tagGroupsIn(fixture)) category,
+    ];
+
+    test('follow the tags the chosen types use', () {
+      expect(groups(LibraryFilter.none), TagCategory.values);
+      final music = groups(const LibraryFilter(types: {MediaType.music}));
+      expect(music, contains(TagCategory.musicGenre));
+      expect(music, isNot(contains(TagCategory.genre)));
+      expect(music, isNot(contains(TagCategory.gameGenre)));
+      // A game tagged #crime brings Genres along for Games.
+      final games = groups(const LibraryFilter(types: {MediaType.games}));
+      expect(games, containsAll([TagCategory.genre, TagCategory.gameGenre]));
+      expect(games, isNot(contains(TagCategory.musicGenre)));
+    });
+
+    test('a chosen tag whose group goes away is dropped', () {
+      const filter = LibraryFilter(tags: {'horror', 'jazz'});
+      final music = filter.toggleType(MediaType.music).keepTagsShownIn(fixture);
+      expect(music.tags, {'jazz'});
+    });
+
+    test('a new tag starts in the genre category of its type', () {
+      expect(TagCategory.defaultFor(MediaType.games), TagCategory.gameGenre);
+      expect(TagCategory.defaultFor(MediaType.music), TagCategory.musicGenre);
+      expect(TagCategory.defaultFor(MediaType.anime), TagCategory.genre);
     });
   });
 

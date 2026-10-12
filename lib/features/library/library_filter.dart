@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 
 import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
+import '../../data/models/library.dart';
 import '../../data/models/media_type.dart';
 import '../../data/models/music_kind.dart';
+import '../../data/models/tag_category.dart';
 import '../../widgets/labels.dart';
 
 /// A release decade in the filter sheet: "Older" for everything before
@@ -190,6 +192,30 @@ class LibraryFilter {
           for (final s in EntryStatus.values)
             if (types.any((t) => EntryStatus.optionsFor(t).contains(s))) s,
         ];
+
+  /// The tag groups the sheet shows (A2), in category order: a group shows
+  /// when an entry of a chosen type uses one of its tags, so Games shows
+  /// Genres too once a game is tagged #horror. With no type, every group.
+  List<(TagCategory, List<String>)> tagGroupsIn(Library library) {
+    final used = types.isEmpty
+        ? null
+        : {
+            for (final e in library.entries)
+              if (types.contains(e.type)) ...e.tags,
+          };
+    return [
+      for (final category in TagCategory.values)
+        if (library.tags[category] case final names?
+            when names.isNotEmpty && (used == null || names.any(used.contains)))
+          (category, names),
+    ];
+  }
+
+  /// Drops chosen tags whose group the chosen types no longer show.
+  LibraryFilter keepTagsShownIn(Library library) {
+    final shown = {for (final (_, names) in tagGroupsIn(library)) ...names};
+    return copyWith(tags: tags.where(shown.contains).toSet());
+  }
 
   /// Number shown on the filter button badge.
   int get count =>

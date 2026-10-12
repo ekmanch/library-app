@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/library.dart';
+import '../../data/models/media_type.dart';
 import '../../data/models/tag_category.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -24,15 +25,17 @@ class TagPick {
 }
 
 /// The entry form's tag picker (D14), the only place a tag can be created.
-/// Every category is open; a search narrows them, and a name that matches
+/// Every category is open, except game genres outside games and music
+/// genres outside music; a search narrows them and finds every tag, and a
+/// name that matches
 /// nothing exactly can be created, through the similar-tag check (D9) and
 /// the category dialog (D10). Resolves with null when dismissed.
 Future<TagPick?> showTagPickerSheet(
   BuildContext context, {
   required Library library,
   required List<String> selected,
+  required MediaType type,
   Map<String, TagCategory> created = const {},
-  TagCategory defaultCategory = TagCategory.genre,
 }) {
   return showAppSheet<TagPick>(
     context,
@@ -42,7 +45,7 @@ Future<TagPick?> showTagPickerSheet(
       library: library,
       selected: selected,
       created: created,
-      defaultCategory: defaultCategory,
+      type: type,
     ),
   );
 }
@@ -53,13 +56,16 @@ class TagPickerSheet extends StatefulWidget {
     required this.library,
     required this.selected,
     required this.created,
-    required this.defaultCategory,
+    required this.type,
   });
 
   final Library library;
   final List<String> selected;
   final Map<String, TagCategory> created;
-  final TagCategory defaultCategory;
+
+  /// The entry's type: picks the categories shown and the new tag's
+  /// starting category.
+  final MediaType type;
 
   @override
   State<TagPickerSheet> createState() => _TagPickerSheetState();
@@ -108,7 +114,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final category = await showNewTagDialog(
       context,
       name: name,
-      initial: widget.defaultCategory,
+      initial: TagCategory.defaultFor(widget.type),
     );
     if (!mounted || category == null) return;
     setState(() {
@@ -139,9 +145,12 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final groups = <(String, List<String>)>[
       if (_created.isNotEmpty)
         ('New on this entry', _created.keys.where(matches).toList()),
-      for (final MapEntry(key: category, value: names)
-          in widget.library.tags.entries)
-        (category.label, names.where(matches).toList()),
+      for (final category in TagCategory.values)
+        if (query.isNotEmpty || category.offeredFor(widget.type))
+          (
+            category.label,
+            (widget.library.tags[category] ?? const []).where(matches).toList(),
+          ),
     ].where((g) => g.$2.isNotEmpty).toList();
 
     return SheetFrame(

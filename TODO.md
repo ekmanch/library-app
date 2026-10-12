@@ -88,6 +88,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 - [x] The filter sheet and the home stay in sync: the sheet opens with the picked type and status segment, and one type plus at most one status shows as the type view (A2)
 - [x] Movies and music have no In progress status; the filter sheet's status chips follow the chosen types
 - [x] Kind filter (Albums, Songs) for music in the filter sheet; Music + one kind is that Music tab (A23, A24), and the sheet opens with the picked tab's kind (A3)
+- [x] Tag categories split: Genres, Game genres, Music genres, Mood; the filter sheet shows only the groups the chosen types use, and the tag picker hides other types' genres (A2, D10, D14)
 
 ## Phase 2: Local data
 

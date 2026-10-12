@@ -40,7 +40,9 @@ class AppDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     return Dialog(
-      child: Padding(
+      // Scrolls only when the content is taller than the screen, e.g. the
+      // category chips of D10 at a large text size.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,

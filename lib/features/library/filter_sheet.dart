@@ -46,7 +46,7 @@ class _FilterSheetState extends State<FilterSheet> {
   @override
   void initState() {
     super.initState();
-    _openGroup = widget.library.tags.keys.firstOrNull;
+    _openGroup = _draft.tagGroupsIn(widget.library).firstOrNull?.$1;
   }
 
   List<Entry> get _matching => _draft.apply(widget.library.entries);
@@ -81,6 +81,12 @@ class _FilterSheetState extends State<FilterSheet> {
     final theme = Theme.of(context);
     final count = _matching.length;
     final query = _tagQuery.trim().toLowerCase();
+    final groups = _draft.tagGroupsIn(widget.library);
+    // When the open group goes away with a type, the first one opens.
+    final openGroup =
+        _openGroup == null || groups.any((g) => g.$1 == _openGroup)
+        ? _openGroup
+        : groups.firstOrNull?.$1;
 
     return SheetFrame(
       title: 'Filters',
@@ -111,7 +117,11 @@ class _FilterSheetState extends State<FilterSheet> {
                   selected: _draft.types.contains(type),
                   style: PillChipStyle.accent,
                   horizontalPadding: 4,
-                  onTap: () => setState(() => _draft = _draft.toggleType(type)),
+                  onTap: () => setState(
+                    () => _draft = _draft
+                        .toggleType(type)
+                        .keepTagsShownIn(widget.library),
+                  ),
                 ),
             ],
           ),
@@ -195,8 +205,7 @@ class _FilterSheetState extends State<FilterSheet> {
             hintText: 'Search tags',
             onChanged: (value) => setState(() => _tagQuery = value),
           ),
-          for (final MapEntry(key: category, value: names)
-              in widget.library.tags.entries)
+          for (final (category, names) in groups)
             TagGroup(
               label: category.label,
               tags: query.isEmpty
@@ -205,9 +214,9 @@ class _FilterSheetState extends State<FilterSheet> {
                         .where((n) => n.toLowerCase().contains(query))
                         .toList(),
               selected: _draft.tags,
-              open: query.isNotEmpty || _openGroup == category,
+              open: query.isNotEmpty || openGroup == category,
               onToggleOpen: () => setState(
-                () => _openGroup = _openGroup == category ? null : category,
+                () => _openGroup = openGroup == category ? null : category,
               ),
               onToggleTag: (tag) =>
                   setState(() => _draft = _draft.toggleTag(tag)),
