@@ -211,17 +211,35 @@ Future<bool> confirmDisconnect(
           ? '$pending ${pending == 1 ? 'change has' : 'changes have'} not '
                 'been saved to GitHub yet and will be lost.'
           : null,
+      // "Disconnect anyway" does not fit half a row, so that variant
+      // stacks its buttons like D4.
+      actionsLayout: pending > 0
+          ? DialogActionsLayout.column
+          : DialogActionsLayout.row,
       actions: [
-        AppButton(
-          label: 'Cancel',
-          kind: AppButtonKind.outline,
-          onPressed: () => Navigator.pop(context, false),
-        ),
-        AppButton(
-          label: pending > 0 ? 'Disconnect anyway' : 'Disconnect',
-          kind: AppButtonKind.destructive,
-          onPressed: () => Navigator.pop(context, true),
-        ),
+        if (pending > 0) ...[
+          AppButton(
+            label: 'Disconnect anyway',
+            kind: AppButtonKind.destructive,
+            onPressed: () => Navigator.pop(context, true),
+          ),
+          AppButton(
+            label: 'Cancel',
+            kind: AppButtonKind.text,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+        ] else ...[
+          AppButton(
+            label: 'Cancel',
+            kind: AppButtonKind.outline,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          AppButton(
+            label: 'Disconnect',
+            kind: AppButtonKind.destructive,
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
       ],
     ),
   );
