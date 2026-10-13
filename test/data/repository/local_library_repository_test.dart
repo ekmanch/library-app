@@ -86,4 +86,28 @@ void main() {
     expect(aside.single.readAsStringSync(), '{ not json');
     expect(file.readAsStringSync(), seedText);
   });
+
+  test('replace swaps in a whole library, emits it and writes it', () async {
+    final repo = repository();
+    await repo.load();
+    final emitted = <Object>[];
+    final sub = repo.watch().skip(1).listen(emitted.add);
+    await pumpEventQueue(); // The stream is on the changes now.
+    final edited = sampleLibrary().copyWith(entries: [mummy]);
+    await repo.replace(edited);
+    await repo.replace(edited); // The same again: nothing happens.
+    await pumpEventQueue();
+    await sub.cancel();
+    expect(emitted, [edited]);
+    expect(repo.current, edited);
+    expect(file.readAsStringSync(), encodeLibrary(edited));
+  });
+
+  test('delete removes the file', () async {
+    final repo = repository();
+    await repo.apply(SetStatus(mummy.id, EntryStatus.want));
+    await repo.delete();
+    expect(file.existsSync(), isFalse);
+    expect(File('${file.path}.tmp').existsSync(), isFalse);
+  });
 }

@@ -85,6 +85,29 @@ class LocalLibraryRepository implements LibraryRepository {
     return next;
   }
 
+  /// Swaps in a whole library, e.g. a fresh copy from GitHub, shows it at
+  /// once and returns when the file is written. Nothing happens when it
+  /// is the library already held.
+  Future<Library> replace(Library library) async {
+    await load();
+    if (library == _library) return library;
+    _library = library;
+    _changes.add(library);
+    await _save(library);
+    return library;
+  }
+
+  /// Removes the file (Disconnect). The in-memory library stays until the
+  /// repository is disposed.
+  Future<void> delete() {
+    final deletion = _writing.then((_) async {
+      if (await file.exists()) await file.delete();
+      _written = null;
+    });
+    _writing = deletion.catchError((Object _) {});
+    return deletion;
+  }
+
   Future<void> _save(Library library) {
     final write = _writing.then((_) async {
       // A later change may already be in memory; write the newest.
