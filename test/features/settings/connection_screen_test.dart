@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/library_codec.dart';
+import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/dev/fake_github_api.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/settings/connection_screen.dart';
 import 'package:library_app/features/sync/sync_state.dart';
@@ -35,7 +38,16 @@ void main() {
   testWidgets('Replace token opens the connect step on its own', (
     tester,
   ) async {
-    await pumpApp(tester, const ConnectionScreen());
+    final github = FakeGitHubApi.demo(encodeLibrary(loadFixture()));
+    final container = await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [
+        gitHubApiFactoryProvider.overrideWithValue(
+          ({required token, required repository}) => github,
+        ),
+      ],
+    );
     await tester.tap(find.text('Replace token'));
     await tester.pumpAndSettle();
     expect(find.byType(FirstRunFlow), findsOneWidget);
@@ -45,6 +57,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save token'));
     await tester.pumpAndSettle();
+    expect(github.requests, ['GET repo']);
+    expect(container.read(tokenProvider), 'github_pat_x');
     expect(find.byType(FirstRunFlow), findsNothing);
     expect(find.byType(ConnectionScreen), findsOneWidget);
   });

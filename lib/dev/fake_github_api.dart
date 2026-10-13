@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../data/github/git_blob.dart';
 import '../data/github/github_api.dart';
+import '../data/library_codec.dart';
 
 /// A GitHub repo in memory, for the widget tests, the repository tests
 /// and the FIRST_RUN dev switch: files with blob shas and ETags, saves
@@ -19,11 +20,69 @@ class FakeGitHubApi implements GitHubApi {
     files.forEach(setFile);
   }
 
+  /// The repo the canvas draws in F6: the fixture as `library.json`,
+  /// updated two days ago; a smaller copy in `backup/library-2025.json`
+  /// from March; and `data/old-lists.json`, which is not a library.
+  factory FakeGitHubApi.demo(
+    String fixtureText, {
+    Duration latency = Duration.zero,
+    DateTime Function()? now,
+  }) {
+    final api = FakeGitHubApi(latency: latency, now: now);
+    final today = api._now();
+    final fixture = decodeLibrary(fixtureText);
+    api.setFile(
+      'library.json',
+      fixtureText,
+      message: 'Mark The Mummy as done',
+      date: today.subtract(const Duration(days: 2)),
+    );
+    api.setFile(
+      'backup/library-2025.json',
+      encodeLibrary(
+        fixture.copyWith(
+          entries: fixture.entries.take(fixture.entries.length ~/ 2).toList(),
+          plans: const [],
+        ),
+      ),
+      message: 'Back up the library',
+      date: DateTime(today.year, 3, 14),
+    );
+    api.setFile(
+      'data/old-lists.json',
+      '[1, 2]\n',
+      message: 'Keep the old lists',
+    );
+    return api;
+  }
+
+  /// [FakeGitHubApi.demo] whose fixture is read on the first call: the
+  /// FIRST_RUN dev switch, where the asset loads after the app starts.
+  factory FakeGitHubApi.demoDeferred(
+    Future<String> Function() loadFixture, {
+    Duration latency = Duration.zero,
+  }) {
+    final api = FakeGitHubApi(latency: latency);
+    api._loading = loadFixture().then((text) {
+      final demo = FakeGitHubApi.demo(text, latency: latency);
+      api._files.addAll(demo._files);
+      api._commits.addAll(demo._commits);
+      api._commitCount = demo._commitCount;
+    });
+    return api;
+  }
+
+  /// How long the FIRST_RUN dev switch's calls take, so the progress
+  /// states show.
+  static const demoLatency = Duration(milliseconds: 700);
+
+  Future<void>? _loading;
+
   final String defaultBranch;
   bool canPush;
 
   /// How long every call takes, so the dev flow shows its progress.
-  final Duration latency;
+  Duration latency;
   final DateTime Function() _now;
   final Map<String, Uint8List> _files = {};
   final Map<String, List<CommitInfo>> _commits = {};
@@ -50,12 +109,12 @@ class FakeGitHubApi implements GitHubApi {
   }
 
   /// Sets a file as if someone else pushed it, with a commit.
-  void setFile(String path, String text, {String? message}) {
+  void setFile(String path, String text, {String? message, DateTime? date}) {
     _files[path] = Uint8List.fromList(utf8.encode(text));
-    _record(path, message ?? 'Edit $path');
+    _record(path, message ?? 'Edit $path', date: date);
   }
 
-  void _record(String path, String message) {
+  void _record(String path, String message, {DateTime? date}) {
     _commitCount++;
     _commits
         .putIfAbsent(path, () => [])
@@ -64,13 +123,14 @@ class FakeGitHubApi implements GitHubApi {
           CommitInfo(
             sha: 'commit-$_commitCount',
             message: message,
-            date: _now(),
+            date: date ?? _now(),
           ),
         );
   }
 
   Future<void> _call(String request) async {
     requests.add(request);
+    await _loading;
     if (latency > Duration.zero) await Future<void>.delayed(latency);
     if (failure case final failure?) throw GitHubException(failure);
   }

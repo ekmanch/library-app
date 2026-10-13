@@ -1,15 +1,22 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app_info.dart';
+import '../../data/github/github_api.dart';
+import '../../data/library_codec.dart';
+import '../../data/library_providers.dart';
+import '../../data/models/library.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/form_fields.dart';
 import '../../widgets/libri_logo.dart';
 import '../../widgets/radio_mark.dart';
+import '../sync/relative_time.dart';
 import '../sync/sync_state.dart';
 
 /// Opens the Connect GitHub step on its own, from "Replace token" in D6.
@@ -24,7 +31,7 @@ enum FirstRunStep { splash, welcome, connect, file, create, existing, done }
 
 enum _FileChoice { newFile, existing }
 
-/// A JSON file in the repo, as F6 lists them. Static until phase 4.
+/// A JSON file in the repo, as F6 lists them.
 class RepoFile {
   const RepoFile(this.path, {this.entries, this.updated});
 
@@ -33,25 +40,37 @@ class RepoFile {
   /// How many entries the library holds; null for a JSON file that is not
   /// a Libri library, which cannot be picked.
   final int? entries;
+
+  /// When it was last committed ("2 days ago"), when known.
   final String? updated;
 
   bool get usable => entries != null;
 
   String get info => usable
-      ? 'Libri library · $entries entries · updated $updated'
+      ? 'Libri library · $entries ${entries == 1 ? 'entry' : 'entries'}'
+            '${updated == null ? '' : ' · updated $updated'}'
       : 'Not a Libri library file';
-
-  static const sample = [
-    RepoFile('library.json', entries: 214, updated: '2 days ago'),
-    RepoFile('backup/library-2025.json', entries: 168, updated: 'in March'),
-    RepoFile('data/old-lists.json'),
-  ];
 }
+
+/// What went wrong with a GitHub call, in the flow's words.
+String describeGitHubFailure(GitHubException e) => switch (e.failure) {
+  GitHubFailure.unauthorized =>
+    'GitHub refused the token. Check it and try again.',
+  GitHubFailure.notFound => 'Repository not found, or the token cannot see it.',
+  GitHubFailure.forbidden => 'The token is not allowed to use this repo.',
+  GitHubFailure.rateLimited =>
+    'GitHub is rate limiting the token. Try again in a few minutes.',
+  GitHubFailure.offline => 'No connection. Check your network and try again.',
+  GitHubFailure.conflict || GitHubFailure.other =>
+    'GitHub answered with an error'
+        '${e.status == null ? '' : ' (${e.status})'}. Try again.',
+};
 
 /// The first run (F1 to F7): splash, welcome, connect GitHub, new or
 /// existing library file, create or pick it, all set. One screen whose
-/// content changes with the step, like the canvas template. UI only: the
-/// token and repo go nowhere until phase 4.
+/// content changes with the step, like the canvas template. Talks to
+/// GitHub through [GitHubApi]; the token and the connection are stored
+/// at the end (F7).
 class FirstRunFlow extends ConsumerStatefulWidget {
   const FirstRunFlow({super.key, this.initialStep = FirstRunStep.splash})
     : replaceToken = false;
@@ -67,8 +86,17 @@ class FirstRunFlow extends ConsumerStatefulWidget {
   /// How long the splash stays before the welcome screen.
   static const splashDuration = Duration(milliseconds: 900);
 
-  /// The fake delay of "Create library" (F5).
-  static const createDuration = Duration(milliseconds: 1400);
+  /// How many JSON files F6 looks into, and how large one may be.
+  static const maxFiles = 20;
+  static const maxFileBytes = 20 * 1024 * 1024;
+
+  /// Where "How do I create a token?" goes.
+  static final tokenHelpUrl = Uri.parse(
+    'https://github.com/settings/personal-access-tokens/new',
+  );
+
+  /// The commit that creates the file (F5).
+  static const createMessage = 'Create Libri library';
 
   @override
   ConsumerState<FirstRunFlow> createState() => _FirstRunFlowState();
@@ -77,12 +105,27 @@ class FirstRunFlow extends ConsumerStatefulWidget {
 class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   late FirstRunStep _step = widget.initialStep;
   _FileChoice _choice = _FileChoice.newFile;
-  int _file = 0;
-  bool _creating = false;
   Timer? _timer;
   late final TextEditingController _repo;
   late final TextEditingController _token;
   late final TextEditingController _fileName;
+
+  /// The client for the repo and token of F3, once they are accepted.
+  GitHubApi? _api;
+  String _branch = 'main';
+
+  /// Connect or Create in progress; a second press is ignored.
+  bool _busy = false;
+
+  /// Shown under the step's field after a failed call.
+  String? _error;
+
+  /// F6: null while the repo is being read.
+  List<RepoFile>? _files;
+  int _file = 0;
+
+  /// F7: how many entries the chosen file holds.
+  int _loadedEntries = 0;
 
   @override
   void initState() {
@@ -112,10 +155,14 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
 
   void _refresh() => setState(() {});
 
-  void _go(FirstRunStep step) => setState(() {
-    _step = step;
-    _creating = false;
-  });
+  void _go(FirstRunStep step) {
+    setState(() {
+      _step = step;
+      _busy = false;
+      _error = null;
+    });
+    if (step == FirstRunStep.existing) unawaited(_loadFiles());
+  }
 
   /// The step a back goes to; null where there is no back.
   FirstRunStep? get _previous => switch (_step) {
@@ -136,26 +183,145 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   bool get _canConnect =>
       _repo.text.trim().contains('/') && _token.text.trim().isNotEmpty;
 
-  void _connect() {
-    if (widget.replaceToken) {
-      Navigator.pop(context);
-    } else {
-      _go(FirstRunStep.file);
+  /// F3: checks the token against the repo. A token that can read but
+  /// not write is refused here, not at the first save.
+  Future<void> _connect() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final repository = _repo.text.trim();
+    final token = _token.text.trim();
+    final api = ref.read(gitHubApiFactoryProvider)(
+      token: token,
+      repository: repository,
+    );
+    try {
+      final info = await api.getRepo();
+      if (!mounted) return;
+      if (!info.canPush) {
+        setState(() {
+          _busy = false;
+          _error =
+              'The token can read this repo but not write to it. It needs '
+              'Contents: read and write.';
+        });
+        return;
+      }
+      _api = api;
+      _branch = info.defaultBranch;
+      if (widget.replaceToken) {
+        await ref.read(libraryConnectionProvider.notifier).replaceToken(token);
+        unawaited(ref.read(librarySyncProvider)?.syncNow());
+        if (mounted) Navigator.pop(context);
+      } else {
+        _go(FirstRunStep.file);
+      }
+    } on GitHubException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = describeGitHubFailure(e);
+      });
     }
   }
 
-  void _create() {
-    if (_creating) return;
-    setState(() => _creating = true);
-    _timer?.cancel();
-    _timer = Timer(FirstRunFlow.createDuration, () {
-      if (mounted) _go(FirstRunStep.done);
+  /// F5: adds the empty library to the repo. An existing file is never
+  /// overwritten.
+  Future<void> _create() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
     });
+    final name = _fileName.text.trim();
+    try {
+      await _api!.putFile(
+        name,
+        branch: _branch,
+        bytes: utf8.encode(encodeLibrary(const Library())),
+        message: FirstRunFlow.createMessage,
+      );
+      if (!mounted) return;
+      _loadedEntries = 0;
+      _go(FirstRunStep.done);
+    } on GitHubException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = e.failure == GitHubFailure.conflict
+            ? 'A file named $name already exists. Libri never overwrites '
+                  'it: pick another name, or go back and use the file you '
+                  'have.'
+            : describeGitHubFailure(e);
+      });
+    }
   }
 
+  /// F6: the JSON files in the repo, each opened to see whether it is a
+  /// Libri library and how many entries it holds.
+  Future<void> _loadFiles() async {
+    setState(() {
+      _files = null;
+      _error = null;
+    });
+    final api = _api!;
+    final now = DateTime.now();
+    try {
+      final tree = await api.listFiles(branch: _branch);
+      final files = <RepoFile>[];
+      for (final blob
+          in tree
+              .where((b) => b.size <= FirstRunFlow.maxFileBytes)
+              .take(FirstRunFlow.maxFiles)) {
+        final raw = await api.getFileRaw(blob.path, branch: _branch);
+        int? entries;
+        try {
+          entries = decodeLibrary(raw!.text).entries.length;
+        } on Object {
+          entries = null;
+        }
+        String? updated;
+        if (entries != null) {
+          final commits = await api.commits(
+            blob.path,
+            branch: _branch,
+            limit: 1,
+          );
+          if (commits.isNotEmpty) {
+            updated = relativeTime(commits.first.date, now: now);
+          }
+        }
+        files.add(RepoFile(blob.path, entries: entries, updated: updated));
+      }
+      if (!mounted || _step != FirstRunStep.existing) return;
+      setState(() {
+        _files = files;
+        _file = files.indexWhere((f) => f.usable);
+      });
+    } on GitHubException catch (e) {
+      if (!mounted || _step != FirstRunStep.existing) return;
+      setState(() {
+        _files = const [];
+        _error = describeGitHubFailure(e);
+      });
+    }
+  }
+
+  RepoFile? get _chosenFile =>
+      _files != null && _file >= 0 && _file < _files!.length
+      ? _files![_file]
+      : null;
+
+  void _useFile() {
+    _loadedEntries = _chosenFile?.entries ?? 0;
+    _go(FirstRunStep.done);
+  }
+
+  /// F7: the token and the connection are stored; the app then opens the
+  /// library from GitHub.
   void _finish() {
-    // The app opens the library once the token and the connection are
-    // stored; the branch is the repo's default from phase 4's F3.
     unawaited(
       ref
           .read(libraryConnectionProvider.notifier)
@@ -163,16 +329,28 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
             repository: _repo.text.trim(),
             file: _choice == _FileChoice.newFile
                 ? _fileName.text.trim()
-                : RepoFile.sample[_file].path,
-            branch: 'main',
+                : _chosenFile!.path,
+            branch: _branch,
             token: _token.text.trim(),
           ),
     );
   }
 
+  Future<void> _openTokenHelp() async {
+    try {
+      await launchUrl(
+        FirstRunFlow.tokenHelpUrl,
+        mode: LaunchMode.externalApplication,
+      );
+    } on Object {
+      // No browser to open it: nothing to do.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final canPop = _previous == null && !widget.replaceToken;
+    final repository = _repo.text.trim();
     return PopScope(
       canPop: canPop,
       onPopInvokedWithResult: (didPop, _) {
@@ -217,18 +395,20 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
                   'repo. It stays in the phone\'s secure storage and never '
                   'leaves the device.',
                 ),
+                if (_error case final error?) _ErrorText(error),
               ],
               footer: [
-                AppButton(
+                _BusyButton(
                   label: widget.replaceToken ? 'Save token' : 'Connect',
+                  busyLabel: 'Connecting…',
+                  busy: _busy,
                   onPressed: _canConnect ? _connect : null,
                 ),
                 const SizedBox(height: 10),
-                // Phase 4 opens GitHub's token page here.
-                const AppButton(
+                AppButton(
                   label: 'How do I create a token?',
                   kind: AppButtonKind.text,
-                  onPressed: null,
+                  onPressed: _openTokenHelp,
                 ),
               ],
             ),
@@ -238,9 +418,9 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
               title: 'Your library file',
               body:
                   'Libri keeps everything in one JSON file in '
-                  '${_repo.text.trim()}. Start fresh, or use a file you '
+                  '$repository. Start fresh, or use a file you '
                   'already have.',
-              bodyHighlight: _repo.text.trim(),
+              bodyHighlight: repository,
               content: [
                 _ChoiceCard(
                   icon: AppIcons.filePlus,
@@ -288,9 +468,10 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
                 ),
                 const SizedBox(height: 6),
                 _Help(
-                  'Saved at the top of ${_repo.text.trim()}. Libri never '
+                  'Saved at the top of $repository. Libri never '
                   'overwrites a file that already exists.',
                 ),
+                if (_error case final error?) _ErrorText(error),
                 const SizedBox(height: 16),
                 const FieldLabel('What gets added'),
                 const _CodeBlock(
@@ -302,10 +483,10 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
                   '}',
                 ),
                 const SizedBox(height: 6),
-                const _Help('Commit message: “Create Libri library”'),
+                const _Help('Commit message: “${FirstRunFlow.createMessage}”'),
               ],
               footer: [
-                if (_creating)
+                if (_busy)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Text(
@@ -316,14 +497,11 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
                           .copyWith(fontSize: 14, fontStyle: FontStyle.normal),
                     ),
                   ),
-                // Dimmed rather than disabled while creating, as on the
-                // canvas; _create ignores a second press.
-                Opacity(
-                  opacity: _creating ? 0.6 : 1,
-                  child: AppButton(
-                    label: _creating ? 'Creating…' : 'Create library',
-                    onPressed: _fileName.text.trim().isEmpty ? null : _create,
-                  ),
+                _BusyButton(
+                  label: 'Create library',
+                  busyLabel: 'Creating…',
+                  busy: _busy,
+                  onPressed: _fileName.text.trim().isEmpty ? null : _create,
                 ),
               ],
             ),
@@ -332,38 +510,112 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
               onBack: _back,
               title: 'Pick your file',
               body:
-                  'JSON files found in ${_repo.text.trim()}. Only files in '
+                  'JSON files found in $repository. Only files in '
                   'Libri\'s format can be used.',
               contentTopPadding: 20,
               content: [
-                for (final (i, file) in RepoFile.sample.indexed)
-                  _FileRow(
-                    file: file,
-                    selected: file.usable && i == _file,
-                    onTap: file.usable ? () => setState(() => _file = i) : null,
-                  ),
-                const SizedBox(height: 14),
-                const _Help(
-                  'Don\'t see your file? Make sure it\'s in this repo and '
-                  'ends in .json.',
-                ),
+                if (_files case final files?) ...[
+                  for (final (i, file) in files.indexed)
+                    _FileRow(
+                      file: file,
+                      selected: file.usable && i == _file,
+                      onTap: file.usable
+                          ? () => setState(() => _file = i)
+                          : null,
+                    ),
+                  const SizedBox(height: 14),
+                  if (_error case final error?)
+                    _ErrorText(error)
+                  else if (files.isEmpty)
+                    const _Help(
+                      'No JSON files found. Make sure the file is in this '
+                      'repo and ends in .json, or go back and create a '
+                      'new library.',
+                    )
+                  else
+                    const _Help(
+                      'Don\'t see your file? Make sure it\'s in this repo '
+                      'and ends in .json.',
+                    ),
+                ] else
+                  const _Help('Looking for JSON files in the repo…'),
               ],
               footer: [
-                AppButton(
-                  label: 'Use this file',
-                  onPressed: () => _go(FirstRunStep.done),
-                ),
+                if (_error != null)
+                  AppButton(
+                    label: 'Try again',
+                    kind: AppButtonKind.outline,
+                    onPressed: _loadFiles,
+                  )
+                else
+                  AppButton(
+                    label: 'Use this file',
+                    onPressed: _chosenFile?.usable ?? false ? _useFile : null,
+                  ),
               ],
             ),
             FirstRunStep.done => _Done(
               text: _choice == _FileChoice.newFile
-                  ? '${_fileName.text.trim()} is now in ${_repo.text.trim()}. '
+                  ? '${_fileName.text.trim()} is now in $repository. '
                         'Add your first entry with the + button.'
-                  : 'Loaded ${RepoFile.sample[_file].entries} entries from '
-                        '${RepoFile.sample[_file].path}.',
+                  : 'Loaded $_loadedEntries '
+                        '${_loadedEntries == 1 ? 'entry' : 'entries'} from '
+                        '${_chosenFile?.path}.',
               onOpen: _finish,
             ),
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// A primary button that reads "Connecting…" or "Creating…" while its
+/// call runs: dimmed rather than disabled, as on the canvas, and a second
+/// press is ignored by the caller.
+class _BusyButton extends StatelessWidget {
+  const _BusyButton({
+    required this.label,
+    required this.busyLabel,
+    required this.busy,
+    required this.onPressed,
+  });
+
+  final String label;
+  final String busyLabel;
+  final bool busy;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: busy ? 0.6 : 1,
+      child: AppButton(label: busy ? busyLabel : label, onPressed: onPressed),
+    );
+  }
+}
+
+/// What went wrong, under the field it concerns.
+class _ErrorText extends StatelessWidget {
+  const _ErrorText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = LibraryColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Semantics(
+        liveRegion: true,
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+            fontSize: 13.5,
+            fontStyle: FontStyle.normal,
+            height: 1.4,
+            color: colors.dangerText,
+          ),
         ),
       ),
     );

@@ -11,10 +11,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/dev/fake_github_api.dart';
 import 'package:library_app/dev/long_lists.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
@@ -35,6 +37,18 @@ import 'package:library_app/widgets/chips.dart';
 /// Wraps the whole app, including sheets, dialogs and menus in the root
 /// overlay, so a capture shows what the user sees.
 final _root = GlobalKey();
+
+/// The repo the first run talks to: the canvas's three files, in memory.
+/// [latency] lets a walk capture the "Connecting…" and "Creating…" states.
+Override _demoGitHub({Duration latency = Duration.zero}) {
+  final fixture = File(FixtureLibraryRepository.assetPath).readAsStringSync();
+  final github = FakeGitHubApi.demo(fixture, latency: latency);
+  return gitHubApiFactoryProvider.overrideWithValue(
+    ({required token, required repository}) => github,
+  );
+}
+
+const _demoLatency = Duration(milliseconds: 300);
 
 /// D6 as the artboard draws it: synced a few minutes ago. The fixture has
 /// no sync of its own.
@@ -577,6 +591,7 @@ void main() {
             FixtureLibraryRepository(),
           ),
           _syncedRecently,
+          _demoGitHub(latency: _demoLatency),
         ],
         child: RepaintBoundary(key: _root, child: const LibraryApp()),
       ),
@@ -625,6 +640,9 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'f3-connect');
     await tester.tap(find.text('Connect'));
+    await tester.pump();
+    await capture(tester, 'f3-connecting');
+    await tester.pump(_demoLatency * 2);
     await tester.pumpAndSettle();
     await capture(tester, 'f4-file');
     await tester.tap(find.text('Continue'));
@@ -635,6 +653,10 @@ void main() {
     await tester.tap(find.text('Use a file I already have'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await capture(tester, 'f6-looking');
+    // The listing, three files and two commit lookups, each with latency.
+    await tester.pump(_demoLatency * 8);
     await tester.pumpAndSettle();
     await capture(tester, 'f6-existing');
     await tester.tap(find.byTooltip('Back'));
@@ -643,10 +665,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'libri.json');
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Create library'));
     await tester.pump();
     await capture(tester, 'f5-creating');
-    await tester.pump(FirstRunFlow.createDuration);
+    await tester.pump(_demoLatency * 2);
     await tester.pumpAndSettle();
     await capture(tester, 'f7-done');
     await tester.tap(find.text('Open Libri'));
@@ -679,6 +703,7 @@ void main() {
             FixtureLibraryRepository(),
           ),
           _syncedRecently,
+          _demoGitHub(),
         ],
         child: RepaintBoundary(key: _root, child: const LibraryApp()),
       ),

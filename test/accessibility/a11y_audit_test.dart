@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/dev/fake_github_api.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/app_shell.dart';
@@ -352,6 +353,10 @@ void main() {
             FixtureLibraryRepository(
               loadJson: () async => encodeLibrary(loadFixture()),
             ),
+          ),
+          gitHubApiFactoryProvider.overrideWithValue(
+            ({required token, required repository}) =>
+                FakeGitHubApi.demo(encodeLibrary(loadFixture())),
           ),
         ],
       );

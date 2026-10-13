@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/dev/fake_github_api.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/shell/app_shell.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
@@ -313,6 +314,11 @@ void main() {
             overrides: [
               libraryRepositoryProvider.overrideWithValue(
                 FixtureLibraryRepository(),
+              ),
+              gitHubApiFactoryProvider.overrideWithValue(
+                ({required token, required repository}) => FakeGitHubApi.demo(
+                  File(FixtureLibraryRepository.assetPath).readAsStringSync(),
+                ),
               ),
             ],
             child: RepaintBoundary(key: _root, child: const LibraryApp()),

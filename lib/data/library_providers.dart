@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,6 +11,7 @@ import 'github/github_api.dart';
 import 'github/github_http_api.dart';
 import 'models/library.dart';
 import 'operations/library_operation.dart';
+import 'repository/fixture_library_repository.dart';
 import 'repository/github_library_repository.dart';
 import 'repository/library_repository.dart';
 import 'repository/library_sync.dart';
@@ -36,11 +38,18 @@ typedef GitHubApiFactory = GitHubApi Function({
 });
 
 /// Builds the GitHub client for a token and a repo. The FIRST_RUN dev
-/// switch gets the in-memory fake, so the flow can be walked without a
-/// real token.
+/// switch gets one in-memory fake repo per name, so the flow can be
+/// walked without a real token and the file it creates is there after.
 final gitHubApiFactoryProvider = Provider<GitHubApiFactory>((ref) {
   if (firstRunDemo) {
-    return ({required token, required repository}) => FakeGitHubApi();
+    final fakes = <String, FakeGitHubApi>{};
+    return ({required token, required repository}) => fakes.putIfAbsent(
+      repository,
+      () => FakeGitHubApi.demoDeferred(
+        () => rootBundle.loadString(FixtureLibraryRepository.assetPath),
+        latency: FakeGitHubApi.demoLatency,
+      ),
+    );
   }
   return ({required token, required repository}) => GitHubHttpApi(
     ref.watch(httpClientProvider),
