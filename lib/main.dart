@@ -52,6 +52,9 @@ Future<Widget> bootstrap(
       ? LibraryConnection.disconnected
       : LibraryConnection.fromJson(stored);
   if (token == null) connection = connection.copyWith(connected: false);
+  // The generated entries are for looking only: in memory, no GitHub, and
+  // no first run.
+  if (longListsEnabled) connection = const LibraryConnection(connected: true);
 
   return ProviderScope(
     overrides: [
@@ -63,15 +66,10 @@ Future<Widget> bootstrap(
       preferencesStoreProvider.overrideWithValue(preferences),
       initialDisplayPreferencesProvider.overrideWithValue(prefs),
       if (api != null) gitHubApiFactoryProvider.overrideWithValue(api),
-      // The generated entries are for looking only: in memory, no GitHub.
-      if (longListsEnabled) ...[
+      if (longListsEnabled)
         libraryRepositoryProvider.overrideWithValue(
           FixtureLibraryRepository(loadJson: _loadPaddedFixture),
         ),
-        initialConnectionProvider.overrideWithValue(
-          const LibraryConnection(connected: true),
-        ),
-      ],
     ],
     child: const LibraryApp(),
   );
