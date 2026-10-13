@@ -167,9 +167,13 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => openConnectionScreen(context),
                   ),
                   const SectionHeading('About', padding: _laterLineHeading),
-                  const SettingRow(
+                  SettingRow(
                     label: appName,
-                    value: 'Version $appVersion',
+                    value: switch (ref.watch(appVersionProvider)) {
+                      AsyncData(:final value) => 'Version $value',
+                      AsyncError() => 'Version unknown',
+                      _ => 'Version …',
+                    },
                   ),
                 ],
               ),

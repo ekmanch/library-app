@@ -12,6 +12,8 @@ import 'package:library_app/data/repository/library_repository.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/theme/app_theme.dart';
 
+import 'package_info.dart';
+
 /// The bundled fixture, read once per test file.
 Library loadFixture() =>
     decodeLibrary(File(FixtureLibraryRepository.assetPath).readAsStringSync());
@@ -28,6 +30,7 @@ Future<ProviderContainer> pumpApp(
   List<Override> overrides = const [],
 }) async {
   final lib = library ?? loadFixture();
+  mockPackageInfo();
   final container = ProviderContainer(
     overrides: [
       libraryRepositoryProvider.overrideWithValue(

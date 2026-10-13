@@ -21,6 +21,7 @@ import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
 
 import '../helpers/fonts.dart';
+import '../helpers/package_info.dart';
 import '../helpers/pump_app.dart';
 
 const _reportPath = String.fromEnvironment(
@@ -331,6 +332,7 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
 
 void main() {
   setUpAll(loadAppFonts);
+  setUpAll(mockPackageInfo);
 
   final report = <String>[];
   final failures = <String>[];
