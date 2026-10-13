@@ -1,15 +1,19 @@
 import 'media_type.dart';
 
 /// Entry ids are slugs frozen at creation: `movies/the-mummy-1999`,
-/// `music/dirt-alice-in-chains`. Editing a title never changes the id, so
-/// plan items keep pointing at the right entry.
+/// `books/dracula-1897`, `music/dirt-alice-in-chains`. Editing a title never
+/// changes the id, so plan items keep pointing at the right entry.
+///
+/// This is the one id scheme: the data repo's migration assigned every
+/// existing id with [generate] too, so the app and the data never disagree.
 class EntryId {
   EntryId._();
 
   /// Builds a new id and makes it unique among [existingIds] by appending
   /// "-2", "-3" and so on.
   ///
-  /// Music uses the artist as the suffix, every other type uses the year.
+  /// Music uses the artist as the suffix, every other type (books included)
+  /// uses the year.
   static String generate({
     required MediaType type,
     required String title,
@@ -108,11 +112,13 @@ const _diacritics = {
   'đ': 'd',
 };
 
-/// Lowercases, folds common Latin diacritics to ASCII, turns every run of
-/// other characters into one hyphen and trims hyphens from the ends.
+/// Lowercases, drops apostrophes ("Salem's Lot" becomes `salems-lot`), folds
+/// common Latin diacritics to ASCII, turns every run of other characters into
+/// one hyphen and trims hyphens from the ends.
 String slugify(String text) {
   final folded = text
       .toLowerCase()
+      .replaceAll(_apostrophes, '')
       .split('')
       .map((c) => _diacritics[c] ?? c)
       .join();
@@ -120,3 +126,5 @@ String slugify(String text) {
       .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
       .replaceAll(RegExp(r'^-+|-+$'), '');
 }
+
+final _apostrophes = RegExp("['’`]");
