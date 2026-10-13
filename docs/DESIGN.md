@@ -204,7 +204,7 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
 
 Field rules:
 
-- `id` keeps today's scheme (`movies/the-mummy-1999`, `music/dirt-alice-in-chains`).
+- `id`: `<type>/<title>-<year>` for every type but music (`movies/the-mummy-1999`, `books/dracula-1897`), `music/<title>-<artist>` for music (`music/dirt-alice-in-chains`). One scheme for the app and the data: the phase 3 migration assigned every existing id with the app's `EntryId.generate`, so nothing in `ekmanch/library` follows an older rule.
 - `type`: `movies`, `shows`, `books`, `games`, `music`, `anime`.
 - `released` is text with flexible precision: `"1999"`, `"2026-12"` or `"2026-12-25"`. There is no separate `year`; the app derives the year and whether the title is out yet.
 - `creator` is one field; the app labels it Director, Author, Artist and so on by type.
@@ -223,7 +223,7 @@ Rules settled during phase 0:
 
 - A partial `released` counts as released only after its period ends: `"2026-12-25"` on that day, `"2026-12"` from 2027-01-01, `"2027"` from 2028-01-01. A game "coming in 2027" stays "Not released yet" all year. No `released` at all counts as released.
 - The file is written in one canonical form so that a save is a minimal git diff: two-space indent, one trailing newline, keys in the order of the sample above, entries and plans never reordered by an edit. Common entry fields are always written, including `"rating": null`; the type-specific fields are omitted when absent. Decoding and re-encoding a canonical file gives back the same bytes.
-- Entry ids are slugs frozen at creation: lowercase, diacritics folded to ASCII, runs of other characters become one hyphen; `<type>/<title>-<year>`, or `music/<title>-<artist>`. A collision gets `-2`, `-3`. Editing a title never changes the id, so plan items keep pointing at the right entry.
+- Entry ids are slugs frozen at creation: lowercase, apostrophes dropped (`salems-lot`, not `salem-s-lot`), diacritics folded to ASCII, runs of other characters become one hyphen; `<type>/<title>-<year>` for every type but music (books too, never the author), or `music/<title>-<artist>`. A collision gets `-2`, `-3`, for every type (`EntryId.generate`, covered by `test/data/models/entry_id_test.dart`). Editing a title never changes the id, so plan items keep pointing at the right entry.
 - A tag disappears from `tags` only when no entry **and no plan** uses it, so a new plan tagged `halloween` keeps the tag alive before any entry has it.
 
 Migration from version 1 (`catalog.<type>` plus `seasonal.<season>.<type>.{plans, coming_later, favorites}`; 659 entries, 425 of them music):
@@ -289,6 +289,7 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Phase 2 keeps the library in `library.json` and the display preferences in `preferences.json`, both in a `libri` folder in the app documents directory (never the cache), each written atomically. A new install starts from the bundled fixture until phase 4 connects GitHub. An unreadable library file is renamed aside with an `.unreadable` suffix, never overwritten. Preferences sit behind their own `PreferencesStore`, separate from `LibraryRepository`, and are never synced.
 - Every operation has a one-line summary in the imperative ("Mark The Mummy as done", "Tick The Mummy in Halloween 2026"), for the commit messages of phase 4.
 - The About version comes from `lib/app_info.dart`, kept equal to pubspec.yaml by a test, until a package reads it from the build.
+- Phase 3 (the data repo): `library.json` v2 is the source of truth there; `scripts/generate.sh` writes the Markdown lists and tag pages from it, and the GitHub Action commits the regenerated lists after a save from the app. Migrated entries have `rating: null` (favorites keep the `#favorite` tag), `creator: null` outside books and music, `added` from the first commit that listed the title, and plan items keep the old table notes. A wanted entry tagged with a season shows under "Coming later" in that season's list only while its release is ahead; a year-only release counts as out in its own year.
 
 ## 11. Visual design
 

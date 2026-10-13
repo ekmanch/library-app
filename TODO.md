@@ -109,14 +109,14 @@ Phase 2 changed no UI; a reviewer compared every capture with its artboard and f
 
 ## Phase 3: Migrating the data repo
 
-Done in `ekmanch/library`, not in this repo. Each step needs my go-ahead.
+Done in `ekmanch/library` on the branch `feature/app-preparation` (2026-10-13), plus the id scheme change here. Each step needs my go-ahead.
 
-- [ ] On a feature branch in `ekmanch/library`, reverse the pre-commit hook so JSON is the source and Markdown is generated from it
-- [ ] Script that converts today's `library.json` (v1) to v2: flat entries, `dropped` becomes `dnf`, `year` becomes `released`, "Compilations" becomes "Various Artists", plan rows become `want` entries tagged with their season, seasonal favorites merge into entries, in-progress movies and albums become `want`
-- [ ] The migration script writes the file in the app's canonical encoding (see DESIGN.md section 8), so the app's first save is not a full rewrite
-- [ ] Check the id scheme for books, games, shows and anime against today's ids before migrating
-- [ ] Generate the Markdown files and PDFs from the JSON (GitHub Action), instead of the other way around
-- [ ] Verify nothing was lost: entry counts per type before and after
+- [x] On a feature branch in `ekmanch/library`, reverse the pre-commit hook so JSON is the source and Markdown is generated from it
+- [x] Script that converts today's `library.json` (v1) to v2: flat entries, `dropped` becomes `dnf`, `year` becomes `released`, "Compilations" becomes "Various Artists", plan rows become `want` entries tagged with their season, seasonal favorites merge into entries, in-progress movies and albums become `want`
+- [x] The migration script writes the file in the app's canonical encoding (see DESIGN.md section 8), so the app's first save is not a full rewrite
+- [x] Check the id scheme for books, games, shows and anime against today's ids before migrating (one scheme everywhere: apostrophes dropped, books use title + year; `slugify` changed, `tool/assign_ids.dart` assigned every migrated id with `EntryId.generate`)
+- [x] Generate the Markdown files and PDFs from the JSON (GitHub Action), instead of the other way around
+- [x] Verify nothing was lost: entry counts per type before and after (670 v1 titles, 679 v2 entries: 605 catalog + 65 seasonal-only + 9 new from plan rows; no title missing, lists regenerated and diffed)
 
 ## Phase 4: GitHub sync
 
