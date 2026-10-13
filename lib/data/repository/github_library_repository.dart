@@ -369,6 +369,9 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
         final now = _now();
         await _saveMeta(
           SyncMeta(
+            // The raw ETag is the quoted blob sha (checked live), so the
+            // next check can be conditional without a download first.
+            etag: '"${result.blobSha}"',
             remoteSha: result.blobSha,
             canonicalSha: result.blobSha,
             commitSha: result.commitSha,

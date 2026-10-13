@@ -18,7 +18,7 @@ class SyncMeta {
   });
 
   /// The ETag of the last download, for the next conditional request.
-  /// Opaque; null right after a save, when the next check is a full GET.
+  /// For the raw format it is the quoted blob sha, so a save sets it too.
   final String? etag;
 
   /// The blob sha of the file on GitHub, as last seen or written. The
