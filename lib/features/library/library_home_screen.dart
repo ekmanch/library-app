@@ -8,6 +8,7 @@ import '../../data/models/media_type.dart';
 import '../../data/models/plan.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/app_buttons.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/entry_row.dart';
@@ -152,12 +153,22 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
         ),
       );
     } else if (library == null) {
-      body = Padding(
+      // The first download failed (offline, a bad token): say so, and let
+      // a pull or the button try again.
+      body = ListView(
         padding: const EdgeInsets.all(20),
-        child: Text(
-          'Could not load the library: ${libraryAsync.error}',
-          style: theme.textTheme.bodyMedium,
-        ),
+        children: [
+          Text(
+            'Could not load the library: ${libraryAsync.error}',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            label: 'Try again',
+            kind: AppButtonKind.outline,
+            onPressed: _refresh,
+          ),
+        ],
       );
     } else if (filter.isActive) {
       body = _filtered(library, filter, prefs, colors);
@@ -214,11 +225,20 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                   ),
                 ),
               ),
-            Expanded(child: body),
+            Expanded(
+              child: RefreshIndicator(onRefresh: _refresh, child: body),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Pull-to-refresh: asks GitHub for changes. A library that failed to
+  /// load is loaded again.
+  Future<void> _refresh() async {
+    if (ref.read(libraryProvider).hasError) ref.invalidate(libraryProvider);
+    await ref.read(librarySyncProvider)?.checkForChanges();
   }
 
   /// All: the active plan, then two rows per type under a heading that

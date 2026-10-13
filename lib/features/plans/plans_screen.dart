@@ -44,77 +44,83 @@ class PlansScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: AppShell.contentBottomPadding),
-          children: [
-            PageHeader(
-              title: 'Plans',
-              actions: [
-                SettingsButton(
-                  onPressed:
-                      onOpenSettings ?? () => openSettingsScreen(context),
-                ),
-              ],
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.read(librarySyncProvider)?.checkForChanges(),
+          child: ListView(
+            padding: const EdgeInsets.only(
+              bottom: AppShell.contentBottomPadding,
             ),
-            const SyncBannerCard(),
-            if (library != null && library.plans.isEmpty)
-              EmptyState(
-                icon: AppIcons.plans,
-                title: 'No plans yet',
-                body: 'A plan is a list for a season, a trip or a mood.',
-                actionLabel: 'New plan',
-                onAction: () => openNewPlanForm(context),
-              )
-            else if (library != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (active.isNotEmpty) ...[
-                      const SectionHeading(
-                        'Active',
-                        padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
-                      ),
-                      for (final (i, plan) in active.indexed) ...[
-                        if (i > 0) const SizedBox(height: 10),
-                        _ActiveCard(
-                          plan: plan,
-                          library: library,
-                          onTap: () => open(plan),
+            children: [
+              PageHeader(
+                title: 'Plans',
+                actions: [
+                  SettingsButton(
+                    onPressed:
+                        onOpenSettings ?? () => openSettingsScreen(context),
+                  ),
+                ],
+              ),
+              const SyncBannerCard(),
+              if (library != null && library.plans.isEmpty)
+                EmptyState(
+                  icon: AppIcons.plans,
+                  title: 'No plans yet',
+                  body: 'A plan is a list for a season, a trip or a mood.',
+                  actionLabel: 'New plan',
+                  onAction: () => openNewPlanForm(context),
+                )
+              else if (library != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (active.isNotEmpty) ...[
+                        const SectionHeading(
+                          'Active',
+                          padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
                         ),
+                        for (final (i, plan) in active.indexed) ...[
+                          if (i > 0) const SizedBox(height: 10),
+                          _ActiveCard(
+                            plan: plan,
+                            library: library,
+                            onTap: () => open(plan),
+                          ),
+                        ],
+                      ],
+                      if (notStarted.isNotEmpty) ...[
+                        const SectionHeading(
+                          'Not started',
+                          padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
+                        ),
+                        for (final plan in notStarted)
+                          _PlanRow(plan: plan, onTap: () => open(plan)),
+                      ],
+                      if (finished.isNotEmpty) ...[
+                        const SectionHeading(
+                          'Finished',
+                          padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
+                        ),
+                        for (final plan in finished)
+                          _PlanRow(plan: plan, onTap: () => open(plan)),
                       ],
                     ],
-                    if (notStarted.isNotEmpty) ...[
-                      const SectionHeading(
-                        'Not started',
-                        padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
-                      ),
-                      for (final plan in notStarted)
-                        _PlanRow(plan: plan, onTap: () => open(plan)),
-                    ],
-                    if (finished.isNotEmpty) ...[
-                      const SectionHeading(
-                        'Finished',
-                        padding: EdgeInsets.fromLTRB(0, 18, 0, 6),
-                      ),
-                      for (final plan in finished)
-                        _PlanRow(plan: plan, onTap: () => open(plan)),
-                    ],
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Loading…',
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colors.muted,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Loading…',
+                    style: theme.textTheme.bodyMedium!.copyWith(
+                      color: colors.muted,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

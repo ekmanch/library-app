@@ -13,6 +13,7 @@ import '../../data/models/plan.dart';
 import '../plans/plan_screen.dart';
 import '../plans/plan_progress.dart';
 import '../plans/plans_screen.dart';
+import '../sync/sync_scheduler.dart';
 import '../../data/library_providers.dart';
 import 'fab_action.dart';
 import 'floating_nav_bar.dart';
@@ -55,11 +56,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     ShellTab.plans: GlobalKey<NavigatorState>(),
   };
 
+  late final SyncScheduler _scheduler;
+
   NavigatorState? get _current => _keys[_tab]!.currentState;
 
   @override
   void initState() {
     super.initState();
+    _scheduler = SyncScheduler(sync: () => ref.read(librarySyncProvider))
+      ..start();
     // A plan whose first date has come turns its Started switch on, so the
     // switch always shows the real state (S9). Plans never stop on their
     // own.
@@ -73,12 +78,19 @@ class _AppShellState extends ConsumerState<AppShell> {
     }, fireImmediately: true);
   }
 
+  @override
+  void dispose() {
+    _scheduler.dispose();
+    super.dispose();
+  }
+
   void _select(ShellTab tab) {
     if (tab == _tab) {
       _current?.popUntil((route) => route.isFirst);
       return;
     }
     setState(() => _tab = tab);
+    _scheduler.onTabSwitch();
   }
 
   /// Android back: pop inside the tab, then return to Library, then leave.
