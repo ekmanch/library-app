@@ -8,13 +8,15 @@ import '../operations/operation_json.dart';
 import '../storage/atomic_file.dart';
 
 /// An operation waiting to be saved to GitHub, with the id that names it
-/// in `pending.json`.
+/// in `pending.json` and its summary, taken when it was applied so the
+/// commit message names what the user saw.
 @immutable
 class PendingOperation {
-  const PendingOperation(this.id, this.operation);
+  const PendingOperation(this.id, this.operation, this.summary);
 
   final int id;
   final LibraryOperation operation;
+  final String summary;
 }
 
 /// A save that was started: which operations it carries, the blob sha of
@@ -103,7 +105,12 @@ class PendingQueue {
           .map(
             (o) => PendingOperation(
               (o['id'] as num).toInt(),
-              decodeOperation(Map.of(o)..remove('id')),
+              decodeOperation(
+                Map.of(o)
+                  ..remove('id')
+                  ..remove('summary'),
+              ),
+              o['summary'] as String? ?? '',
             ),
           )
           .toList();
@@ -122,8 +129,8 @@ class PendingQueue {
   static int _nextAfter(List<PendingOperation> operations) =>
       operations.fold(0, (max, o) => o.id > max ? o.id : max) + 1;
 
-  Future<PendingOperation> add(LibraryOperation operation) {
-    final pending = PendingOperation(_next++, operation);
+  Future<PendingOperation> add(LibraryOperation operation, String summary) {
+    final pending = PendingOperation(_next++, operation, summary);
     _operations.add(pending);
     return _save().then((_) => pending);
   }
@@ -168,7 +175,7 @@ class PendingQueue {
     'inFlight': _inFlight?.toJson(),
     'operations': [
       for (final o in _operations)
-        {'id': o.id, ...encodeOperation(o.operation)},
+        {'id': o.id, 'summary': o.summary, ...encodeOperation(o.operation)},
     ],
   };
 

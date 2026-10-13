@@ -28,18 +28,22 @@ void main() {
   test('added operations get rising ids and survive a restart', () async {
     final queue = PendingQueue(file);
     await queue.load();
-    final a = await queue.add(SetStatus(mummy.id, EntryStatus.want));
-    final b = await queue.add(const SetRating('x', 3));
+    final a = await queue.add(
+      SetStatus(mummy.id, EntryStatus.want),
+      'Mark The Mummy as want',
+    );
+    final b = await queue.add(const SetRating('x', 3), 'Rate x 3 of 10');
     expect([a.id, b.id], [1, 2]);
 
     final again = PendingQueue(file);
     await again.load();
     expect(again.operations.map((o) => o.id), [1, 2]);
     expect(again.operations.first.operation, isA<SetStatus>());
+    expect(again.operations.first.summary, 'Mark The Mummy as want');
     expect(again.operations.last.operation, isA<SetRating>());
     // Ids never repeat, even after the earlier ones are gone.
     await again.remove([1, 2]);
-    final c = await again.add(const DeleteEntry('y'));
+    final c = await again.add(const DeleteEntry('y'), 'Delete y');
     expect(c.id, 3);
     expect(again.length, 1);
   });
@@ -47,8 +51,8 @@ void main() {
   test('the in-flight record is kept and cleared with its ids', () async {
     final queue = PendingQueue(file);
     await queue.load();
-    await queue.add(const SetRating('x', 3));
-    await queue.add(const SetRating('x', 4));
+    await queue.add(const SetRating('x', 3), 'Rate x 3 of 10');
+    await queue.add(const SetRating('x', 4), 'Rate x 4 of 10');
     final inFlight = InFlight(
       ids: const [1, 2],
       blobSha: 's' * 40,
@@ -71,9 +75,9 @@ void main() {
     final queue = PendingQueue(file);
     await queue.load();
     await Future.wait([
-      queue.add(const SetRating('x', 1)),
-      queue.add(const SetRating('x', 2)),
-      queue.add(const SetRating('x', 3)),
+      queue.add(const SetRating('x', 1), 'Rate x 1 of 10'),
+      queue.add(const SetRating('x', 2), 'Rate x 2 of 10'),
+      queue.add(const SetRating('x', 3), 'Rate x 3 of 10'),
     ]);
     await queue.flush();
     expect(dir.listSync().map((f) => f.path.split('/').last), ['pending.json']);
@@ -100,7 +104,7 @@ void main() {
   test('delete removes the file and forgets everything', () async {
     final queue = PendingQueue(file);
     await queue.load();
-    await queue.add(const SetRating('x', 1));
+    await queue.add(const SetRating('x', 1), 'Rate x 1 of 10');
     await queue.delete();
     expect(file.existsSync(), isFalse);
     expect(queue.isEmpty, isTrue);
