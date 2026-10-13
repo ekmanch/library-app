@@ -155,6 +155,24 @@ class GitHubHttpApi implements GitHubApi {
     );
   }
 
+  /// Removes a file in one commit. Not part of [GitHubApi]: the app never
+  /// deletes; the live test cleans up after itself with it.
+  Future<void> deleteFile(
+    String path, {
+    required String branch,
+    required String sha,
+    required String message,
+  }) async {
+    final response = await _send(
+      () => _client.delete(
+        _uri(['contents', ...path.split('/')]),
+        headers: _headers(_jsonMediaType, {'Content-Type': 'application/json'}),
+        body: jsonEncode({'message': message, 'sha': sha, 'branch': branch}),
+      ),
+    );
+    _check(response, const {200});
+  }
+
   @override
   Future<List<TreeFile>> listFiles({
     required String branch,
