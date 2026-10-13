@@ -1,8 +1,12 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import '../models/entry_id.dart';
 import '../models/library.dart';
 import '../models/plan.dart';
 import '../models/plan_item.dart';
 import 'library_operation.dart';
+
+part 'plan_operations.g.dart';
 
 /// The plan's title for a summary, or its id when it is gone.
 String _planTitle(Library library, String planId) =>
@@ -20,8 +24,14 @@ Library _replacePlan(Library library, Plan plan) {
 }
 
 /// Appends a plan. A taken id gets a numeric suffix.
+@JsonSerializable()
 class AddPlan extends LibraryOperation {
   const AddPlan(this.plan);
+
+  factory AddPlan.fromJson(Map<String, Object?> json) =>
+      _$AddPlanFromJson(json);
+
+  Map<String, Object?> toJson() => _$AddPlanToJson(this);
 
   final Plan plan;
 
@@ -41,8 +51,14 @@ class AddPlan extends LibraryOperation {
 }
 
 /// Replaces a plan in place, keeping its id and position.
+@JsonSerializable()
 class UpdatePlan extends LibraryOperation {
   const UpdatePlan(this.plan);
+
+  factory UpdatePlan.fromJson(Map<String, Object?> json) =>
+      _$UpdatePlanFromJson(json);
+
+  Map<String, Object?> toJson() => _$UpdatePlanToJson(this);
 
   final Plan plan;
 
@@ -56,8 +72,14 @@ class UpdatePlan extends LibraryOperation {
   String summary(Library before) => 'Edit the plan ${plan.title}';
 }
 
+@JsonSerializable()
 class DeletePlan extends LibraryOperation {
   const DeletePlan(this.planId);
+
+  factory DeletePlan.fromJson(Map<String, Object?> json) =>
+      _$DeletePlanFromJson(json);
+
+  Map<String, Object?> toJson() => _$DeletePlanToJson(this);
 
   final String planId;
 
@@ -75,8 +97,14 @@ class DeletePlan extends LibraryOperation {
 }
 
 /// Adds an item to a plan, or replaces the item for the same entry in place.
+@JsonSerializable()
 class SetPlanItem extends LibraryOperation {
   const SetPlanItem(this.planId, this.item);
+
+  factory SetPlanItem.fromJson(Map<String, Object?> json) =>
+      _$SetPlanItemFromJson(json);
+
+  Map<String, Object?> toJson() => _$SetPlanItemToJson(this);
 
   final String planId;
   final PlanItem item;
@@ -120,8 +148,14 @@ class SetPlanItem extends LibraryOperation {
 }
 
 /// Removes an entry from one plan. The entry itself stays.
+@JsonSerializable()
 class RemovePlanItem extends LibraryOperation {
   const RemovePlanItem(this.planId, this.entryId);
+
+  factory RemovePlanItem.fromJson(Map<String, Object?> json) =>
+      _$RemovePlanItemFromJson(json);
+
+  Map<String, Object?> toJson() => _$RemovePlanItemToJson(this);
 
   final String planId;
   final String entryId;
@@ -145,8 +179,14 @@ class RemovePlanItem extends LibraryOperation {
 
 /// Turns a plan's Started switch on or off (S9). The app also turns it on
 /// when the plan's first date arrives.
+@JsonSerializable()
 class SetPlanStarted extends LibraryOperation {
   const SetPlanStarted(this.planId, this.started);
+
+  factory SetPlanStarted.fromJson(Map<String, Object?> json) =>
+      _$SetPlanStartedFromJson(json);
+
+  Map<String, Object?> toJson() => _$SetPlanStartedToJson(this);
 
   final String planId;
   final bool started;

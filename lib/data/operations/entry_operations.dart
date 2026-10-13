@@ -1,9 +1,13 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import '../models/entry.dart';
 import '../models/entry_id.dart';
 import '../models/entry_status.dart';
 import '../models/library.dart';
 import '../models/track.dart';
 import 'library_operation.dart';
+
+part 'entry_operations.g.dart';
 
 /// The entry's title for a summary, or its id when it is gone.
 String _title(Library library, String entryId) =>
@@ -26,8 +30,14 @@ Library _replaceEntry(Library library, Entry entry) {
   return library.copyWith(entries: entries);
 }
 
+@JsonSerializable()
 class SetStatus extends LibraryOperation {
   const SetStatus(this.entryId, this.status);
+
+  factory SetStatus.fromJson(Map<String, Object?> json) =>
+      _$SetStatusFromJson(json);
+
+  Map<String, Object?> toJson() => _$SetStatusToJson(this);
 
   final String entryId;
   final EntryStatus status;
@@ -51,9 +61,15 @@ class SetStatus extends LibraryOperation {
       'Mark ${_title(before, entryId)} as ${_statusWord(status)}';
 }
 
+@JsonSerializable()
 class SetRating extends LibraryOperation {
   const SetRating(this.entryId, this.rating)
     : assert(rating == null || (rating >= 1 && rating <= 10));
+
+  factory SetRating.fromJson(Map<String, Object?> json) =>
+      _$SetRatingFromJson(json);
+
+  Map<String, Object?> toJson() => _$SetRatingToJson(this);
 
   final String entryId;
 
@@ -77,8 +93,14 @@ class SetRating extends LibraryOperation {
 /// that id is taken by the time the operation runs (after a sync conflict),
 /// a numeric suffix is added. Tags the entry uses must already exist in the
 /// tag map (see [AddTag]).
+@JsonSerializable()
 class AddEntry extends LibraryOperation {
   const AddEntry(this.entry);
+
+  factory AddEntry.fromJson(Map<String, Object?> json) =>
+      _$AddEntryFromJson(json);
+
+  Map<String, Object?> toJson() => _$AddEntryToJson(this);
 
   final Entry entry;
 
@@ -98,8 +120,14 @@ class AddEntry extends LibraryOperation {
 }
 
 /// Replaces an entry in place, keeping its id and position.
+@JsonSerializable()
 class UpdateEntry extends LibraryOperation {
   const UpdateEntry(this.entry);
+
+  factory UpdateEntry.fromJson(Map<String, Object?> json) =>
+      _$UpdateEntryFromJson(json);
+
+  Map<String, Object?> toJson() => _$UpdateEntryToJson(this);
 
   final Entry entry;
 
@@ -114,8 +142,14 @@ class UpdateEntry extends LibraryOperation {
 }
 
 /// Removes an entry everywhere: from the list and from every plan.
+@JsonSerializable()
 class DeleteEntry extends LibraryOperation {
   const DeleteEntry(this.entryId);
+
+  factory DeleteEntry.fromJson(Map<String, Object?> json) =>
+      _$DeleteEntryFromJson(json);
+
+  Map<String, Object?> toJson() => _$DeleteEntryToJson(this);
 
   final String entryId;
 
@@ -144,8 +178,14 @@ bool _sameTrack(Track a, Track b) =>
 
 /// Adds or replaces a rated track on an album entry. Tracks match by lookup
 /// id when both have one, otherwise by title.
+@JsonSerializable()
 class RateTrack extends LibraryOperation {
   const RateTrack(this.entryId, this.track);
+
+  factory RateTrack.fromJson(Map<String, Object?> json) =>
+      _$RateTrackFromJson(json);
+
+  Map<String, Object?> toJson() => _$RateTrackToJson(this);
 
   final String entryId;
   final Track track;
@@ -174,9 +214,15 @@ class RateTrack extends LibraryOperation {
 
 /// Removes a track's rating. When no rated tracks remain the `tracks` field
 /// is dropped, since only rated tracks are stored.
+@JsonSerializable()
 class ClearTrackRating extends LibraryOperation {
   const ClearTrackRating(this.entryId, {this.trackId, this.title})
     : assert(trackId != null || title != null);
+
+  factory ClearTrackRating.fromJson(Map<String, Object?> json) =>
+      _$ClearTrackRatingFromJson(json);
+
+  Map<String, Object?> toJson() => _$ClearTrackRatingToJson(this);
 
   final String entryId;
   final String? trackId;
