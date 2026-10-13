@@ -120,16 +120,19 @@ Done in `ekmanch/library` on the branch `feature/app-preparation` (2026-10-13), 
 
 ## Phase 4: GitHub sync
 
-- [ ] F3 to F6 First run for real: token and repo, stored in secure storage
-- [ ] `GitHubLibraryRepository`: read with a conditional request, always in raw format
-- [ ] Show cached data first, then refresh on open, on resume, on pull-to-refresh, and on tab switch after 5 minutes
-- [ ] Save: bundle edits for 2 to 3 seconds into one commit with a readable message ("Mark The Mummy as done")
-- [ ] Conflicts: refetch and re-apply the pending operations
-- [ ] Offline queue
-- [ ] A12 banners driven by the real sync state; Retry re-sends, "Sync now" in D6 syncs
-- [ ] F3 "How do I create a token?" opens GitHub's token page (needs url_launcher)
-- [ ] Confirm before Disconnect in D6, since it clears the token
-- [ ] Read the version for About from the build (package_info_plus) instead of `lib/app_info.dart`
+Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
+
+- [x] F3 to F6 First run for real: token and repo, stored in secure storage (the token in `flutter_secure_storage`, the connection in `connection.json`; F3 validates the token and keeps the default branch, F5 commits the empty library, F6 lists the repo's JSON files)
+- [x] `GitHubLibraryRepository`: read with a conditional request, always in raw format
+- [x] Show cached data first, then refresh on open, on resume, on pull-to-refresh, and on tab switch after 5 minutes (plus every 5 minutes in the foreground, as D6 promises)
+- [x] Save: bundle edits for 2 to 3 seconds into one commit with a readable message ("Mark The Mummy as done")
+- [x] Conflicts: refetch and re-apply the pending operations
+- [x] Offline queue (`pending.json`, survives a restart; a save whose answer was lost is settled before anything is sent again)
+- [x] A12 banners driven by the real sync state; Retry re-sends, "Sync now" in D6 syncs
+- [x] F3 "How do I create a token?" opens GitHub's token page (needs url_launcher)
+- [x] Confirm before Disconnect in D6, since it clears the token
+- [x] Read the version for About from the build (package_info_plus)
+- [x] Opt-in live test against `ekmanch/libri-scratch` (create, conditional read, save, stale sha, a file over 1 MB); the device check on the S25 is the owner's
 
 ## Phase 5: Lookups and images
 
