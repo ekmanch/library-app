@@ -627,8 +627,16 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'd6-connection');
 
-    // Disconnect starts the first run at the splash (F1).
+    // Disconnect asks first, then starts the first run at the splash (F1).
     await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd6-disconnect-confirm');
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Disconnect'),
+      ),
+    );
     await tester.pumpAndSettle();
     await capture(tester, 'f1-splash');
     await tester.pump(FirstRunFlow.splashDuration);
@@ -676,6 +684,40 @@ void main() {
     await tester.tap(find.text('Open Libri'));
     await tester.pumpAndSettle();
     expect(find.text('Library'), findsWidgets);
+
+    // D6 with changes that could not be saved, and its Disconnect dialog.
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+          syncStatusProvider.overrideWithValue(
+            AsyncValue.data(
+              SyncStatus(
+                phase: SyncPhase.failed,
+                pendingCount: 2,
+                lastSynced: DateTime.now().subtract(const Duration(hours: 3)),
+              ),
+            ),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Library source'), 300);
+    await tester.tap(find.text('Library source'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd6-connection-failed');
+    await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd6-disconnect-confirm-pending');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
     // D7: a library that never finishes loading.
     final never = Completer<String>();

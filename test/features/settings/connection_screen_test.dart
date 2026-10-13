@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/dev/fake_github_api.dart';
+import 'package:library_app/data/sync/sync_status.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/settings/connection_screen.dart';
 import 'package:library_app/features/sync/sync_state.dart';
 
+import '../../helpers/fake_library_sync.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -63,12 +65,74 @@ void main() {
     expect(find.byType(ConnectionScreen), findsOneWidget);
   });
 
-  testWidgets('Disconnect leaves the screen and forgets the connection', (
+  testWidgets('Disconnect asks first, then forgets the connection', (
     tester,
   ) async {
     final container = await pumpApp(tester, const ConnectionScreen());
     await tester.tap(find.text('Disconnect'));
     await tester.pumpAndSettle();
+    expect(find.text('Disconnect from GitHub?'), findsOneWidget);
+    expect(find.textContaining('will be lost'), findsNothing);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(container.read(libraryConnectionProvider).connected, isTrue);
+    expect(find.byType(ConnectionScreen), findsOneWidget);
+
+    await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Disconnect'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(container.read(libraryConnectionProvider).connected, isFalse);
+  });
+
+  testWidgets('with unsaved changes the dialog says so', (tester) async {
+    final sync = FakeLibrarySync(
+      const SyncStatus(phase: SyncPhase.offline, pendingCount: 2),
+    );
+    await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    expect(find.text('Offline'), findsOneWidget);
+    expect(find.text('2 changes waiting to be saved'), findsOneWidget);
+    await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        '2 changes have not been saved to GitHub yet and will be lost.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Disconnect anyway'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(sync.discards, 0);
+  });
+
+  testWidgets('Sync now and the status card follow the sync', (tester) async {
+    final sync = FakeLibrarySync();
+    await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    expect(find.text('Connected'), findsOneWidget);
+    await tester.tap(find.text('Sync now'));
+    await tester.pumpAndSettle();
+    expect(sync.syncNows, 1);
+    sync.emit(const SyncStatus(phase: SyncPhase.saving, pendingCount: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Saving…'), findsOneWidget);
+    expect(find.text('1 change waiting to be saved'), findsOneWidget);
+    sync.emit(SyncStatus(lastSynced: DateTime.now()));
+    await tester.pumpAndSettle();
+    expect(find.text('Connected'), findsOneWidget);
+    expect(find.text('Last synced just now'), findsOneWidget);
   });
 }

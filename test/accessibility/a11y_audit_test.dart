@@ -287,6 +287,9 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
     await a.check('S6 settings bottom');
     await a.tapText('Library source');
     await a.check('D6 connection');
+    await a.tapText('Disconnect');
+    await a.check('D6 disconnect confirm');
+    await a.tapText('Cancel');
     await a.back();
     await a.back();
   });

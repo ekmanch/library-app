@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
+import '../../data/sync/sync_status.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/setting_row.dart';
@@ -29,12 +31,34 @@ class ConnectionScreen extends ConsumerWidget {
 
   static const _sectionPadding = EdgeInsets.fromLTRB(0, 20, 0, 2);
 
-  void _disconnect(BuildContext context, WidgetRef ref) {
+  Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
+    final pending = ref.read(syncStatusProvider).value?.pendingCount ?? 0;
+    if (!await confirmDisconnect(context, pending: pending)) return;
+    if (!context.mounted) return;
     // The app's home swaps to the first run (F1) once disconnected; the
     // screens stacked above it go first.
     Navigator.of(context).popUntil((route) => route.isFirst);
     unawaited(ref.read(libraryConnectionProvider.notifier).disconnect());
   }
+
+  /// The status card's first line.
+  static String statusTitle(SyncStatus status) => switch (status.phase) {
+    SyncPhase.idle => 'Connected',
+    SyncPhase.checking => 'Checking for changes…',
+    SyncPhase.saving => 'Saving…',
+    SyncPhase.offline => 'Offline',
+    SyncPhase.failed => 'Could not save to GitHub',
+    SyncPhase.tokenProblem => 'GitHub refused the token',
+  };
+
+  /// The status card's second line: what is waiting, else when the phone
+  /// last matched GitHub.
+  static String statusDetail(SyncStatus status, {DateTime? now}) =>
+      status.pendingCount > 0
+      ? '${status.pendingCount} '
+            '${status.pendingCount == 1 ? 'change' : 'changes'} waiting to '
+            'be saved'
+      : lastSyncedLabel(status.lastSynced, now: now);
 
   /// "Last synced 3 minutes ago", or "Not synced yet".
   static String lastSyncedLabel(DateTime? lastSynced, {DateTime? now}) =>
@@ -47,7 +71,13 @@ class ConnectionScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final connection = ref.watch(libraryConnectionProvider);
-    final status = ref.watch(syncStatusProvider).value;
+    final status = ref.watch(syncStatusProvider).value ?? SyncStatus.idle;
+    final dot = switch (status.phase) {
+      SyncPhase.idle => colors.success,
+      SyncPhase.checking || SyncPhase.saving => theme.colorScheme.primary,
+      SyncPhase.offline => colors.muted,
+      SyncPhase.failed || SyncPhase.tokenProblem => colors.dangerText,
+    };
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -74,7 +104,7 @@ class ConnectionScreen extends ConsumerWidget {
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: colors.success,
+                            color: dot,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -84,14 +114,14 @@ class ConnectionScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Connected',
+                                statusTitle(status),
                                 style: theme.textTheme.titleMedium!.copyWith(
                                   fontSize: 15,
                                 ),
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                lastSyncedLabel(status?.lastSynced),
+                                statusDetail(status),
                                 style: theme.textTheme.bodySmall!.copyWith(
                                   fontSize: 13,
                                   fontStyle: FontStyle.normal,
@@ -161,4 +191,39 @@ class ConnectionScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The Disconnect confirmation in D6. Resolves true when the user
+/// confirms. With [pending] changes not yet on GitHub the dialog says they
+/// are lost and the button reads "Disconnect anyway".
+Future<bool> confirmDisconnect(
+  BuildContext context, {
+  required int pending,
+}) async {
+  final confirmed = await showAppDialog<bool>(
+    context,
+    builder: (context) => AppDialog(
+      title: 'Disconnect from GitHub?',
+      body:
+          'Libri forgets the token, the repo and the library kept on this '
+          'phone. Your library on GitHub stays as it is.',
+      note: pending > 0
+          ? '$pending ${pending == 1 ? 'change has' : 'changes have'} not '
+                'been saved to GitHub yet and will be lost.'
+          : null,
+      actions: [
+        AppButton(
+          label: 'Cancel',
+          kind: AppButtonKind.outline,
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppButton(
+          label: pending > 0 ? 'Disconnect anyway' : 'Disconnect',
+          kind: AppButtonKind.destructive,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
 }

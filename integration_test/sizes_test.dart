@@ -259,6 +259,9 @@ Future<void> _walk(_Walk w) async {
     await w.shot('s6-settings-bottom');
     await w.tapText('Library source');
     await w.shot('d6-connection');
+    await w.tapText('Disconnect');
+    await w.shot('d6-disconnect-confirm');
+    await w.tapText('Cancel');
     await w.back();
     await w.back();
   });

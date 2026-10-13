@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/library_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../settings/connection_screen.dart';
@@ -25,8 +26,9 @@ class SyncBannerCard extends ConsumerWidget {
     void act() {
       switch (banner) {
         case SyncBanner.couldNotSave:
-          // Phase 4 retries the save; for now the banner just goes away.
-          ref.read(syncBannerProvider.notifier).clear();
+          // Sends the queue again; the banner follows the real state.
+          ref.read(syncBannerProvider.notifier).follow();
+          ref.read(librarySyncProvider)?.syncNow();
         case SyncBanner.tokenProblem:
           openConnectionScreen(context);
         case SyncBanner.saving || SyncBanner.offline:
