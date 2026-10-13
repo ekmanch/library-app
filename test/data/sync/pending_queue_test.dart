@@ -1,0 +1,108 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/models/entry_status.dart';
+import 'package:library_app/data/operations/operations.dart';
+import 'package:library_app/data/sync/pending_queue.dart';
+
+import '../../helpers/sample_library.dart';
+
+void main() {
+  late Directory dir;
+  late File file;
+
+  setUp(() {
+    dir = Directory.systemTemp.createTempSync('libri-pending-');
+    file = File('${dir.path}/pending.json');
+  });
+  tearDown(() => dir.deleteSync(recursive: true));
+
+  test('starts empty without a file', () async {
+    final queue = PendingQueue(file);
+    await queue.load();
+    expect(queue.isEmpty, isTrue);
+    expect(queue.inFlight, isNull);
+    expect(file.existsSync(), isFalse);
+  });
+
+  test('added operations get rising ids and survive a restart', () async {
+    final queue = PendingQueue(file);
+    await queue.load();
+    final a = await queue.add(SetStatus(mummy.id, EntryStatus.want));
+    final b = await queue.add(const SetRating('x', 3));
+    expect([a.id, b.id], [1, 2]);
+
+    final again = PendingQueue(file);
+    await again.load();
+    expect(again.operations.map((o) => o.id), [1, 2]);
+    expect(again.operations.first.operation, isA<SetStatus>());
+    expect(again.operations.last.operation, isA<SetRating>());
+    // Ids never repeat, even after the earlier ones are gone.
+    await again.remove([1, 2]);
+    final c = await again.add(const DeleteEntry('y'));
+    expect(c.id, 3);
+    expect(again.length, 1);
+  });
+
+  test('the in-flight record is kept and cleared with its ids', () async {
+    final queue = PendingQueue(file);
+    await queue.load();
+    await queue.add(const SetRating('x', 3));
+    await queue.add(const SetRating('x', 4));
+    final inFlight = InFlight(
+      ids: const [1, 2],
+      blobSha: 's' * 40,
+      message: 'Rate x 4 of 10',
+      startedAt: DateTime.utc(2026, 10, 13, 20),
+    );
+    await queue.markInFlight(inFlight);
+
+    final again = PendingQueue(file);
+    await again.load();
+    expect(again.inFlight, inFlight);
+    await again.remove([1]);
+    expect(again.inFlight, inFlight, reason: 'one of its ids is still queued');
+    await again.remove([2]);
+    expect(again.inFlight, isNull);
+    expect(again.isEmpty, isTrue);
+  });
+
+  test('quick changes are all written, with no .tmp file left', () async {
+    final queue = PendingQueue(file);
+    await queue.load();
+    await Future.wait([
+      queue.add(const SetRating('x', 1)),
+      queue.add(const SetRating('x', 2)),
+      queue.add(const SetRating('x', 3)),
+    ]);
+    await queue.flush();
+    expect(dir.listSync().map((f) => f.path.split('/').last), ['pending.json']);
+    final again = PendingQueue(file);
+    await again.load();
+    expect(again.length, 3);
+  });
+
+  test(
+    'an unreadable file is renamed aside and the queue starts empty',
+    () async {
+      file.writeAsStringSync('{"operations": [{"id": 1, "op": "teleport"}]}');
+      final queue = PendingQueue(file);
+      await queue.load();
+      expect(queue.isEmpty, isTrue);
+      expect(file.existsSync(), isFalse);
+      expect(
+        dir.listSync().map((f) => f.path),
+        contains(endsWith('.unreadable')),
+      );
+    },
+  );
+
+  test('delete removes the file and forgets everything', () async {
+    final queue = PendingQueue(file);
+    await queue.load();
+    await queue.add(const SetRating('x', 1));
+    await queue.delete();
+    expect(file.existsSync(), isFalse);
+    expect(queue.isEmpty, isTrue);
+  });
+}
