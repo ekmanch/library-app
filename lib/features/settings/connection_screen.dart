@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/library_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/setting_row.dart';
 import '../first_run/first_run_flow.dart';
+import '../sync/relative_time.dart';
 import '../sync/sync_state.dart';
 
 /// Opens D6 above everything, like Settings.
@@ -29,14 +33,21 @@ class ConnectionScreen extends ConsumerWidget {
     // The app's home swaps to the first run (F1) once disconnected; the
     // screens stacked above it go first.
     Navigator.of(context).popUntil((route) => route.isFirst);
-    ref.read(libraryConnectionProvider.notifier).disconnect();
+    unawaited(ref.read(libraryConnectionProvider.notifier).disconnect());
   }
+
+  /// "Last synced 3 minutes ago", or "Not synced yet".
+  static String lastSyncedLabel(DateTime? lastSynced, {DateTime? now}) =>
+      lastSynced == null
+      ? 'Not synced yet'
+      : 'Last synced ${relativeTime(lastSynced, now: now ?? DateTime.now())}';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final connection = ref.watch(libraryConnectionProvider);
+    final status = ref.watch(syncStatusProvider).value;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -80,7 +91,7 @@ class ConnectionScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                connection.lastSyncedLabel,
+                                lastSyncedLabel(status?.lastSynced),
                                 style: theme.textTheme.bodySmall!.copyWith(
                                   fontSize: 13,
                                   fontStyle: FontStyle.normal,
@@ -95,9 +106,8 @@ class ConnectionScreen extends ConsumerWidget {
                           kind: AppButtonKind.outline,
                           compact: true,
                           horizontalPadding: 14,
-                          onPressed: () => ref
-                              .read(libraryConnectionProvider.notifier)
-                              .markSynced(),
+                          onPressed: () =>
+                              ref.read(librarySyncProvider)?.syncNow(),
                         ),
                       ],
                     ),

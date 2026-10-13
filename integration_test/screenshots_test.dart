@@ -26,6 +26,7 @@ import 'package:library_app/features/library/library_sort.dart';
 import 'package:library_app/features/plans/plan_entry_sheet.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
+import 'package:library_app/data/sync/sync_status.dart';
 import 'package:library_app/features/sync/sync_state.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/segmented_control.dart';
@@ -34,6 +35,14 @@ import 'package:library_app/widgets/chips.dart';
 /// Wraps the whole app, including sheets, dialogs and menus in the root
 /// overlay, so a capture shows what the user sees.
 final _root = GlobalKey();
+
+/// D6 as the artboard draws it: synced a few minutes ago. The fixture has
+/// no sync of its own.
+final _syncedRecently = syncStatusProvider.overrideWithValue(
+  AsyncValue.data(
+    SyncStatus(lastSynced: DateTime.now().subtract(const Duration(minutes: 3))),
+  ),
+);
 
 /// A status segment of the type view.
 Finder segment(String label) => find.descendant(
@@ -567,6 +576,7 @@ void main() {
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
+          _syncedRecently,
         ],
         child: RepaintBoundary(key: _root, child: const LibraryApp()),
       ),
@@ -668,6 +678,7 @@ void main() {
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
+          _syncedRecently,
         ],
         child: RepaintBoundary(key: _root, child: const LibraryApp()),
       ),

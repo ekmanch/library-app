@@ -154,14 +154,20 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   }
 
   void _finish() {
-    ref
-        .read(libraryConnectionProvider.notifier)
-        .connect(
-          repository: _repo.text.trim(),
-          file: _choice == _FileChoice.newFile
-              ? _fileName.text.trim()
-              : RepoFile.sample[_file].path,
-        );
+    // The app opens the library once the token and the connection are
+    // stored; the branch is the repo's default from phase 4's F3.
+    unawaited(
+      ref
+          .read(libraryConnectionProvider.notifier)
+          .connect(
+            repository: _repo.text.trim(),
+            file: _choice == _FileChoice.newFile
+                ? _fileName.text.trim()
+                : RepoFile.sample[_file].path,
+            branch: 'main',
+            token: _token.text.trim(),
+          ),
+    );
   }
 
   @override

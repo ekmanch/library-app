@@ -157,9 +157,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(FirstRunFlow), findsOneWidget);
     expect(find.byType(AppShell), findsNothing);
-    container
+    await container
         .read(libraryConnectionProvider.notifier)
-        .connect(repository: 'ekmanch/library', file: 'library.json');
+        .connect(
+          repository: 'ekmanch/library',
+          file: 'library.json',
+          branch: 'main',
+          token: 'github_pat_x',
+        );
     await tester.pumpAndSettle();
     expect(find.byType(AppShell), findsOneWidget);
     expect(find.byType(FirstRunFlow), findsNothing);

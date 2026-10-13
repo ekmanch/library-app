@@ -91,7 +91,12 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   }
 
   @override
-  Stream<Library> watch() => _cache.watch();
+  Stream<Library> watch() {
+    // Through load(), so the queue and the meta are read and the check
+    // runs; the cache's stream carries the library and any load error.
+    unawaited(load().then((_) {}, onError: (Object _) {}));
+    return _cache.watch();
+  }
 
   @override
   Future<Library> apply(LibraryOperation operation) async {
@@ -152,7 +157,8 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   Future<Library> _ensureLoaded() async {
     await _pending.load();
     if (!_metaLoaded) {
-      _meta = await _metaStore.load();
+      // The seed download may have set it meanwhile.
+      _meta ??= await _metaStore.load();
       _metaLoaded = true;
     }
     try {
@@ -214,6 +220,11 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
     } on GitHubException catch (e) {
       _log('Sync failed: $e');
       _setStatus(_status.copyWith(phase: _phaseFor(e.failure)));
+    } on Object catch (e, stack) {
+      // A bug, or a file GitHub holds that the app cannot read. Shown as
+      // a failure rather than lost in the chain.
+      _log('Sync failed unexpectedly: $e\n$stack');
+      _setStatus(_status.copyWith(phase: SyncPhase.failed));
     }
   }
 

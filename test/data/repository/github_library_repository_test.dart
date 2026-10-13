@@ -58,6 +58,19 @@ void main() {
     repo.dispose();
   });
 
+  test('watching alone loads the queue and checks, like the UI', () async {
+    final repo = repository();
+    final emitted = <Object>[];
+    final sub = repo.watch().listen(emitted.add);
+    await pumpEventQueue();
+    await repo.flush();
+    await sub.cancel();
+    expect(emitted, [sampleLibrary()]);
+    expect(github.requests, hasLength(2));
+    expect(repo.status.lastChecked, isNotNull);
+    repo.dispose();
+  });
+
   test('a restart shows the cache and only checks', () async {
     final first = repository();
     await first.load();

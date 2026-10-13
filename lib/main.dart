@@ -5,13 +5,13 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_info.dart';
+import 'data/github/token_store.dart';
 import 'data/library_codec.dart';
 import 'data/library_providers.dart';
 import 'data/preferences/preferences_store.dart';
 import 'data/repository/fixture_library_repository.dart';
-import 'data/repository/library_repository.dart';
-import 'data/repository/local_library_repository.dart';
 import 'data/storage/app_files.dart';
+import 'data/storage/connection_store.dart';
 import 'dev/long_lists.dart';
 import 'features/first_run/first_run_flow.dart';
 import 'features/settings/display_preferences.dart';
@@ -24,33 +24,56 @@ Future<void> main() async {
   runApp(await bootstrap(await appDataDirectory()));
 }
 
-/// The app with its storage in [directory]: `library.json` and
-/// `preferences.json`. The integration tests pass a temporary folder.
-Future<Widget> bootstrap(Directory directory) async {
-  final store = FilePreferencesStore(
-    File('${directory.path}${Platform.pathSeparator}preferences.json'),
-  );
-  final prefs = DisplayPreferences.fromJson(await store.load());
+/// The app with its storage in [directory]: the cached `library.json`,
+/// `pending.json`, `sync.json`, `connection.json` and `preferences.json`.
+/// The integration tests pass a temporary folder, a memory [tokenStore]
+/// and a fake [api].
+Future<Widget> bootstrap(
+  Directory directory, {
+  TokenStore? tokenStore,
+  GitHubApiFactory? api,
+}) async {
+  File file(String name) =>
+      File('${directory.path}${Platform.pathSeparator}$name');
+  final preferences = FilePreferencesStore(file('preferences.json'));
+  final prefs = DisplayPreferences.fromJson(await preferences.load());
+  final tokens = tokenStore ?? SecureTokenStore();
+  final connections = FileConnectionStore(file('connection.json'));
+
+  String? token;
+  try {
+    token = await tokens.read();
+  } on Object catch (e) {
+    // Unreadable secure storage: ask for the token again (first run).
+    debugPrint('Could not read the token: $e');
+  }
+  final stored = await connections.load();
+  var connection = stored == null
+      ? LibraryConnection.disconnected
+      : LibraryConnection.fromJson(stored);
+  if (token == null) connection = connection.copyWith(connected: false);
+
   return ProviderScope(
     overrides: [
-      libraryRepositoryProvider.overrideWithValue(_repository(directory)),
-      preferencesStoreProvider.overrideWithValue(store),
+      appDataDirectoryProvider.overrideWithValue(directory),
+      tokenStoreProvider.overrideWithValue(tokens),
+      connectionStoreProvider.overrideWithValue(connections),
+      initialTokenProvider.overrideWithValue(token),
+      initialConnectionProvider.overrideWithValue(connection),
+      preferencesStoreProvider.overrideWithValue(preferences),
       initialDisplayPreferencesProvider.overrideWithValue(prefs),
+      if (api != null) gitHubApiFactoryProvider.overrideWithValue(api),
+      // The generated entries are for looking only: in memory, no GitHub.
+      if (longListsEnabled) ...[
+        libraryRepositoryProvider.overrideWithValue(
+          FixtureLibraryRepository(loadJson: _loadPaddedFixture),
+        ),
+        initialConnectionProvider.overrideWithValue(
+          const LibraryConnection(connected: true),
+        ),
+      ],
     ],
     child: const LibraryApp(),
-  );
-}
-
-LibraryRepository _repository(Directory directory) {
-  // The generated entries are for looking only and never reach the file.
-  if (longListsEnabled) {
-    return FixtureLibraryRepository(loadJson: _loadPaddedFixture);
-  }
-  return LocalLibraryRepository(
-    File('${directory.path}${Platform.pathSeparator}library.json'),
-    // Until the GitHub connection exists (phase 4), a new install starts
-    // from the bundled fixture.
-    seed: () => rootBundle.loadString(FixtureLibraryRepository.assetPath),
   );
 }
 

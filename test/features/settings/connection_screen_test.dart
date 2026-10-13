@@ -10,7 +10,7 @@ void main() {
   testWidgets('shows the connection details', (tester) async {
     await pumpApp(tester, const ConnectionScreen());
     expect(find.text('Connected'), findsOneWidget);
-    expect(find.text('Last synced a few minutes ago'), findsOneWidget);
+    expect(find.text('Not synced yet'), findsOneWidget);
     expect(find.text('ekmanch/library'), findsOneWidget);
     expect(find.text('library.json'), findsOneWidget);
     expect(find.text('Saved on this phone'), findsOneWidget);
@@ -20,11 +20,16 @@ void main() {
     );
   });
 
-  testWidgets('Sync now updates the last synced line', (tester) async {
-    await pumpApp(tester, const ConnectionScreen());
-    await tester.tap(find.text('Sync now'));
-    await tester.pumpAndSettle();
-    expect(find.text('Last synced just now'), findsOneWidget);
+  test('the last synced line reads from the sync state', () {
+    final now = DateTime(2026, 10, 13, 20, 30);
+    expect(ConnectionScreen.lastSyncedLabel(null, now: now), 'Not synced yet');
+    expect(
+      ConnectionScreen.lastSyncedLabel(
+        now.subtract(const Duration(minutes: 3)),
+        now: now,
+      ),
+      'Last synced 3 minutes ago',
+    );
   });
 
   testWidgets('Replace token opens the connect step on its own', (

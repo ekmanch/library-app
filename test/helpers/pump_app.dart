@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
@@ -24,6 +25,7 @@ Future<ProviderContainer> pumpApp(
   Size size = const Size(360, 780),
   DisplayPreferences? prefs,
   LibraryRepository? repository,
+  List<Override> overrides = const [],
 }) async {
   final lib = library ?? loadFixture();
   final container = ProviderContainer(
@@ -32,6 +34,7 @@ Future<ProviderContainer> pumpApp(
         repository ??
             FixtureLibraryRepository(loadJson: () async => encodeLibrary(lib)),
       ),
+      ...overrides,
     ],
   );
   if (prefs != null) {
