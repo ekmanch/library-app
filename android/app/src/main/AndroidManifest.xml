@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The library lives on GitHub (phase 4). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Libri"
         android:name="${applicationName}"
