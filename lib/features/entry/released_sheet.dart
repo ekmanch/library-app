@@ -143,6 +143,8 @@ class _ReleasedSheetState extends State<ReleasedSheet> {
     );
     final titleStyle = theme.textTheme.headlineSmall!;
     return SheetFrame(
+      // Scrolls when the keyboard leaves it too little room (A26).
+      scrollable: true,
       // The sheet's own header, so the title steps down a size when Clear
       // and Done leave it no room at a large text size.
       header: Row(

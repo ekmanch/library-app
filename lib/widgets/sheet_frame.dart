@@ -58,8 +58,12 @@ class SheetFrame extends StatelessWidget {
               ],
             ),
           );
+    // The keyboard (a sheet with a text field: the plan note, the tag
+    // picker's search, the typed year in A26) pushes the sheet up and
+    // shrinks a scrollable body, so the field stays in view.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+      padding: EdgeInsets.fromLTRB(20, 10, 20, 20 + keyboard),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

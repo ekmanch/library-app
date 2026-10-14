@@ -104,6 +104,23 @@ void main() {
     expect(changes.last, const Released(1066));
   });
 
+  testWidgets('the keyboard pushes the typed year into view', (tester) async {
+    await open(tester, const Released(2013));
+    await tester.tap(find.text('2013'));
+    await tester.pumpAndSettle();
+    // A keyboard two fifths of the screen tall, as on the phone. The view
+    // insets are in physical pixels.
+    final screen = tester.view.physicalSize.height;
+    tester.view.viewInsets = FakeViewPadding(bottom: screen * 0.4);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    final field = find.byType(TextField);
+    final visibleBottom = screen * 0.6 / tester.view.devicePixelRatio;
+    expect(tester.getBottomLeft(field).dy, lessThanOrEqualTo(visibleBottom));
+    expect(tester.getTopLeft(field).dy, greaterThanOrEqualTo(0));
+    expect(find.text('Year only: 2013'), findsOneWidget);
+  });
+
   testWidgets('with nothing set it opens on this year and stays unset', (
     tester,
   ) async {

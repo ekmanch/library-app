@@ -65,16 +65,11 @@ class _PlanNoteSheetState extends State<_PlanNoteSheet> {
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: AppTextField(
-          controller: _controller,
-          hintText: 'Why it is in this plan, or anything to remember',
-          maxLines: 4,
-          autofocus: true,
-        ),
+      child: AppTextField(
+        controller: _controller,
+        hintText: 'Why it is in this plan, or anything to remember',
+        maxLines: 4,
+        autofocus: true,
       ),
     );
   }
