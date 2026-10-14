@@ -223,6 +223,27 @@ void main() {
     expect(find.text('Library home'), findsOneWidget);
   });
 
+  testWidgets('tapping Library again returns the home to All', (tester) async {
+    final container = await pumpApp(
+      tester,
+      const AppShell(),
+      size: const Size(480, 844),
+    );
+    container.read(homeTypeProvider.notifier).set(MediaType.movies);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('New movie'), findsOneWidget);
+    // The page header says Library too; tap the pill's item.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.text('Library'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(container.read(homeTypeProvider), isNull);
+    expect(find.byTooltip('New entry'), findsOneWidget);
+  });
+
   testWidgets('a sheet from inside a tab covers the navigation', (
     tester,
   ) async {

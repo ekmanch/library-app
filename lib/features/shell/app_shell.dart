@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../entry/entry_details_sheet.dart';
 import '../entry/new_entry_screen.dart';
 import '../plans/plan_form_screen.dart';
+import '../library/home_return_provider.dart';
 import '../library/home_type_provider.dart';
 import '../library/library_home_screen.dart';
 import '../settings/display_preferences.dart';
@@ -84,9 +85,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.dispose();
   }
 
+  /// The current tab's item returns to its overview: Plans to S5, Library
+  /// to the home on All, scrolled to the top (A1).
   void _select(ShellTab tab) {
     if (tab == _tab) {
       _current?.popUntil((route) => route.isFirst);
+      if (tab == ShellTab.library) {
+        ref.read(homeReturnProvider.notifier).goHome();
+      }
       return;
     }
     setState(() => _tab = tab);

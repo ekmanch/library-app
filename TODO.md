@@ -24,6 +24,7 @@ Phase 1 builds the whole UI on fixture data, with nothing saved and no network. 
 
 ### 1b. Library
 - [x] A1 Library home: type chips, active plan card, two entries per type under headings with counts
+- [x] A1 Library in the pill returns to the home from any type view: All, status reset, filter cleared, scrolled to the top (like Plans returns to S5)
 - [x] A4 Type picked: the home becomes the type's list in place, with status segments, count, sort, view button
 - [x] D1 Sort menu
 - [x] A20, A21 List with covers and grid with covers (placeholder images)

@@ -29,6 +29,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 - Settings is reached with a gear icon on top-level screens.
 - Inside a plan, "⋮" opens the plan menu (D3).
 - No tinted header bars.
+- Tapping the current tab's item in the pill returns to that tab's overview from any screen in it: Plans to S5, Library to the home on All, with the filter and the type cleared, the status segment reset and the list scrolled to the top (A1).
 - Each tab keeps its own stack. A shortcut to something another tab owns switches to that tab with that tab's overview underneath, so back lands there: "Active plan" on the home opens the plan on Plans. Shared detail views (entry details, an artist, an album) stay in the tab they were opened from: an entry opened from a plan stays in Plans, one opened from the library stays in Library. Full-screen forms, search and Settings open above both tabs.
 
 ## 4. Screens

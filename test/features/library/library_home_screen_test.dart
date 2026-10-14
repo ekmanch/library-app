@@ -8,6 +8,7 @@ import 'package:library_app/features/library/cover_grid_tile.dart';
 import 'package:library_app/features/library/cover_placeholder.dart';
 import 'package:library_app/features/library/entry_list_body.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
+import 'package:library_app/features/library/home_return_provider.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
 import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
@@ -75,6 +76,66 @@ void main() {
     final rows = tester.widgetList<EntryRow>(find.byType(EntryRow)).toList();
     expect(rows.first.title, 'Paddington 2');
     expect(find.byType(StatusSegmentedControl), findsNothing);
+  });
+
+  testWidgets('a return to the home clears the type, status and filter', (
+    tester,
+  ) async {
+    final container = await pumpApp(tester, const LibraryHomeScreen());
+    await pickChip(tester, 'Books');
+    // Five segments scroll sideways at 360 dp.
+    await tester.ensureVisible(inSegments('Done'));
+    await tester.tap(inSegments('Done'));
+    await tester.pumpAndSettle();
+    expect(container.read(homeStatusProvider), EntryStatus.done);
+
+    container.read(homeReturnProvider.notifier).goHome();
+    await tester.pumpAndSettle();
+    expect(container.read(homeTypeProvider), isNull);
+    expect(container.read(homeStatusProvider), isNull);
+    expect(find.byType(StatusSegmentedControl), findsNothing);
+    // The chip row is lazy and still scrolled to Books; bring All back.
+    final row = find.byWidgetPredicate(
+      (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+    );
+    await tester.drag(row, const Offset(300, 0));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PillChip>(find.widgetWithText(PillChip, 'All')).selected,
+      isTrue,
+    );
+
+    container
+        .read(libraryFilterProvider.notifier)
+        .set(const LibraryFilter(tags: {'horror'}));
+    await tester.pumpAndSettle();
+    expect(find.byType(PillChip), findsNothing);
+    container.read(homeReturnProvider.notifier).goHome();
+    await tester.pumpAndSettle();
+    expect(container.read(libraryFilterProvider).isActive, isFalse);
+    expect(find.widgetWithText(PillChip, 'All'), findsOneWidget);
+  });
+
+  testWidgets('a return to the home scrolls All to the top', (tester) async {
+    // Short enough that the All list scrolls.
+    final container = await pumpApp(
+      tester,
+      const LibraryHomeScreen(),
+      size: const Size(360, 420),
+    );
+    Finder allList() => find.byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    );
+    await tester.drag(find.byType(EntryRow).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(
+      tester.state<ScrollableState>(allList()).position.pixels,
+      greaterThan(0),
+    );
+
+    container.read(homeReturnProvider.notifier).goHome();
+    await tester.pumpAndSettle();
+    expect(tester.state<ScrollableState>(allList()).position.pixels, 0);
   });
 
   testWidgets('a type chip shows that type in place with segments and count', (

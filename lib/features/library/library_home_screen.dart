@@ -32,6 +32,7 @@ import 'active_plan_card.dart';
 import 'entry_list_body.dart';
 import 'entry_sections.dart';
 import 'filter_sheet.dart';
+import 'home_return_provider.dart';
 import 'home_type_provider.dart';
 import 'library_filter.dart';
 import 'library_filter_provider.dart';
@@ -70,6 +71,24 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
+  /// The All list's position, so a return to the home can scroll it up.
+  final _allScroll = ScrollController();
+
+  @override
+  void dispose() {
+    _allScroll.dispose();
+    super.dispose();
+  }
+
+  /// Library tapped in the pill while on the Library tab: the providers are
+  /// already back on All, so only the scroll position is left. The list may
+  /// be replaced this frame (a type view giving way to All), so wait for it.
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_allScroll.hasClients) _allScroll.jumpTo(0);
+    });
+  }
+
   void _pickType(MediaType? type) {
     ref.read(homeTypeProvider.notifier).set(type);
     ref.read(homeStatusProvider.notifier).set(null);
@@ -132,6 +151,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     final type = ref.watch(homeTypeProvider);
     final libraryAsync = ref.watch(libraryProvider);
     final library = libraryAsync.value;
+    ref.listen(homeReturnProvider, (_, _) => _scrollToTop());
 
     final Widget body;
     if (library == null && !libraryAsync.hasError) {
@@ -274,6 +294,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     }
 
     return ListView(
+      controller: _allScroll,
       padding: const EdgeInsets.only(bottom: AppShell.contentBottomPadding),
       children: [
         if (plan != null)
