@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
@@ -12,6 +13,7 @@ import 'package:library_app/widgets/segmented_control.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/slow_save_repository.dart';
 
 const _mummy = 'movies/the-mummy-1999';
 
@@ -277,6 +279,36 @@ void main() {
     expect(repo(container).current!.entryById(_mummy), isNull);
     expect(find.text('The Mummy'), findsNothing);
     expect(find.text('Open'), findsOneWidget);
+  });
+
+  testWidgets('delete with a slow save closes only the sheet', (tester) async {
+    // The GitHub repository publishes the change before its apply returns.
+    // The sheet closed itself on seeing the entry gone and then the delete
+    // handler popped again, taking the screen underneath with it.
+    final slow = SlowSaveRepository(
+      FixtureLibraryRepository(
+        loadJson: () async => encodeLibrary(loadFixture()),
+      ),
+    );
+    await pumpApp(tester, const _Opener(_mummy), repository: slow);
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Dialog), matching: find.text('Delete')),
+    );
+    // The dialog closes and the change is published; the sheet sees the
+    // entry gone in the next frame; the save completes while the sheet is
+    // still closing.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(slow.delay);
+    await tester.pumpAndSettle();
+    expect(find.text('The Mummy'), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+    expect(slow.inner.current!.entryById(_mummy), isNull);
   });
 
   testWidgets('edit opens the form and the sheet shows the saved change', (

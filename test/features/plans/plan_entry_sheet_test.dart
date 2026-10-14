@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/plans/plan_entry_sheet.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/slow_save_repository.dart';
 
 class _Opener extends StatelessWidget {
   const _Opener(this.planId, this.entryId);
@@ -123,6 +125,35 @@ void main() {
     await tester.pumpAndSettle();
     // Gone from the plan: the sheet closes itself.
     expect(find.byType(PlanEntrySheet), findsNothing);
+  });
+
+  testWidgets('D4: a slow save closes only the sheet', (tester) async {
+    final slow = SlowSaveRepository(
+      FixtureLibraryRepository(
+        loadJson: () async => encodeLibrary(loadFixture()),
+      ),
+    );
+    await pumpApp(
+      tester,
+      const _Opener('christmas-2026', 'movies/klaus-2019'),
+      repository: slow,
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Remove'));
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete everywhere'));
+    // The dialog closes and the change is published; the sheet sees the
+    // entry gone in the next frame; the save completes while the sheet is
+    // still closing.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(slow.delay);
+    await tester.pumpAndSettle();
+    expect(find.text('Klaus'), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+    expect(slow.inner.current!.entryById('movies/klaus-2019'), isNull);
   });
 
   testWidgets('D4: delete everywhere removes the entry', (tester) async {

@@ -51,9 +51,13 @@ class EntryDetailsSheet extends ConsumerWidget {
     final library = libraryAsync.value!;
     final entry = library.entryById(entryId);
     if (entry == null) {
-      // Gone, e.g. deleted from somewhere else. Nothing to show.
+      // Gone, e.g. deleted from somewhere else. Nothing to show. Only a
+      // sheet still on top closes itself: one already on its way out must
+      // not pop the screen under it.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) Navigator.of(context).maybePop();
+        if (context.mounted && ModalRoute.of(context)?.isCurrent == true) {
+          Navigator.of(context).pop();
+        }
       });
       return const SizedBox(height: 120);
     }
@@ -105,9 +109,12 @@ class EntryDetailsSheet extends ConsumerWidget {
 
     Future<void> delete() async {
       final ok = await confirmDeleteEntry(context, entry: entry, plans: plans);
-      if (!ok) return;
+      if (!ok || !context.mounted) return;
+      // Close first: the repository publishes the change before its apply
+      // completes, and the sheet would close itself on seeing the entry
+      // gone, so a pop after the await would pop the screen underneath.
+      Navigator.of(context).pop();
       await repository.apply(DeleteEntry(entry.id));
-      if (context.mounted) Navigator.of(context).pop();
     }
 
     return SheetFrame(

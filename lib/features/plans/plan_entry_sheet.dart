@@ -60,8 +60,12 @@ class PlanEntrySheet extends ConsumerWidget {
     final entry = library.entryById(entryId);
     final item = plan?.itemFor(entryId);
     if (plan == null || entry == null || item == null) {
+      // Gone. Only a sheet still on top closes itself: one already on its
+      // way out must not pop the screen under it.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) Navigator.of(context).maybePop();
+        if (context.mounted && ModalRoute.of(context)?.isCurrent == true) {
+          Navigator.of(context).pop();
+        }
       });
       return const SizedBox(height: 120);
     }
@@ -119,13 +123,16 @@ class PlanEntrySheet extends ConsumerWidget {
         plan: plan,
         otherPlans: others,
       );
-      if (choice == null) return;
+      if (choice == null || !context.mounted) return;
+      // Close first: the repository publishes the change before its apply
+      // completes, and the sheet would close itself on seeing the item
+      // gone, so a pop after the await would pop the screen underneath.
+      Navigator.of(context).pop();
       await repository.apply(
         choice == RemoveChoice.fromPlan
             ? RemovePlanItem(plan.id, entry.id)
             : DeleteEntry(entry.id),
       );
-      if (context.mounted) Navigator.of(context).pop();
     }
 
     return SheetFrame(
