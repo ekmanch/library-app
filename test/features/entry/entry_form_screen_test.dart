@@ -389,6 +389,19 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('opens without the keyboard; the search box waits for a tap', (
+      tester,
+    ) async {
+      await openPicker(tester);
+      bool anyFocused() => tester
+          .widgetList<EditableText>(find.byType(EditableText))
+          .any((e) => e.focusNode.hasFocus);
+      expect(anyFocused(), isFalse);
+      await tester.tap(find.text('Search or create a tag'));
+      await tester.pumpAndSettle();
+      expect(anyFocused(), isTrue);
+    });
+
     testWidgets('picks existing tags from their groups', (tester) async {
       final container = await openPicker(tester);
       // Every category is open (D14).

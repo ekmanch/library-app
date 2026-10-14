@@ -165,7 +165,7 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
 
 - Tags belong to categories, in this order: Genres (movies, shows, books and anime), Game genres, Music genres, Mood (all types), Season, Creators, Animation style, Other. Every tag belongs to one category, picked when it is created (D10). A new tag starts on Game genres for a game, Music genres for music and Genres otherwise.
 - Filter sheet (A2): a category group shows only when at least one of its tags is used by an entry of the chosen types. This comes from the library, not a fixed mapping, so Games shows Genres too once a game is tagged #crime. With no type chosen, every group shows. A chosen tag whose group goes away is dropped.
-- Tag picker (D14): Game genres only for games and Music genres only for music, unless you search; a search finds any tag. Plan hashtags (S9, S10) list every category.
+- Tag picker (D14): Game genres only for games and Music genres only for music, unless you search; a search finds any tag. The picker opens without the keyboard, since a tag is usually tapped rather than typed; the search box takes the keyboard on a tap. Plan hashtags (S9, S10) list every category.
 - A new tag can only be created from the entry form's tag picker, so every tag is used by at least one entry. A tag that no entry uses disappears.
 - Before creating a tag, check for similar existing ones: same when hyphens are ignored; one letter different (two for tags of six letters or more); two neighboring letters swapped; singular versus plural. If one is found, show D9.
 - Creating a tag always goes through D10 to confirm it and pick its category.

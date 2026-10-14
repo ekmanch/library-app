@@ -167,10 +167,11 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             ],
           ),
           const SizedBox(height: 12),
+          // No autofocus: most of the time a tag is tapped, not typed, so
+          // the keyboard waits for a tap on the search box.
           SearchField(
             controller: _query,
             hintText: 'Search or create a tag',
-            autofocus: _selected.isEmpty,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) {
               if (canCreate) _create(query);
