@@ -84,7 +84,8 @@ class SettingsButton extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: 'Settings',
-      icon: const StrokeIcon(AppIcons.settings, size: 22),
+      // The standard Material cog (A1, S5), not one of the stroke glyphs.
+      icon: const Icon(Icons.settings_outlined, size: 22),
     );
   }
 }

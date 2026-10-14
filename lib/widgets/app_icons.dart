@@ -65,20 +65,6 @@ class AppIcons {
     ],
   );
 
-  static const settings = StrokeIconData(
-    circles: [StrokeCircle(Offset(12, 12), 3.5)],
-    polylines: [
-      [Offset(12, 2.5), Offset(12, 5.5)],
-      [Offset(12, 18.5), Offset(12, 21.5)],
-      [Offset(2.5, 12), Offset(5.5, 12)],
-      [Offset(18.5, 12), Offset(21.5, 12)],
-      [Offset(5.3, 5.3), Offset(7.4, 7.4)],
-      [Offset(16.6, 16.6), Offset(18.7, 18.7)],
-      [Offset(5.3, 18.7), Offset(7.4, 16.6)],
-      [Offset(16.6, 7.4), Offset(18.7, 5.3)],
-    ],
-  );
-
   static const back = StrokeIconData(
     polylines: [
       [Offset(15, 5), Offset(8, 12), Offset(15, 19)],
