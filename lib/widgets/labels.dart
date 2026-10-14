@@ -1,6 +1,7 @@
 import '../data/models/entry_status.dart';
 import '../data/models/media_type.dart';
 import '../data/models/music_kind.dart';
+import '../data/models/released.dart';
 import '../data/models/tag_category.dart';
 
 /// UI words for the enums. American spelling, sentence case.
@@ -90,6 +91,55 @@ String creatorLabel(MediaType type) => switch (type) {
   MediaType.music => 'Artist',
   MediaType.anime => 'Studio',
 };
+
+const monthAbbreviations = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/// The Released field (A8): "2013", "Jun 2013" or "Jun 14, 2013".
+String releasedLabel(Released released) {
+  final month = released.month, day = released.day;
+  if (month == null) return '${released.year}';
+  final name = monthAbbreviations[month - 1];
+  if (day == null) return '$name ${released.year}';
+  return '$name $day, ${released.year}';
+}
+
+/// The line under the picker's title (A25): "Year only: 2013", "June 2013"
+/// or "June 14, 2013".
+String releasedLongLabel(Released released) {
+  final month = released.month, day = released.day;
+  if (month == null) return 'Year only: ${released.year}';
+  final name = monthNames[month - 1];
+  if (day == null) return '$name ${released.year}';
+  return '$name $day, ${released.year}';
+}
 
 /// "8 / 10", or "Not rated".
 String ratingLabel(int? rating) =>

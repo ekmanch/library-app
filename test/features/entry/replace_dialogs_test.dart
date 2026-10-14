@@ -139,8 +139,14 @@ void main() {
         hinted('Optional').at(0),
         'Creedence Clearwater Revival',
       );
-      await tester.enterText(hinted('Year or date'), '1969');
+      await tester.tap(find.text('Not set'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('${DateTime.now().year}'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '1969');
       await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Add'));
       await tester.pumpAndSettle();
       expect(

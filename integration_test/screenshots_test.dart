@@ -242,6 +242,14 @@ void main() {
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
     await capture(tester, 'a8-new-entry');
+    await tester.tap(find.text('Jun 14, 2013'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a25-released-picker');
+    await tester.tap(find.text('2013'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a26-released-type');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Suggested · tap to add'),
       200,
@@ -545,6 +553,11 @@ void main() {
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
     await capture(tester, 'large-text-a8-form');
+    await tester.tap(find.text('Jun 14, 2013'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-a25-released-picker');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
@@ -847,6 +860,10 @@ void main() {
     await shot('a13-new-entry');
     await tapText('GAME · 2013');
     await shot('a8-new-entry');
+    await tapText('Jun 14, 2013');
+    await shot('a25-released-picker');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
     await back();
     await back();
     await pickChip(tester, 'Music');

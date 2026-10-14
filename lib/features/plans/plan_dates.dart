@@ -1,39 +1,11 @@
 import '../../data/models/plan_item.dart';
-
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+import '../../widgets/labels.dart';
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const monthNames = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
 /// "Oct 17".
-String formatMonthDay(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+String formatMonthDay(DateTime d) =>
+    '${monthAbbreviations[d.month - 1]} ${d.day}';
 
 /// "Sat Oct 17".
 String formatWeekdayDay(DateTime d) =>

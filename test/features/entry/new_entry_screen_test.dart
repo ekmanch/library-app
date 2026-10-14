@@ -111,7 +111,7 @@ void main() {
     expect(find.text('New entry'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Akira'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Katsuhiro Otomo'), findsOneWidget);
-    expect(find.widgetWithText(TextField, '1988'), findsOneWidget);
+    expect(find.text('1988'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();

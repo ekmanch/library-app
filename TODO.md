@@ -136,6 +136,7 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [x] Opt-in live test against `ekmanch/libri-scratch` (create, conditional read, save, stale sha, a file over 1 MB); the device check on the S25 is the owner's
 - [x] Lock the app to portrait (manifest and `main()`)
 - [x] D1 "Rating, highest first": 10 down to 1, unrated last, ties by title; rail sections are the ratings that exist
+- [x] A25, A26 Released as a wheel picker (year, month, day; tap the year to type it) in place of the text field
 
 ## Phase 5: Lookups and images
 

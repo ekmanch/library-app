@@ -37,7 +37,22 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Add needs a title and a valid release date', (tester) async {
+  /// Opens the Released picker, types [year] into the year field and
+  /// closes the sheet.
+  Future<void> typeYear(WidgetTester tester, String year) async {
+    await tester.tap(find.text('Not set'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('${DateTime.now().year}'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, year);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Add needs a title; Released is picked on the wheels', (
+    tester,
+  ) async {
     final container = await pumpApp(
       tester,
       const EntryFormScreen.create(type: MediaType.movies),
@@ -51,12 +66,10 @@ void main() {
     await tester.pump();
     expect(tester.widget<FilledButton>(add).onPressed, isNotNull);
 
-    await tester.enterText(field('Year or date'), '19x6');
-    await tester.pump();
-    expect(find.text(EntryFormScreen.releasedHelp), findsOneWidget);
-    expect(tester.widget<FilledButton>(add).onPressed, isNull);
-
-    await tester.enterText(field('Year or date'), '1976');
+    expect(find.bySemanticsLabel(RegExp('Released, Not set')), findsOneWidget);
+    await typeYear(tester, '1976');
+    expect(find.text('1976'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Released, 1976')), findsOneWidget);
     await tester.enterText(field('Optional').first, 'Brian De Palma');
     await tester.pump();
     await tester.tap(add);
@@ -128,7 +141,7 @@ void main() {
     );
     expect(find.widgetWithText(TextField, 'Hounds of Love'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Kate Bush'), findsOneWidget);
-    expect(find.widgetWithText(TextField, '1985'), findsOneWidget);
+    expect(find.text('1985'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     final entry = repo(container).current!.entries.last;
@@ -160,6 +173,7 @@ void main() {
     expect(find.text('Edit entry'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Dracula'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Bram Stoker'), findsOneWidget);
+    expect(find.text('1897'), findsOneWidget);
     // The test font's wide digits stack Author and Released, so the
     // rest of the form sits further down the lazy list.
     await scrollTo(tester, find.text('8 / 10'));

@@ -1,3 +1,5 @@
+import '../../widgets/labels.dart';
+
 /// "just now", "3 minutes ago", "yesterday", "Mar 14, 2026": how long ago
 /// [at] was, as D6 and F6 say it.
 String relativeTime(DateTime at, {required DateTime now}) {
@@ -12,20 +14,6 @@ String relativeTime(DateTime at, {required DateTime now}) {
   final days = difference.inDays;
   if (days == 1) return 'yesterday';
   if (days < 30) return '$days days ago';
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
   final local = at.toLocal();
-  return '${months[local.month - 1]} ${local.day}, ${local.year}';
+  return '${monthAbbreviations[local.month - 1]} ${local.day}, ${local.year}';
 }

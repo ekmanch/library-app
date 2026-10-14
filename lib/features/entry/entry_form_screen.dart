@@ -26,6 +26,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/segmented_control.dart';
 import '../settings/display_preferences.dart';
 import 'lookup_matches.dart';
+import 'released_sheet.dart';
 import 'rating_sheet.dart';
 import 'replace_dialogs.dart';
 import 'similar_tags.dart';
@@ -91,9 +92,6 @@ class EntryFormScreen extends ConsumerStatefulWidget {
 
   bool get isEditing => entry != null;
 
-  /// Something to show for the release field when the text is not a date.
-  static const releasedHelp = 'Use a year, 2026-12 or 2026-12-25';
-
   @override
   ConsumerState<EntryFormScreen> createState() => _EntryFormScreenState();
 }
@@ -101,12 +99,12 @@ class EntryFormScreen extends ConsumerStatefulWidget {
 class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _creator;
-  late final TextEditingController _released;
   late final TextEditingController _note;
   late final TextEditingController _otherPlatform;
   late final TextEditingController _album;
   late MediaType _type;
   late MusicKind? _kind;
+  late Released? _released;
   late EntryStatus _status;
   late int? _rating;
   late List<String> _tags;
@@ -148,9 +146,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     _creator = TextEditingController(
       text: entry?.creator ?? match?.creator ?? '',
     );
-    _released = TextEditingController(
-      text: (entry?.released ?? match?.released)?.toString() ?? '',
-    );
+    _released = entry?.released ?? match?.released;
     _note = TextEditingController(text: entry?.note ?? '');
     _otherPlatform = TextEditingController();
     for (final platform in [
@@ -182,7 +178,6 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   void dispose() {
     _title.dispose();
     _creator.dispose();
-    _released.dispose();
     _note.dispose();
     _otherPlatform.dispose();
     _album.dispose();
@@ -191,30 +186,31 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
   List<EntryStatus> get _statusOptions => EntryStatus.optionsFor(_type);
 
-  String? get _releasedError {
-    final text = _released.text.trim();
-    if (text.isEmpty || Released.tryParse(text) != null) return null;
-    return EntryFormScreen.releasedHelp;
-  }
-
+  /// Wide enough for the longest date, "Sep 30, 2000", so it never clips
+  /// (A25).
   double _releasedWidth(BuildContext context) {
     final painter = TextPainter(
       text: TextSpan(
-        text: '0000-00-00',
+        text: 'Sep 30, 2000',
         style: Theme.of(context).textTheme.bodyLarge!
-            .copyWith(fontWeight: FontWeight.w500, fontSize: 16),
+            .copyWith(fontWeight: FontWeight.w500),
       ),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
     final width = painter.width;
     painter.dispose();
-    // The field's 14 px side padding, the border and a little air.
-    return math.max(132.0, width + 2 * 14 + 8);
+    // The field's padding, the chevron and its gap, the border and air.
+    return math.max(150.0, width + 14 + 8 + 18 + 12 + 2 + 8);
   }
 
-  bool get _canSave =>
-      !_saving && _title.text.trim().isNotEmpty && _releasedError == null;
+  Future<void> _pickReleased() => showReleasedSheet(
+    context,
+    initial: _released,
+    onChanged: (released) => setState(() => _released = released),
+  );
+
+  bool get _canSave => !_saving && _title.text.trim().isNotEmpty;
 
   /// "PlayStation 5, PC" in the entry's `platform` field, as a list of
   /// spelled-out names ("PS5" reads as "PlayStation 5").
@@ -336,8 +332,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   Entry _buildEntry(Iterable<String> existingIds) {
     final title = _title.text.trim();
     final creator = _creator.text.trim();
-    final releasedText = _released.text.trim();
-    final released = releasedText.isEmpty ? null : Released.parse(releasedText);
+    final released = _released;
     final isMusic = _type == MediaType.music;
     final platform = _platformOptions.where(_platformsOn.contains).join(', ');
     final album = _album.text.trim();
@@ -557,21 +552,32 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                           ),
                         ],
                       );
+                      final released = _released;
+                      final releasedText = released == null
+                          ? 'Not set'
+                          : releasedLabel(released);
                       final releasedField = Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const FieldLabel('Released'),
-                          AppTextField(
-                            controller: _released,
-                            hintText: 'Year or date',
-                            errorText: _releasedError,
-                            textCapitalization: TextCapitalization.none,
-                            onChanged: (_) => setState(() {}),
+                          FieldButton(
+                            onTap: _pickReleased,
+                            placeholder: released == null,
+                            semanticsLabel: 'Released, $releasedText',
+                            padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+                            child: Text(
+                              releasedText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       );
+                      // The creator keeps at least 140 dp beside the date
+                      // field: side by side on a 360 dp phone, stacked at a
+                      // larger text size.
                       if (constraints.maxWidth - dateWidth - 12 <
-                          MediaQuery.textScalerOf(context).scale(150)) {
+                          MediaQuery.textScalerOf(context).scale(140)) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
