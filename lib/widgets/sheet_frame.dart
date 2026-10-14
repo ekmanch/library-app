@@ -88,12 +88,17 @@ class SheetFrame extends StatelessWidget {
 ///
 /// A sheet never takes the whole screen: at most [maxHeightFactor] of it,
 /// so the screen it came from stays in view above it (A22, D14).
+///
+/// A text field behind the sheet gives up its focus first. Otherwise the
+/// field takes it back when the sheet closes and the keyboard pops up
+/// again, after every rating, tag or date picked on the entry form.
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool inheritTheme = false,
   double maxHeightFactor = 0.88,
 }) {
+  FocusManager.instance.primaryFocus?.unfocus();
   final theme = Theme.of(context);
   return showModalBottomSheet<T>(
     context: context,

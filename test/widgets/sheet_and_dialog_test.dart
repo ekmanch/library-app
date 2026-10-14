@@ -69,4 +69,83 @@ void main() {
     expect(result, isTrue);
     expect(find.byType(Dialog), findsNothing);
   });
+
+  /// A text field with the focus, and a button that opens [open].
+  Future<void> pumpFocused(
+    WidgetTester tester,
+    Future<void> Function(BuildContext context) open,
+  ) async {
+    await pumpThemed(
+      tester,
+      Builder(
+        builder: (context) => Column(
+          children: [
+            const TextField(autofocus: true),
+            TextButton(
+              onPressed: () => open(context),
+              child: const Text('Open'),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.hasFocus,
+      isTrue,
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+  }
+
+  bool fieldFocused(WidgetTester tester) => tester
+      .widget<EditableText>(find.byType(EditableText).first)
+      .focusNode
+      .hasFocus;
+
+  testWidgets('a sheet takes the focus off a text field for good', (
+    tester,
+  ) async {
+    await pumpFocused(
+      tester,
+      (context) => showAppSheet<void>(
+        context,
+        builder: (context) => SheetFrame(
+          title: 'Pick',
+          action: AppButton(
+            label: 'Done',
+            compact: true,
+            onPressed: () => Navigator.pop(context),
+          ),
+          child: const Text('Body'),
+        ),
+      ),
+    );
+    expect(fieldFocused(tester), isFalse);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    // The field does not take the focus (and the keyboard) back.
+    expect(fieldFocused(tester), isFalse);
+  });
+
+  testWidgets('a dialog takes the focus off a text field for good', (
+    tester,
+  ) async {
+    await pumpFocused(
+      tester,
+      (context) => showAppDialog<void>(
+        context,
+        builder: (context) => AppDialog(
+          title: 'Sure?',
+          actions: [
+            AppButton(label: 'OK', onPressed: () => Navigator.pop(context)),
+          ],
+        ),
+      ),
+    );
+    expect(fieldFocused(tester), isFalse);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(fieldFocused(tester), isFalse);
+  });
 }

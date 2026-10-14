@@ -96,11 +96,15 @@ class AppDialog extends StatelessWidget {
 
 /// Opens a dialog styled by the theme, on the root navigator so it covers
 /// the floating navigation.
+///
+/// A text field behind the dialog gives up its focus first, so it does not
+/// take it back, keyboard and all, when the dialog closes.
 Future<T?> showAppDialog<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool inheritTheme = false,
 }) {
+  FocusManager.instance.primaryFocus?.unfocus();
   final theme = Theme.of(context);
   return showDialog<T>(
     context: context,
