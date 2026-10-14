@@ -5,6 +5,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 ## 1. What the app is
 
 - A phone-first Flutter app for Android (Samsung Galaxy S25). A Linux desktop build may follow.
+- Portrait only: the Android manifest locks the activity and `main()` sets the preferred orientation, so no screen needs a landscape layout.
 - Front end for the private repo `ekmanch/library`. `library.json` in that repo is the source of truth.
 - The app adds, edits and deletes entries from day one, and writes the changes back to the repo.
 - Six types: Movies, Shows, Books, Games, Music, Anime. The word in the UI is "Type".
