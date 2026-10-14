@@ -250,7 +250,9 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    container.read(libraryConnectionProvider.notifier).disconnect();
+    container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: false);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -272,5 +274,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AppShell), findsOneWidget);
     expect(find.byType(FirstRunFlow), findsNothing);
+  });
+
+  testWidgets('deleting the library from the phone starts over at F2; '
+      'keeping it stays on the shell', (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        libraryRepositoryProvider.overrideWithValue(
+          FixtureLibraryRepository(
+            loadJson: () async => encodeLibrary(loadFixture()),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LibraryApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsOneWidget);
+
+    await container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: true);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(container.read(libraryConnectionProvider).keptLocally, isTrue);
+
+    await container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: false);
+    await tester.pumpAndSettle();
+    expect(find.byType(FirstRunFlow), findsOneWidget);
+    // Straight to the welcome screen, not the splash.
+    expect(find.text('Get started'), findsOneWidget);
   });
 }

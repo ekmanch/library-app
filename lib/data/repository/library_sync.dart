@@ -18,7 +18,8 @@ abstract interface class LibrarySync {
   /// and Retry on a banner.
   Future<void> syncNow();
 
-  /// Disconnect: stops syncing and removes the cached library, the queue
-  /// and the sync meta from the device.
-  Future<void> discard();
+  /// Disconnect: stops syncing and removes the queue and the sync meta
+  /// from the device, and the cached library too unless [keepLibrary],
+  /// which leaves `library.json` in place for use without a sync (D16).
+  Future<void> discard({bool keepLibrary = false});
 }

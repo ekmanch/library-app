@@ -375,6 +375,20 @@ void main() {
     repo.dispose();
   });
 
+  test('discard keeping the library leaves only library.json', () async {
+    final repo = repository();
+    await repo.load();
+    github.failure = GitHubFailure.offline;
+    await repo.apply(SetStatus(mummy.id, EntryStatus.want));
+    await repo.discard(keepLibrary: true);
+    await Future<void>.delayed(debounce * 2);
+    expect(dir.listSync().map((f) => f.uri.pathSegments.last), [
+      'library.json',
+    ]);
+    expect(github.putCount, 0);
+    repo.dispose();
+  });
+
   test(
     'the queue survives without a sync meta, costing one download',
     () async {

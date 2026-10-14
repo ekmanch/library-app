@@ -9,12 +9,14 @@ import '../dev/fake_github_api.dart';
 import '../features/sync/sync_state.dart';
 import 'github/github_api.dart';
 import 'github/github_http_api.dart';
+import 'library_codec.dart';
 import 'models/library.dart';
 import 'operations/library_operation.dart';
 import 'repository/fixture_library_repository.dart';
 import 'repository/github_library_repository.dart';
 import 'repository/library_repository.dart';
 import 'repository/library_sync.dart';
+import 'repository/local_library_repository.dart';
 import 'sync/sync_status.dart';
 
 /// The folder for the files Libri keeps on the device. Overridden in
@@ -59,10 +61,24 @@ final gitHubApiFactoryProvider = Provider<GitHubApiFactory>((ref) {
 });
 
 /// The repository for this run of the app: the library on GitHub, built
-/// from the connection and the token, and rebuilt when either changes.
-/// Tests override it with a fixture.
+/// from the connection and the token, and rebuilt when either changes; or
+/// the `library.json` kept on the phone after a disconnect (D16), with no
+/// sync. Tests override it with a fixture.
 final libraryRepositoryProvider = Provider<LibraryRepository>((ref) {
-  final target = ref.watch(libraryConnectionProvider.select((c) => c.target));
+  final (target, local) = ref.watch(
+    libraryConnectionProvider.select((c) => (c.target, c.keptLocally)),
+  );
+  if (local) {
+    final directory = ref.watch(appDataDirectoryProvider);
+    final repository = LocalLibraryRepository(
+      File('${directory.path}${Platform.pathSeparator}library.json'),
+      // The file is there after a disconnect; should it be gone, start
+      // empty rather than fail.
+      seed: () async => encodeLibrary(const Library()),
+    );
+    ref.onDispose(repository.dispose);
+    return repository;
+  }
   final token = ref.watch(tokenProvider);
   if (target == null || token == null) return const _Disconnected();
   final api = ref.watch(gitHubApiFactoryProvider)(

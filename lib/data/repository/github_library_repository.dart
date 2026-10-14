@@ -130,11 +130,15 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   }
 
   @override
-  Future<void> discard() async {
+  Future<void> discard({bool keepLibrary = false}) async {
     _discarded = true;
     _debounce?.cancel();
     await _syncing;
-    await _cache.delete();
+    if (keepLibrary) {
+      await _cache.flush();
+    } else {
+      await _cache.delete();
+    }
     await _pending.delete();
     await _metaStore.delete();
   }

@@ -306,10 +306,11 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
     await tester.pumpAndSettle();
   });
   await a.step('first run', () async {
-    container.read(libraryConnectionProvider.notifier).disconnect();
-    await tester.pumpAndSettle();
-    await a.check('F1 splash');
-    await tester.pump(FirstRunFlow.splashDuration);
+    // Deleting the library from the phone (D16) starts the first run at
+    // the welcome screen.
+    container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: false);
     await tester.pumpAndSettle();
     await a.check('F2 welcome');
     await a.tapText('Get started');
@@ -327,6 +328,28 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
     await a.tapText('Use this file');
     await a.check('F7 done');
     await a.tapText('Open Libri');
+  });
+  await a.step('cold start', () async {
+    // F1: the splash, on a cold start without a connection.
+    final mode = container.read(displayPreferencesProvider).themeMode;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialConnectionProvider.overrideWithValue(
+            LibraryConnection.disconnected,
+          ),
+        ],
+        child: const LibraryApp(),
+      ),
+    );
+    await tester.pump();
+    ProviderScope.containerOf(tester.element(find.byType(LibraryApp)))
+        .read(displayPreferencesProvider.notifier)
+        .setThemeMode(mode);
+    await tester.pump();
+    await a.check('F1 splash');
+    await tester.pump(FirstRunFlow.splashDuration);
+    await tester.pumpAndSettle();
   });
 }
 

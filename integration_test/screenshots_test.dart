@@ -640,10 +640,11 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'd6-connection');
 
-    // Disconnect asks first, then starts the first run at the splash (F1).
+    // Disconnect is two steps (D15, D16); deleting the library from the
+    // phone starts the first run at the welcome screen (F2).
     await tester.tap(find.text('Disconnect'));
     await tester.pumpAndSettle();
-    await capture(tester, 'd6-disconnect-confirm');
+    await capture(tester, 'd15-disconnect-confirm');
     await tester.tap(
       find.descendant(
         of: find.byType(Dialog),
@@ -651,8 +652,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await capture(tester, 'f1-splash');
-    await tester.pump(FirstRunFlow.splashDuration);
+    await capture(tester, 'd16-disconnect-keep');
+    await tester.tap(find.text('Delete it from this phone'));
     await tester.pumpAndSettle();
     await capture(tester, 'f2-welcome');
     await tester.tap(find.text('Get started'));
@@ -697,6 +698,52 @@ void main() {
     await tester.tap(find.text('Open Libri'));
     await tester.pumpAndSettle();
     expect(find.text('Library'), findsWidgets);
+
+    // D6 with the library kept on this phone (D16, "Keep it on this phone").
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(),
+          ),
+          initialConnectionProvider.overrideWithValue(
+            const LibraryConnection(connected: false, keptLocally: true),
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Library source'), 300);
+    await tester.tap(find.text('Library source'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd6-connection-local');
+    // The navigator outlives the scope swap (the root key), so leave D6
+    // and Settings before the next one.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    // F1: the splash, on a cold start without a connection.
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          initialConnectionProvider.overrideWithValue(
+            LibraryConnection.disconnected,
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pump();
+    await capture(tester, 'f1-splash');
+    await tester.pump(FirstRunFlow.splashDuration);
+    await tester.pumpAndSettle();
 
     // D6 with changes that could not be saved, and its Disconnect dialog.
     await tester.pumpWidget(
@@ -963,10 +1010,9 @@ void main() {
     await shot('a12-offline');
     banners.clear();
     await tester.pumpAndSettle();
-    container.read(libraryConnectionProvider.notifier).disconnect();
-    await tester.pumpAndSettle();
-    await shot('f1-splash');
-    await tester.pump(FirstRunFlow.splashDuration);
+    container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: false);
     await tester.pumpAndSettle();
     await shot('f2-welcome');
     await tapText('Get started');
@@ -984,6 +1030,27 @@ void main() {
     await tapText('Use this file');
     await shot('f7-done');
     await tapText('Open Libri');
+
+    // F1: the splash, on a cold start without a connection.
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          initialConnectionProvider.overrideWithValue(
+            LibraryConnection.disconnected,
+          ),
+        ],
+        child: RepaintBoundary(key: _root, child: const LibraryApp()),
+      ),
+    );
+    await tester.pump();
+    ProviderScope.containerOf(tester.element(find.byType(LibraryApp)))
+        .read(displayPreferencesProvider.notifier)
+        .setThemeMode(ThemeMode.light);
+    await tester.pump();
+    await shot('f1-splash');
+    await tester.pump(FirstRunFlow.splashDuration);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('plans: overview, checklist, timeline, pool, dialogs', (

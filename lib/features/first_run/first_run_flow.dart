@@ -73,15 +73,26 @@ String describeGitHubFailure(GitHubException e) => switch (e.failure) {
 /// at the end (F7).
 class FirstRunFlow extends ConsumerStatefulWidget {
   const FirstRunFlow({super.key, this.initialStep = FirstRunStep.splash})
-    : replaceToken = false;
+    : replaceToken = false,
+      reconnect = false;
 
   /// Only the connect step, with a Save token button that pops.
   const FirstRunFlow.replaceToken({super.key})
     : initialStep = FirstRunStep.connect,
-      replaceToken = true;
+      replaceToken = true,
+      reconnect = false;
+
+  /// Connecting a repo again while the library is kept on the phone (D6
+  /// after D16): F3 to F7 pushed above the app, popped when done or on
+  /// back from F3.
+  const FirstRunFlow.reconnect({super.key})
+    : initialStep = FirstRunStep.connect,
+      replaceToken = false,
+      reconnect = true;
 
   final FirstRunStep initialStep;
   final bool replaceToken;
+  final bool reconnect;
 
   /// How long the splash stays before the welcome screen.
   static const splashDuration = Duration(milliseconds: 900);
@@ -173,7 +184,8 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   };
 
   void _back() {
-    if (widget.replaceToken) {
+    if (widget.replaceToken ||
+        (widget.reconnect && _step == FirstRunStep.connect)) {
       Navigator.pop(context);
     } else if (_previous case final step?) {
       _go(step);
@@ -320,7 +332,7 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   }
 
   /// F7: the token and the connection are stored; the app then opens the
-  /// library from GitHub.
+  /// library from GitHub. A flow pushed above the app (reconnect) pops.
   void _finish() {
     unawaited(
       ref
@@ -334,6 +346,7 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
             token: _token.text.trim(),
           ),
     );
+    if (widget.reconnect) Navigator.pop(context);
   }
 
   Future<void> _openTokenHelp() async {

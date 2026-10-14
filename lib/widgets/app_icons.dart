@@ -65,6 +65,15 @@ class AppIcons {
     ],
   );
 
+  /// A triangle with an exclamation mark (D16).
+  static const warning = StrokeIconData(
+    polylines: [
+      [Offset(12, 3), Offset(21.5, 20), Offset(2.5, 20), Offset(12, 3)],
+      [Offset(12, 10), Offset(12, 14)],
+      [Offset(12, 17.5), Offset(12, 18)],
+    ],
+  );
+
   static const back = StrokeIconData(
     polylines: [
       [Offset(15, 5), Offset(8, 12), Offset(15, 19)],

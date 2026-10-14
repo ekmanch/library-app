@@ -112,7 +112,7 @@ Plan rules:
 | D3 | Plan menu |
 | D4 | Remove from plan, or everywhere |
 | D5 | Delete plan |
-| D6 | Settings: library connection |
+| D6 | Settings: library connection (also its state with the library kept on the phone after D16) |
 | D7 | First load |
 | D8 | Library home, light theme |
 | D9 | New tag: a similar one exists |
@@ -120,6 +120,9 @@ Plan rules:
 | D11 | Rating picker |
 | D12 | Saving an album when songs from it are saved |
 | D13 | Saving a song when its album is saved |
+| D14 | Tag picker (section 7) |
+| D15 | Disconnect: confirm (section 10b) |
+| D16 | Disconnect: keep or delete the library on this phone (section 10b) |
 
 ### First run (F row)
 
@@ -288,7 +291,7 @@ No scraping. Goodreads has no public API any more. Images are cached on the devi
 - Desktop builds use the same visual density as the phone, so Linux captures match the device.
 - Settings (S6) also has the default game platform from the canvas (PC, PlayStation 5, Xbox Series X|S, Switch 2, Steam Deck, None). A new game from a lookup starts with it picked when the game came out on it, as the A8 note says.
 - The A12 banner sits under the title on both top-level screens, Library and Plans, so a failed save is seen wherever you are.
-- Disconnect in D6 asks first ("Disconnect from GitHub?"): the token, the repo and the library kept on the phone are forgotten, GitHub is untouched, display preferences stay. With changes not yet on GitHub the dialog says they are lost and the button reads "Disconnect anyway". Confirmed, the app starts over at the splash (F1).
+- Disconnect in D6 is two steps (D15, D16). D15 confirms ("Disconnect from GitHub?", "Libri stops syncing with owner/repo.", "Nothing on GitHub changes."); with changes not yet on GitHub it says they are lost unless the library is kept, and the button reads "Disconnect anyway". D16 asks "Keep your library on this phone?": "Keep it on this phone" (neutral fill) disconnects, keeps `library.json` on the phone and returns to the Library, where it can be browsed and edited without a sync until a repo is connected again; "Delete it from this phone" (destructive) disconnects, deletes `library.json` and opens the first run at the welcome screen (F2); Cancel on either step leaves everything as it was. In both cases the token, the queue and the sync meta leave the phone, GitHub is never touched and display preferences stay. A library kept on the phone is remembered in `connection.json` (`"local": true`); D6 then reads "Not connected", "Your library is kept on this phone", hides the GitHub and Syncing sections and offers "Connect to GitHub", which runs F3 to F7 above the app. Settings shows "Library source: This phone only".
 - "Replace token" in D6 opens the Connect GitHub step (F3) on its own, with a Save token button and no step label.
 - Phase 2 keeps the library in `library.json` and the display preferences in `preferences.json`, both in a `libri` folder in the app documents directory (never the cache), each written atomically. A new install starts from the bundled fixture until phase 4 connects GitHub. An unreadable library file is renamed aside with an `.unreadable` suffix, never overwritten. Preferences sit behind their own `PreferencesStore`, separate from `LibraryRepository`, and are never synced.
 - Every operation has a one-line summary in the imperative ("Mark The Mummy as done", "Tick The Mummy in Halloween 2026"), for the commit messages of phase 4.

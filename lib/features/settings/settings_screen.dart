@@ -10,6 +10,7 @@ import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
 import '../../widgets/setting_row.dart';
 import '../../widgets/switch_row.dart';
+import '../sync/sync_state.dart';
 import 'connection_screen.dart';
 import 'display_preferences.dart';
 
@@ -163,7 +164,14 @@ class SettingsScreen extends ConsumerWidget {
                   const SectionHeading('Data', padding: _laterLineHeading),
                   SettingRow(
                     label: 'Library source',
-                    value: 'GitHub, private repo',
+                    value:
+                        ref.watch(
+                          libraryConnectionProvider.select(
+                            (c) => c.keptLocally,
+                          ),
+                        )
+                        ? 'This phone only'
+                        : 'GitHub, private repo',
                     onTap: () => openConnectionScreen(context),
                   ),
                   const SectionHeading('About', padding: _laterLineHeading),

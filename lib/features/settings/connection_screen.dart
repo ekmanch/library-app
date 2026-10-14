@@ -11,6 +11,7 @@ import '../../widgets/app_dialog.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/setting_row.dart';
+import '../../widgets/warning_note.dart';
 import '../first_run/first_run_flow.dart';
 import '../sync/relative_time.dart';
 import '../sync/sync_state.dart';
@@ -31,14 +32,38 @@ class ConnectionScreen extends ConsumerWidget {
 
   static const _sectionPadding = EdgeInsets.fromLTRB(0, 20, 0, 2);
 
+  /// Disconnect is two steps: D15 confirms, D16 asks what to do with the
+  /// library on this phone. Cancel on either leaves everything as it was.
   Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
+    final repository = ref.read(libraryConnectionProvider).repository;
     final pending = ref.read(syncStatusProvider).value?.pendingCount ?? 0;
-    if (!await confirmDisconnect(context, pending: pending)) return;
-    if (!context.mounted) return;
-    // The app's home swaps to the first run (F1) once disconnected; the
-    // screens stacked above it go first.
+    final confirmed = await confirmDisconnect(
+      context,
+      repository: repository,
+      pending: pending,
+    );
+    if (!confirmed || !context.mounted) return;
+    final choice = await askAboutLocalLibrary(context);
+    if (choice == null || !context.mounted) return;
+    // Back to the Library: with the library kept it stays, deleted it
+    // gives way to the first run (F2). The screens stacked above go first.
     Navigator.of(context).popUntil((route) => route.isFirst);
-    unawaited(ref.read(libraryConnectionProvider.notifier).disconnect());
+    unawaited(
+      ref
+          .read(libraryConnectionProvider.notifier)
+          .disconnect(
+            keepLibrary: choice == LocalLibraryChoice.keep,
+            sync: ref.read(librarySyncProvider),
+          ),
+    );
+  }
+
+  /// Connect a repo again while the library is kept on the phone: F3 to
+  /// F7 above everything, like Replace token.
+  Future<void> _reconnect(BuildContext context) {
+    return Navigator.of(context, rootNavigator: true).push<void>(
+      MaterialPageRoute(builder: (_) => const FirstRunFlow.reconnect()),
+    );
   }
 
   /// The status card's first line.
@@ -71,13 +96,16 @@ class ConnectionScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final connection = ref.watch(libraryConnectionProvider);
+    final local = connection.keptLocally;
     final status = ref.watch(syncStatusProvider).value ?? SyncStatus.idle;
-    final dot = switch (status.phase) {
-      SyncPhase.idle => colors.success,
-      SyncPhase.checking || SyncPhase.saving => theme.colorScheme.primary,
-      SyncPhase.offline => colors.muted,
-      SyncPhase.failed || SyncPhase.tokenProblem => colors.dangerText,
-    };
+    final dot = local
+        ? colors.muted
+        : switch (status.phase) {
+            SyncPhase.idle => colors.success,
+            SyncPhase.checking || SyncPhase.saving => theme.colorScheme.primary,
+            SyncPhase.offline => colors.muted,
+            SyncPhase.failed || SyncPhase.tokenProblem => colors.dangerText,
+          };
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -114,14 +142,16 @@ class ConnectionScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                statusTitle(status),
+                                local ? 'Not connected' : statusTitle(status),
                                 style: theme.textTheme.titleMedium!.copyWith(
                                   fontSize: 15,
                                 ),
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                statusDetail(status),
+                                local
+                                    ? 'Your library is kept on this phone'
+                                    : statusDetail(status),
                                 style: theme.textTheme.bodySmall!.copyWith(
                                   fontSize: 13,
                                   fontStyle: FontStyle.normal,
@@ -130,40 +160,44 @@ class ConnectionScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        AppButton(
-                          label: 'Sync now',
-                          kind: AppButtonKind.outline,
-                          compact: true,
-                          horizontalPadding: 14,
-                          onPressed: () =>
-                              ref.read(librarySyncProvider)?.syncNow(),
-                        ),
+                        if (!local) ...[
+                          const SizedBox(width: 8),
+                          AppButton(
+                            label: 'Sync now',
+                            kind: AppButtonKind.outline,
+                            compact: true,
+                            horizontalPadding: 14,
+                            onPressed: () =>
+                                ref.read(librarySyncProvider)?.syncNow(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  const SectionHeading('GitHub', padding: _sectionPadding),
-                  SettingRow(
-                    label: 'Repository',
-                    value: connection.repository,
-                    minHeight: 56,
-                  ),
-                  SettingRow(
-                    label: 'Data file',
-                    value: connection.file,
-                    minHeight: 56,
-                  ),
-                  const SettingRow(
-                    label: 'Access token',
-                    value: 'Saved on this phone',
-                    minHeight: 56,
-                  ),
-                  const SectionHeading('Syncing', padding: _sectionPadding),
-                  const SettingRow(
-                    label: 'Check for changes',
-                    detail: 'When you open Libri, then every 5 minutes',
-                    minHeight: 56,
-                  ),
+                  if (!local) ...[
+                    const SectionHeading('GitHub', padding: _sectionPadding),
+                    SettingRow(
+                      label: 'Repository',
+                      value: connection.repository,
+                      minHeight: 56,
+                    ),
+                    SettingRow(
+                      label: 'Data file',
+                      value: connection.file,
+                      minHeight: 56,
+                    ),
+                    const SettingRow(
+                      label: 'Access token',
+                      value: 'Saved on this phone',
+                      minHeight: 56,
+                    ),
+                    const SectionHeading('Syncing', padding: _sectionPadding),
+                    const SettingRow(
+                      label: 'Check for changes',
+                      detail: 'When you open Libri, then every 5 minutes',
+                      minHeight: 56,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -172,17 +206,25 @@ class ConnectionScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AppButton(
-                    label: 'Replace token',
-                    kind: AppButtonKind.outline,
-                    onPressed: () => openReplaceTokenScreen(context),
-                  ),
-                  const SizedBox(height: 10),
-                  AppButton(
-                    label: 'Disconnect',
-                    kind: AppButtonKind.destructive,
-                    onPressed: () => _disconnect(context, ref),
-                  ),
+                  if (local)
+                    AppButton(
+                      label: 'Connect to GitHub',
+                      kind: AppButtonKind.outline,
+                      onPressed: () => _reconnect(context),
+                    )
+                  else ...[
+                    AppButton(
+                      label: 'Replace token',
+                      kind: AppButtonKind.outline,
+                      onPressed: () => openReplaceTokenScreen(context),
+                    ),
+                    const SizedBox(height: 10),
+                    AppButton(
+                      label: 'Disconnect',
+                      kind: AppButtonKind.destructive,
+                      onPressed: () => _disconnect(context, ref),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -193,24 +235,27 @@ class ConnectionScreen extends ConsumerWidget {
   }
 }
 
-/// The Disconnect confirmation in D6. Resolves true when the user
-/// confirms. With [pending] changes not yet on GitHub the dialog says they
-/// are lost and the button reads "Disconnect anyway".
+/// What to do with the library on this phone when disconnecting (D16).
+enum LocalLibraryChoice { keep, delete }
+
+/// The first Disconnect step (D15). Resolves true when the user confirms.
+/// With [pending] changes not yet on GitHub the dialog says they are lost
+/// unless the library is kept, and the button reads "Disconnect anyway".
 Future<bool> confirmDisconnect(
   BuildContext context, {
+  required String repository,
   required int pending,
 }) async {
   final confirmed = await showAppDialog<bool>(
     context,
     builder: (context) => AppDialog(
       title: 'Disconnect from GitHub?',
-      body:
-          'Libri forgets the token, the repo and the library kept on this '
-          'phone. Your library on GitHub stays as it is.',
+      body: 'Libri stops syncing with $repository.',
       note: pending > 0
           ? '$pending ${pending == 1 ? 'change has' : 'changes have'} not '
-                'been saved to GitHub yet and will be lost.'
-          : null,
+                'been saved to GitHub yet. They are lost unless you keep '
+                'the library on this phone. Nothing on GitHub changes.'
+          : 'Nothing on GitHub changes.',
       // "Disconnect anyway" does not fit half a row, so that variant
       // stacks its buttons like D4.
       actionsLayout: pending > 0
@@ -244,4 +289,40 @@ Future<bool> confirmDisconnect(
     ),
   );
   return confirmed ?? false;
+}
+
+/// The second Disconnect step (D16): keep the library on the phone, delete
+/// it, or cancel (null). Nothing is disconnected before this choice.
+Future<LocalLibraryChoice?> askAboutLocalLibrary(BuildContext context) {
+  return showAppDialog<LocalLibraryChoice>(
+    context,
+    builder: (context) => AppDialog(
+      title: 'Keep your library on this phone?',
+      body:
+          'You can keep browsing and editing it. Changes stay on this phone '
+          'until you connect a repo again.',
+      content: const WarningNote(
+        'If you delete it, Libri is empty until you connect a GitHub repo '
+        'again. Your library on GitHub is not affected.',
+      ),
+      actionsLayout: DialogActionsLayout.column,
+      actions: [
+        AppButton(
+          label: 'Keep it on this phone',
+          kind: AppButtonKind.neutral,
+          onPressed: () => Navigator.pop(context, LocalLibraryChoice.keep),
+        ),
+        AppButton(
+          label: 'Delete it from this phone',
+          kind: AppButtonKind.destructive,
+          onPressed: () => Navigator.pop(context, LocalLibraryChoice.delete),
+        ),
+        AppButton(
+          label: 'Cancel',
+          kind: AppButtonKind.text,
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    ),
+  );
 }

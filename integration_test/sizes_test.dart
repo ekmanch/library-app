@@ -17,7 +17,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/dev/fake_github_api.dart';
-import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/shell/app_shell.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/features/sync/sync_state.dart';
@@ -274,9 +273,11 @@ Future<void> _walk(_Walk w) async {
     await tester.pumpAndSettle();
   });
   await w.step('first run', () async {
-    w.container.read(libraryConnectionProvider.notifier).disconnect();
-    await tester.pumpAndSettle();
-    await tester.pump(FirstRunFlow.splashDuration);
+    // Deleting the library from the phone (D16) starts the first run at
+    // the welcome screen.
+    w.container
+        .read(libraryConnectionProvider.notifier)
+        .disconnect(keepLibrary: false);
     await tester.pumpAndSettle();
     await w.shot('f2-welcome');
     await w.tapText('Get started');

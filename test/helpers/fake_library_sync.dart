@@ -14,6 +14,9 @@ class FakeLibrarySync implements LibrarySync {
   int syncNows = 0;
   int discards = 0;
 
+  /// Discards that kept the library on the phone (D16).
+  int keeps = 0;
+
   @override
   Stream<SyncStatus> get statusChanges => _changes.stream;
 
@@ -30,5 +33,11 @@ class FakeLibrarySync implements LibrarySync {
   Future<void> syncNow() async => syncNows++;
 
   @override
-  Future<void> discard() async => discards++;
+  Future<void> discard({bool keepLibrary = false}) async {
+    if (keepLibrary) {
+      keeps++;
+    } else {
+      discards++;
+    }
+  }
 }

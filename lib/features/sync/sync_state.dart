@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/github/token_store.dart';
 import '../../data/library_providers.dart';
+import '../../data/repository/library_sync.dart';
 import '../../data/storage/connection_store.dart';
 import '../../data/sync/sync_status.dart';
 import '../../dev/demo_states.dart';
@@ -134,15 +135,24 @@ class ConnectionTarget {
 class LibraryConnection {
   const LibraryConnection({
     required this.connected,
+    this.keptLocally = false,
     this.repository = 'ekmanch/library',
     this.file = 'library.json',
     this.branch = 'main',
-  });
+  }) : assert(!(connected && keptLocally));
 
   /// The first run, with the last repo and file as hints for F3.
   static const disconnected = LibraryConnection(connected: false);
 
   final bool connected;
+
+  /// Disconnected, but the library stayed on the phone (D16, "Keep it on
+  /// this phone"): the app shows and edits `library.json` without a sync
+  /// until a repo is connected again.
+  final bool keptLocally;
+
+  /// Whether the app opens on the library rather than the first run.
+  bool get showsLibrary => connected || keptLocally;
 
   /// "owner/repo".
   final String repository;
@@ -158,11 +168,13 @@ class LibraryConnection {
 
   LibraryConnection copyWith({
     bool? connected,
+    bool? keptLocally,
     String? repository,
     String? file,
     String? branch,
   }) => LibraryConnection(
     connected: connected ?? this.connected,
+    keptLocally: keptLocally ?? this.keptLocally,
     repository: repository ?? this.repository,
     file: file ?? this.file,
     branch: branch ?? this.branch,
@@ -172,28 +184,49 @@ class LibraryConnection {
     'repository': repository,
     'file': file,
     'branch': branch,
+    if (keptLocally) 'local': true,
   };
 
-  /// A stored connection counts as connected; the token is checked apart.
-  static LibraryConnection fromJson(Map<String, Object?> json) =>
-      LibraryConnection(
-        connected: true,
-        repository: json['repository'] as String? ?? 'ekmanch/library',
-        file: json['file'] as String? ?? 'library.json',
-        branch: json['branch'] as String? ?? 'main',
-      );
+  /// A stored connection counts as connected, unless it was kept locally
+  /// (D16); the token is checked apart.
+  static LibraryConnection fromJson(Map<String, Object?> json) {
+    final local = json['local'] == true;
+    return LibraryConnection(
+      connected: !local,
+      keptLocally: local,
+      repository: json['repository'] as String? ?? 'ekmanch/library',
+      file: json['file'] as String? ?? 'library.json',
+      branch: json['branch'] as String? ?? 'main',
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
       other is LibraryConnection &&
       other.connected == connected &&
+      other.keptLocally == keptLocally &&
       other.repository == repository &&
       other.file == file &&
       other.branch == branch;
 
   @override
-  int get hashCode => Object.hash(connected, repository, file, branch);
+  int get hashCode =>
+      Object.hash(connected, keptLocally, repository, file, branch);
 }
+
+/// True once the library was deleted from the phone in this run of the
+/// app (D16): the first run then starts at the welcome screen (F2), not
+/// the splash.
+class StartOverNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set() => state = true;
+}
+
+final startOverProvider = NotifierProvider<StartOverNotifier, bool>(
+  StartOverNotifier.new,
+);
 
 /// Where the token is kept. Memory outside the running app; `main`
 /// overrides it with the secure storage.
@@ -265,15 +298,36 @@ class LibraryConnectionNotifier extends Notifier<LibraryConnection> {
   Future<void> replaceToken(String token) =>
       ref.read(tokenProvider.notifier).set(token);
 
-  /// Disconnect in D6: the sync stops at once and the app starts over at
-  /// the splash; then the cached library, the queue, the token and the
-  /// connection leave the device.
-  Future<void> disconnect() async {
-    final discarding = ref.read(librarySyncProvider)?.discard();
-    state = state.copyWith(connected: false);
-    await discarding;
+  /// Disconnect (D15, D16). The [sync] stops, the queue, the sync meta and
+  /// the token leave the device, and GitHub is never touched. With
+  /// [keepLibrary] the cached `library.json` stays and the app keeps
+  /// showing it without a sync; otherwise the file goes too and the app
+  /// starts over at the welcome screen (F2).
+  ///
+  /// The caller passes the sync: the sync provider depends on this one,
+  /// so reading it from here is a circular dependency.
+  Future<void> disconnect({
+    required bool keepLibrary,
+    LibrarySync? sync,
+  }) async {
+    if (keepLibrary) {
+      // The sync finishes its writes before the local repository takes
+      // the file over.
+      await sync?.discard(keepLibrary: true);
+      state = state.copyWith(connected: false, keptLocally: true);
+    } else {
+      final discarding = sync?.discard();
+      ref.read(startOverProvider.notifier).set();
+      state = state.copyWith(connected: false, keptLocally: false);
+      await discarding;
+    }
     await ref.read(tokenProvider.notifier).clear();
-    await ref.read(connectionStoreProvider).clear();
+    final store = ref.read(connectionStoreProvider);
+    if (keepLibrary) {
+      await store.save(state.toJson());
+    } else {
+      await store.clear();
+    }
   }
 }
 

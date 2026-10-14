@@ -65,19 +65,7 @@ void main() {
     expect(find.byType(ConnectionScreen), findsOneWidget);
   });
 
-  testWidgets('Disconnect asks first, then forgets the connection', (
-    tester,
-  ) async {
-    final container = await pumpApp(tester, const ConnectionScreen());
-    await tester.tap(find.text('Disconnect'));
-    await tester.pumpAndSettle();
-    expect(find.text('Disconnect from GitHub?'), findsOneWidget);
-    expect(find.textContaining('will be lost'), findsNothing);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(container.read(libraryConnectionProvider).connected, isTrue);
-    expect(find.byType(ConnectionScreen), findsOneWidget);
-
+  Future<void> toSecondStep(WidgetTester tester) async {
     await tester.tap(find.text('Disconnect'));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -87,7 +75,117 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(container.read(libraryConnectionProvider).connected, isFalse);
+  }
+
+  testWidgets('Disconnect is two steps, and Cancel on either keeps all', (
+    tester,
+  ) async {
+    final sync = FakeLibrarySync();
+    final container = await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    // D15.
+    await tester.tap(find.text('Disconnect'));
+    await tester.pumpAndSettle();
+    expect(find.text('Disconnect from GitHub?'), findsOneWidget);
+    expect(
+      find.text('Libri stops syncing with ekmanch/library.'),
+      findsOneWidget,
+    );
+    expect(find.text('Nothing on GitHub changes.'), findsOneWidget);
+    expect(find.textContaining('lost'), findsNothing);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(container.read(libraryConnectionProvider).connected, isTrue);
+    expect(find.byType(ConnectionScreen), findsOneWidget);
+
+    // D16.
+    await toSecondStep(tester);
+    expect(find.text('Keep your library on this phone?'), findsOneWidget);
+    expect(find.text('Keep it on this phone'), findsOneWidget);
+    expect(find.text('Delete it from this phone'), findsOneWidget);
+    expect(
+      find.textContaining('Your library on GitHub is not affected.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(container.read(libraryConnectionProvider).connected, isTrue);
+    expect(sync.discards + sync.keeps, 0);
+    expect(find.byType(ConnectionScreen), findsOneWidget);
+  });
+
+  testWidgets('"Keep it on this phone" disconnects and keeps the library', (
+    tester,
+  ) async {
+    final sync = FakeLibrarySync();
+    final container = await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    await toSecondStep(tester);
+    await tester.tap(find.text('Keep it on this phone'));
+    await tester.pumpAndSettle();
+    final connection = container.read(libraryConnectionProvider);
+    expect(connection.connected, isFalse);
+    expect(connection.keptLocally, isTrue);
+    expect(sync.keeps, 1);
+    expect(sync.discards, 0);
+    expect(container.read(tokenProvider), isNull);
+    expect(container.read(startOverProvider), isFalse);
+  });
+
+  testWidgets('"Delete it from this phone" disconnects and starts over', (
+    tester,
+  ) async {
+    final sync = FakeLibrarySync();
+    final container = await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    await toSecondStep(tester);
+    await tester.tap(find.text('Delete it from this phone'));
+    await tester.pumpAndSettle();
+    final connection = container.read(libraryConnectionProvider);
+    expect(connection.connected, isFalse);
+    expect(connection.keptLocally, isFalse);
+    expect(sync.discards, 1);
+    expect(sync.keeps, 0);
+    expect(container.read(startOverProvider), isTrue);
+  });
+
+  testWidgets('kept on this phone, D6 says so and offers to connect', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [
+        initialConnectionProvider.overrideWithValue(
+          const LibraryConnection(connected: false, keptLocally: true),
+        ),
+      ],
+    );
+    expect(find.text('Not connected'), findsOneWidget);
+    expect(find.text('Your library is kept on this phone'), findsOneWidget);
+    expect(find.text('Sync now'), findsNothing);
+    expect(find.text('Disconnect'), findsNothing);
+    expect(find.text('Replace token'), findsNothing);
+    expect(find.text('ekmanch/library'), findsNothing);
+    await tester.tap(find.text('Connect to GitHub'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FirstRunFlow), findsOneWidget);
+    expect(find.text('Connect GitHub'), findsOneWidget);
+    expect(find.text('STEP 1 OF 3'), findsOneWidget);
+    // Back from F3 returns to D6.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FirstRunFlow), findsNothing);
+    expect(find.byType(ConnectionScreen), findsOneWidget);
   });
 
   testWidgets('with unsaved changes the dialog says so', (tester) async {
@@ -105,14 +203,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '2 changes have not been saved to GitHub yet and will be lost.',
+        '2 changes have not been saved to GitHub yet. They are lost unless '
+        'you keep the library on this phone. Nothing on GitHub changes.',
       ),
       findsOneWidget,
     );
     expect(find.text('Disconnect anyway'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
-    expect(sync.discards, 0);
+    expect(sync.discards + sync.keeps, 0);
   });
 
   testWidgets('Sync now and the status card follow the sync', (tester) async {

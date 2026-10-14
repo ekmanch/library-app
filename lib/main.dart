@@ -92,18 +92,26 @@ class LibraryApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(displayPreferencesProvider);
-    final connected = ref.watch(
-      libraryConnectionProvider.select((c) => c.connected),
+    final showsLibrary = ref.watch(
+      libraryConnectionProvider.select((c) => c.showsLibrary),
     );
+    final startOver = ref.watch(startOverProvider);
     return MaterialApp(
       title: appName,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(brightness: Brightness.light, accent: prefs.accent),
       darkTheme: buildTheme(brightness: Brightness.dark, accent: prefs.accent),
       themeMode: prefs.themeMode,
-      // Until a library file is connected the app is the first run (F1 to
-      // F7); Disconnect in D6 brings it back.
-      home: connected ? const AppShell() : const FirstRunFlow(),
+      // Until a library file is connected, or kept on the phone after a
+      // disconnect (D16), the app is the first run (F1 to F7). Deleting
+      // the library in D16 brings it back at the welcome screen.
+      home: showsLibrary
+          ? const AppShell()
+          : FirstRunFlow(
+              initialStep: startOver
+                  ? FirstRunStep.welcome
+                  : FirstRunStep.splash,
+            ),
     );
   }
 }
