@@ -13,13 +13,15 @@ enum SyncBanner {
   saving,
   offline,
   couldNotSave,
-  tokenProblem;
+  tokenProblem,
+  conflict;
 
   String get title => switch (this) {
     saving => 'Saving your change',
     offline => 'You are offline',
     couldNotSave => 'Could not save to GitHub',
     tokenProblem => 'GitHub refused the token',
+    conflict => 'Changed here and on GitHub',
   };
 
   String get body => switch (this) {
@@ -29,16 +31,19 @@ enum SyncBanner {
           'Changes are saved when you are back online.',
     couldNotSave => 'Your change is kept on this phone.',
     tokenProblem => 'It may have expired.',
+    conflict => 'Pick which copy to keep.',
   };
 
   /// The button on the right; null for a banner without one.
   String? get actionLabel => switch (this) {
     couldNotSave => 'Retry',
     tokenProblem => 'Fix',
+    conflict => 'Choose',
     _ => null,
   };
 
-  bool get isError => this == couldNotSave || this == tokenProblem;
+  bool get isError =>
+      this == couldNotSave || this == tokenProblem || this == conflict;
 
   /// The value of the SYNC_BANNER dart-define, or null.
   static SyncBanner? fromDemo(String name) => switch (name) {
@@ -46,6 +51,7 @@ enum SyncBanner {
     'offline' => offline,
     'failed' => couldNotSave,
     'token' => tokenProblem,
+    'conflict' => conflict,
     _ => null,
   };
 
@@ -55,8 +61,8 @@ enum SyncBanner {
     SyncPhase.offline => offline,
     SyncPhase.failed => couldNotSave,
     SyncPhase.tokenProblem => tokenProblem,
-    // The conflict's banner and dialog (D17) come with their mockup.
-    SyncPhase.idle || SyncPhase.checking || SyncPhase.conflict => null,
+    SyncPhase.conflict => conflict,
+    SyncPhase.idle || SyncPhase.checking => null,
   };
 }
 

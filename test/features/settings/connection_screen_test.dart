@@ -214,6 +214,28 @@ void main() {
     expect(sync.discards + sync.keeps, 0);
   });
 
+  testWidgets('a conflict shows in the status card, and Choose opens D17', (
+    tester,
+  ) async {
+    final sync = FakeLibrarySync(
+      const SyncStatus(phase: SyncPhase.conflict, pendingCount: 2),
+    );
+    await pumpApp(
+      tester,
+      const ConnectionScreen(),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    expect(find.text('Changed here and on GitHub'), findsOneWidget);
+    expect(find.text('Pick which copy to keep'), findsOneWidget);
+    expect(find.text('Sync now'), findsNothing);
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keep which copy?'), findsOneWidget);
+    await tester.tap(find.text('Keep mine'));
+    await tester.pumpAndSettle();
+    expect(sync.resolutions, [true]);
+  });
+
   testWidgets('Sync now and the status card follow the sync', (tester) async {
     final sync = FakeLibrarySync();
     await pumpApp(

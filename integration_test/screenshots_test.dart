@@ -621,11 +621,18 @@ void main() {
       (SyncBanner.offline, 'a12-offline'),
       (SyncBanner.couldNotSave, 'a12-could-not-save'),
       (SyncBanner.tokenProblem, 'a12-token-problem'),
+      (SyncBanner.conflict, 'a27-conflict'),
     ]) {
       banners.show(banner);
       await tester.pumpAndSettle();
       await capture(tester, name);
     }
+    // D17 from the conflict banner's Choose.
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd17-conflict');
+    await tester.tap(find.text('Decide later'));
+    await tester.pumpAndSettle();
     banners.clear();
     await tester.pumpAndSettle();
 
@@ -710,6 +717,7 @@ void main() {
           initialConnectionProvider.overrideWithValue(
             const LibraryConnection(connected: false, keptLocally: true),
           ),
+          _demoGitHub(latency: _demoLatency),
         ],
         child: RepaintBoundary(key: _root, child: const LibraryApp()),
       ),
@@ -721,6 +729,32 @@ void main() {
     await tester.tap(find.text('Library source'));
     await tester.pumpAndSettle();
     await capture(tester, 'd6-connection-local');
+
+    // D18: connecting again and picking another file than the kept one.
+    await tester.tap(find.text('Connect to GitHub'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'github_pat_example');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Connect'));
+    await tester.pump(_demoLatency * 2);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use a file I already have'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pump(_demoLatency * 8);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('backup/library-2025.json'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use this file'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'd18-which-library');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    // F6 to F4 to F3, then F3 pops back to D6.
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+    }
     // The navigator outlives the scope swap (the root key), so leave D6
     // and Settings before the next one.
     await tester.tap(find.byTooltip('Back'));
@@ -1008,6 +1042,9 @@ void main() {
     banners.show(SyncBanner.offline);
     await tester.pumpAndSettle();
     await shot('a12-offline');
+    banners.show(SyncBanner.conflict);
+    await tester.pumpAndSettle();
+    await shot('a27-conflict');
     banners.clear();
     await tester.pumpAndSettle();
     container
@@ -1070,6 +1107,16 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
     await capture(tester, 's5-plans');
+
+    // S15: the conflict banner on the plans overview.
+    final plansBanners = ProviderScope.containerOf(
+      tester.element(find.byType(LibraryApp)),
+    ).read(syncBannerProvider.notifier);
+    plansBanners.show(SyncBanner.conflict);
+    await tester.pumpAndSettle();
+    await capture(tester, 's15-plans-conflict');
+    plansBanners.clear();
+    await tester.pumpAndSettle();
 
     // S11 and S2: the Halloween plan has the timeline on.
     await tester.tap(find.text('Halloween 2026'));

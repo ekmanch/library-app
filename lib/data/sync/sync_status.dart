@@ -35,6 +35,7 @@ class SyncStatus {
     this.lastSynced,
     this.lastChecked,
     this.pendingCount = 0,
+    this.remoteChangedAt,
   });
 
   static const idle = SyncStatus();
@@ -51,6 +52,10 @@ class SyncStatus {
   /// Operations not yet saved to GitHub.
   final int pendingCount;
 
+  /// The date of GitHub's last commit on the file, looked up when a
+  /// conflict is found (D17 says "GitHub: last commit …").
+  final DateTime? remoteChangedAt;
+
   bool get hasPending => pendingCount > 0;
 
   SyncStatus copyWith({
@@ -58,11 +63,13 @@ class SyncStatus {
     DateTime? lastSynced,
     DateTime? lastChecked,
     int? pendingCount,
+    DateTime? remoteChangedAt,
   }) => SyncStatus(
     phase: phase ?? this.phase,
     lastSynced: lastSynced ?? this.lastSynced,
     lastChecked: lastChecked ?? this.lastChecked,
     pendingCount: pendingCount ?? this.pendingCount,
+    remoteChangedAt: remoteChangedAt ?? this.remoteChangedAt,
   );
 
   @override
@@ -71,10 +78,17 @@ class SyncStatus {
       other.phase == phase &&
       other.lastSynced == lastSynced &&
       other.lastChecked == lastChecked &&
-      other.pendingCount == pendingCount;
+      other.pendingCount == pendingCount &&
+      other.remoteChangedAt == remoteChangedAt;
 
   @override
-  int get hashCode => Object.hash(phase, lastSynced, lastChecked, pendingCount);
+  int get hashCode => Object.hash(
+    phase,
+    lastSynced,
+    lastChecked,
+    pendingCount,
+    remoteChangedAt,
+  );
 
   @override
   String toString() =>

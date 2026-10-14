@@ -36,6 +36,33 @@ void main() {
     ],
   );
 
+  /// The flow while a library (the fixture) is kept on this phone after
+  /// a disconnect (D16): what D18 and F5 are about.
+  Future<ProviderContainer> pumpKept(WidgetTester tester) => pumpApp(
+    tester,
+    const FirstRunFlow(initialStep: FirstRunStep.connect),
+    overrides: [
+      gitHubApiFactoryProvider.overrideWithValue(
+        ({required token, required repository}) => github,
+      ),
+      initialConnectionProvider.overrideWithValue(
+        const LibraryConnection(connected: false, keptLocally: true),
+      ),
+    ],
+  );
+
+  /// F4 to F6 with [path] picked and "Use this file" pressed.
+  Future<void> useFile(WidgetTester tester, String path) async {
+    await tester.tap(find.text('Use a file I already have'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(path));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Use this file'));
+    await tester.pumpAndSettle();
+  }
+
   /// F3 with the fields filled in and Connect pressed.
   Future<void> connect(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField).first, 'ekmanch/library');
@@ -311,5 +338,99 @@ void main() {
     expect(find.byType(FirstRunFlow), findsOneWidget);
     // Straight to the welcome screen, not the splash.
     expect(find.text('Get started'), findsOneWidget);
+  });
+
+  group('with a library kept on this phone', () {
+    final kept = loadFixture();
+    final n = kept.entries.length;
+
+    testWidgets('another file asks D18; "This phone\'s" replaces it', (
+      tester,
+    ) async {
+      await pumpKept(tester);
+      await connect(tester);
+      await useFile(tester, 'backup/library-2025.json');
+      expect(find.text('Which library do you want to keep?'), findsOneWidget);
+      expect(find.text('This phone · $n entries'), findsOneWidget);
+      expect(
+        find.text('GitHub · backup/library-2025.json · 31 entries'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text("This phone's"));
+      await tester.pumpAndSettle();
+      expect(github.text('backup/library-2025.json'), fixtureText);
+      final commits = await github.commits(
+        'backup/library-2025.json',
+        branch: 'main',
+        limit: 1,
+      );
+      expect(commits.single.message, FirstRunFlow.replaceMessage);
+      expect(
+        find.text(
+          'backup/library-2025.json now holds the $n entries from this '
+          'phone.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('"The one on GitHub" takes the file as before', (tester) async {
+      await pumpKept(tester);
+      await connect(tester);
+      await useFile(tester, 'backup/library-2025.json');
+      await tester.tap(find.text('The one on GitHub'));
+      await tester.pumpAndSettle();
+      expect(github.putCount, 0);
+      expect(
+        find.text('Loaded 31 entries from backup/library-2025.json.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Cancel stays on F6, and the same file asks nothing', (
+      tester,
+    ) async {
+      await pumpKept(tester);
+      await connect(tester);
+      await useFile(tester, 'backup/library-2025.json');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pick your file'), findsOneWidget);
+      expect(find.text('Which library do you want to keep?'), findsNothing);
+
+      // The kept library's own file: the sync compares, no question.
+      await tester.tap(find.text('library.json'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use this file'));
+      await tester.pumpAndSettle();
+      expect(find.text('Which library do you want to keep?'), findsNothing);
+      expect(find.text('Loaded 63 entries from library.json.'), findsOneWidget);
+    });
+
+    testWidgets('a new file is created from the phone\'s library', (
+      tester,
+    ) async {
+      await pumpKept(tester);
+      await connect(tester);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('"version": 2'), findsNothing);
+      expect(
+        find.textContaining('The library kept on this phone: $n entries'),
+        findsOneWidget,
+      );
+      await tester.enterText(find.byType(TextField).first, 'libri.json');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create library'));
+      await tester.pumpAndSettle();
+      expect(github.text('libri.json'), fixtureText);
+      expect(
+        find.text(
+          'libri.json is now in ekmanch/library, with the $n entries from '
+          'this phone.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 }

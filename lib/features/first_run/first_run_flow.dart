@@ -18,6 +18,7 @@ import '../../widgets/libri_logo.dart';
 import '../../widgets/radio_mark.dart';
 import '../sync/relative_time.dart';
 import '../sync/sync_state.dart';
+import 'which_library_dialog.dart';
 
 /// Opens the Connect GitHub step on its own, from "Replace token" in D6.
 /// Pops when the token is saved.
@@ -33,9 +34,12 @@ enum _FileChoice { newFile, existing }
 
 /// A JSON file in the repo, as F6 lists them.
 class RepoFile {
-  const RepoFile(this.path, {this.entries, this.updated});
+  const RepoFile(this.path, {this.entries, this.updated, this.sha});
 
   final String path;
+
+  /// The blob sha, for replacing the file with this phone's library (D18).
+  final String? sha;
 
   /// How many entries the library holds; null for a JSON file that is not
   /// a Libri library, which cannot be picked.
@@ -106,8 +110,11 @@ class FirstRunFlow extends ConsumerStatefulWidget {
     'https://github.com/settings/personal-access-tokens/new',
   );
 
-  /// The commit that creates the file (F5).
+  /// The commit that creates the file (F5), empty or from this phone.
   static const createMessage = 'Create Libri library';
+
+  /// The commit that puts this phone's library over a chosen file (D18).
+  static const replaceMessage = 'Replace with the library from this phone';
 
   @override
   ConsumerState<FirstRunFlow> createState() => _FirstRunFlowState();
@@ -138,10 +145,29 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
   /// F7: how many entries the chosen file holds.
   int _loadedEntries = 0;
 
+  /// The library kept on this phone after a disconnect (D16), once read;
+  /// F5 creates the new file from it and F6 asks which to keep (D18).
+  Library? _kept;
+
+  /// The connection the kept library belongs to, to tell the same file
+  /// from another one.
+  LibraryConnection? _keptConnection;
+
+  /// F7 after "This phone's" in D18: the chosen file now holds it.
+  bool _replacedFile = false;
+
   @override
   void initState() {
     super.initState();
     final connection = ref.read(libraryConnectionProvider);
+    if (connection.keptLocally) {
+      _keptConnection = connection;
+      unawaited(
+        ref.read(libraryRepositoryProvider).load().then((library) {
+          if (mounted) setState(() => _kept = library);
+        }, onError: (Object _) {}),
+      );
+    }
     _repo = TextEditingController(text: connection.repository);
     _token = TextEditingController();
     _fileName = TextEditingController(text: connection.file);
@@ -248,15 +274,17 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
       _error = null;
     });
     final name = _fileName.text.trim();
+    // With a library kept on this phone the new file is that library.
+    final library = _kept ?? const Library();
     try {
       await _api!.putFile(
         name,
         branch: _branch,
-        bytes: utf8.encode(encodeLibrary(const Library())),
+        bytes: utf8.encode(encodeLibrary(library)),
         message: FirstRunFlow.createMessage,
       );
       if (!mounted) return;
-      _loadedEntries = 0;
+      _loadedEntries = library.entries.length;
       _go(FirstRunStep.done);
     } on GitHubException catch (e) {
       if (!mounted) return;
@@ -305,7 +333,14 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
             updated = relativeTime(commits.first.date, now: now);
           }
         }
-        files.add(RepoFile(blob.path, entries: entries, updated: updated));
+        files.add(
+          RepoFile(
+            blob.path,
+            entries: entries,
+            updated: updated,
+            sha: blob.sha,
+          ),
+        );
       }
       if (!mounted || _step != FirstRunStep.existing) return;
       setState(() {
@@ -326,9 +361,65 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
       ? _files![_file]
       : null;
 
-  void _useFile() {
-    _loadedEntries = _chosenFile?.entries ?? 0;
+  /// Whether the chosen file is another one than the kept library's.
+  bool get _otherFile {
+    final kept = _keptConnection;
+    final file = _chosenFile;
+    return kept != null &&
+        file != null &&
+        (_repo.text.trim() != kept.repository ||
+            file.path != kept.file ||
+            _branch != kept.branch);
+  }
+
+  Future<void> _useFile() async {
+    final file = _chosenFile!;
+    final kept = _kept;
+    if (kept != null && _otherFile) {
+      // D18: which library to keep. The same file needs no question: the
+      // sync compares both copies to their base.
+      final choice = await askWhichLibrary(
+        context,
+        phoneEntries: kept.entries.length,
+        file: file,
+      );
+      if (choice == null || !mounted) return;
+      if (choice == WhichLibrary.phone) {
+        await _replaceFile(file, kept);
+        return;
+      }
+    }
+    _loadedEntries = file.entries ?? 0;
     _go(FirstRunStep.done);
+  }
+
+  /// D18, "This phone's": the kept library goes over the chosen file,
+  /// then the file is connected like any other.
+  Future<void> _replaceFile(RepoFile file, Library kept) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _api!.putFile(
+        file.path,
+        branch: _branch,
+        bytes: utf8.encode(encodeLibrary(kept)),
+        message: FirstRunFlow.replaceMessage,
+        sha: file.sha,
+      );
+      if (!mounted) return;
+      _loadedEntries = kept.entries.length;
+      _replacedFile = true;
+      _go(FirstRunStep.done);
+    } on GitHubException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = describeGitHubFailure(e);
+      });
+    }
   }
 
   /// F7: the token and the connection are stored; the app then opens the
@@ -487,14 +578,23 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
                 if (_error case final error?) _ErrorText(error),
                 const SizedBox(height: 16),
                 const FieldLabel('What gets added'),
-                const _CodeBlock(
-                  '{\n'
-                  '  "version": 2,\n'
-                  '  "tags": {},\n'
-                  '  "entries": [],\n'
-                  '  "plans": []\n'
-                  '}',
-                ),
+                if (_kept case final kept?)
+                  _CodeBlock(
+                    'The library kept on this phone: '
+                    '${kept.entries.length} '
+                    '${kept.entries.length == 1 ? 'entry' : 'entries'}, '
+                    '${kept.plans.length} '
+                    '${kept.plans.length == 1 ? 'plan' : 'plans'}.',
+                  )
+                else
+                  const _CodeBlock(
+                    '{\n'
+                    '  "version": 2,\n'
+                    '  "tags": {},\n'
+                    '  "entries": [],\n'
+                    '  "plans": []\n'
+                    '}',
+                  ),
                 const SizedBox(height: 6),
                 const _Help('Commit message: “${FirstRunFlow.createMessage}”'),
               ],
@@ -569,8 +669,17 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
             ),
             FirstRunStep.done => _Done(
               text: _choice == _FileChoice.newFile
-                  ? '${_fileName.text.trim()} is now in $repository. '
-                        'Add your first entry with the + button.'
+                  ? _kept != null
+                        ? '${_fileName.text.trim()} is now in $repository, '
+                              'with the $_loadedEntries '
+                              '${_loadedEntries == 1 ? 'entry' : 'entries'} '
+                              'from this phone.'
+                        : '${_fileName.text.trim()} is now in $repository. '
+                              'Add your first entry with the + button.'
+                  : _replacedFile
+                  ? '${_chosenFile?.path} now holds the $_loadedEntries '
+                        '${_loadedEntries == 1 ? 'entry' : 'entries'} from '
+                        'this phone.'
                   : 'Loaded $_loadedEntries '
                         '${_loadedEntries == 1 ? 'entry' : 'entries'} from '
                         '${_chosenFile?.path}.',

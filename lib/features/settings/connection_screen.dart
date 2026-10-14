@@ -13,6 +13,7 @@ import '../../widgets/section_heading.dart';
 import '../../widgets/setting_row.dart';
 import '../../widgets/warning_note.dart';
 import '../first_run/first_run_flow.dart';
+import '../sync/conflict_dialog.dart';
 import '../sync/relative_time.dart';
 import '../sync/sync_state.dart';
 
@@ -80,7 +81,9 @@ class ConnectionScreen extends ConsumerWidget {
   /// The status card's second line: what is waiting, else when the phone
   /// last matched GitHub.
   static String statusDetail(SyncStatus status, {DateTime? now}) =>
-      status.pendingCount > 0
+      status.phase == SyncPhase.conflict
+      ? 'Pick which copy to keep'
+      : status.pendingCount > 0
       ? '${status.pendingCount} '
             '${status.pendingCount == 1 ? 'change' : 'changes'} waiting to '
             'be saved'
@@ -165,14 +168,23 @@ class ConnectionScreen extends ConsumerWidget {
                         ),
                         if (!local) ...[
                           const SizedBox(width: 8),
-                          AppButton(
-                            label: 'Sync now',
-                            kind: AppButtonKind.outline,
-                            compact: true,
-                            horizontalPadding: 14,
-                            onPressed: () =>
-                                ref.read(librarySyncProvider)?.syncNow(),
-                          ),
+                          if (status.phase == SyncPhase.conflict)
+                            AppButton(
+                              label: 'Choose',
+                              kind: AppButtonKind.outline,
+                              compact: true,
+                              horizontalPadding: 14,
+                              onPressed: () => showConflictDialog(context, ref),
+                            )
+                          else
+                            AppButton(
+                              label: 'Sync now',
+                              kind: AppButtonKind.outline,
+                              compact: true,
+                              horizontalPadding: 14,
+                              onPressed: () =>
+                                  ref.read(librarySyncProvider)?.syncNow(),
+                            ),
                         ],
                       ],
                     ),

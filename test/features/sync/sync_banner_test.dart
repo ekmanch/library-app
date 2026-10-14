@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/sync/sync_status.dart';
 import 'package:library_app/features/settings/connection_screen.dart';
+import 'package:library_app/features/sync/conflict_dialog.dart';
 import 'package:library_app/features/sync/sync_banner.dart';
 import 'package:library_app/features/sync/sync_state.dart';
 
@@ -44,6 +45,67 @@ void main() {
     expect(find.text('GitHub refused the token'), findsOneWidget);
     expect(find.text('It may have expired.'), findsOneWidget);
     expect(find.text('Fix'), findsOneWidget);
+
+    notifier.show(SyncBanner.conflict);
+    await tester.pumpAndSettle();
+    expect(find.text('Changed here and on GitHub'), findsOneWidget);
+    expect(find.text('Pick which copy to keep.'), findsOneWidget);
+    expect(find.text('Choose'), findsOneWidget);
+  });
+
+  testWidgets('Choose opens D17, and a side resolves the conflict', (
+    tester,
+  ) async {
+    final sync = FakeLibrarySync(
+      SyncStatus(
+        phase: SyncPhase.conflict,
+        pendingCount: 3,
+        remoteChangedAt: DateTime(2026, 10, 13, 20, 12),
+      ),
+    );
+    final container = await pumpApp(
+      tester,
+      const Scaffold(body: SyncBannerCard()),
+      overrides: [librarySyncProvider.overrideWithValue(sync)],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Changed here and on GitHub'), findsOneWidget);
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keep which copy?'), findsOneWidget);
+    expect(find.text('This phone: 3 changes'), findsOneWidget);
+    expect(find.text('GitHub: last commit Oct 13, 20:12'), findsOneWidget);
+    expect(find.textContaining("Earlier versions stay"), findsOneWidget);
+
+    // Decide later: nothing happens, the banner stays.
+    await tester.tap(find.text('Decide later'));
+    await tester.pumpAndSettle();
+    expect(sync.resolutions, isEmpty);
+    expect(find.text('Changed here and on GitHub'), findsOneWidget);
+
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Keep GitHub's"));
+    await tester.pumpAndSettle();
+    expect(sync.resolutions, [false]);
+
+    container.read(syncBannerProvider.notifier).show(SyncBanner.conflict);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep mine'));
+    await tester.pumpAndSettle();
+    expect(sync.resolutions, [false, true]);
+  });
+
+  test('the dialog\'s lines for an unqueued edit and an unknown commit', () {
+    const status = SyncStatus(phase: SyncPhase.conflict);
+    expect(ConflictDialog.phoneLine(status), 'This phone: edited here');
+    expect(
+      ConflictDialog.phoneLine(status.copyWith(pendingCount: 1)),
+      'This phone: 1 change',
+    );
+    expect(ConflictDialog.gitHubLine(status), 'GitHub: changed since');
   });
 
   testWidgets('Retry sends the queue again and Fix opens the connection', (
@@ -77,6 +139,7 @@ void main() {
     expect(SyncBanner.fromDemo('offline'), SyncBanner.offline);
     expect(SyncBanner.fromDemo('failed'), SyncBanner.couldNotSave);
     expect(SyncBanner.fromDemo('token'), SyncBanner.tokenProblem);
+    expect(SyncBanner.fromDemo('conflict'), SyncBanner.conflict);
     expect(SyncBanner.fromDemo(''), isNull);
   });
 

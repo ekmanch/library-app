@@ -5,6 +5,7 @@ import '../../data/library_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../settings/connection_screen.dart';
+import 'conflict_dialog.dart';
 import 'sync_state.dart';
 
 /// The sync and error banner under a top-level screen's title (A12).
@@ -31,6 +32,8 @@ class SyncBannerCard extends ConsumerWidget {
           ref.read(librarySyncProvider)?.syncNow();
         case SyncBanner.tokenProblem:
           openConnectionScreen(context);
+        case SyncBanner.conflict:
+          showConflictDialog(context, ref);
         case SyncBanner.saving || SyncBanner.offline:
           break;
       }

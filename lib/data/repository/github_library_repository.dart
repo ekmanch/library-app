@@ -354,6 +354,15 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
       'matched; waiting for a choice.',
     );
     await _saveMeta(meta.copyWith(lastChecked: now));
+    // For D17: when GitHub's copy last changed. Not worth failing over.
+    try {
+      final commits = await _api.commits(path, branch: branch, limit: 1);
+      if (commits.isNotEmpty) {
+        _setStatus(_status.copyWith(remoteChangedAt: commits.first.date));
+      }
+    } on GitHubException catch (e) {
+      _log('Could not read the last commit: $e');
+    }
     return true;
   }
 

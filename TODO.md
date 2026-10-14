@@ -140,8 +140,8 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [x] D15, D16 Disconnect in two steps: confirm, then keep the library on the phone (local mode, D6 offers "Connect to GitHub") or delete it (first run at F2)
 - [x] Sync as a three-way comparison against the base in `sync.json` (blob shas): push, pull, or stop at a conflict; a stale-sha refusal is checked, not retried; the base knows which file it is about, so a kept library reconnected to the same file is compared
 - [x] Verified that the data repo's `library.json` and the app's codec produce the same bytes, and that the repo's hook never writes it
-- [ ] D17 Conflict: A12 banner "Changed here and on GitHub" with a button that opens the dialog ("Keep mine" / "Keep GitHub's"); the dialog needs its mockup first
-- [ ] D18 Reconnecting a kept library to another repo or file: ask which library to keep, and let "Create a new library" (F5) create it from the phone's library; needs its mockup first (today GitHub's copy is taken)
+- [x] A27, S15, D17 Conflict: the banner with Choose on Library and Plans, Choose in D6, and the dialog (Keep mine / Keep GitHub's / Decide later)
+- [x] D18 Reconnecting a kept library to another file asks which library to keep; "Create a new library" (F5) creates it from the phone's library
 
 ## Phase 5: Lookups and images
 
