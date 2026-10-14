@@ -74,18 +74,31 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
   /// The All list's position, so a return to the home can scroll it up.
   final _allScroll = ScrollController();
 
+  /// The chip row's position, so the picked All chip is in view after a
+  /// return, even when the row was scrolled to Music or Anime.
+  final _chipScroll = ScrollController();
+
   @override
   void dispose() {
     _allScroll.dispose();
+    _chipScroll.dispose();
     super.dispose();
   }
 
   /// Library tapped in the pill while on the Library tab: the providers are
-  /// already back on All, so only the scroll position is left. The list may
-  /// be replaced this frame (a type view giving way to All), so wait for it.
+  /// already back on All, so only the scroll positions are left. The list
+  /// or the chip row may be rebuilt this frame (a type view or a filter
+  /// giving way to All), so wait for the frame.
   void _scrollToTop() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_allScroll.hasClients) _allScroll.jumpTo(0);
+      if (_chipScroll.hasClients) {
+        _chipScroll.animateTo(
+          0,
+          duration: AppMotion.slide,
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -224,6 +237,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                 child: SizedBox(
                   height: 44,
                   child: ListView(
+                    controller: _chipScroll,
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                     children: [

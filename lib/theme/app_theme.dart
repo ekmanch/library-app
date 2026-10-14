@@ -181,6 +181,11 @@ class AppMotion {
     duration: Duration(milliseconds: 150),
     reverseDuration: Duration(milliseconds: 100),
   );
+
+  /// A short list or row sliding to a new position on its own, such as the
+  /// chip row returning to All. Quick, but visible, so the move is not a
+  /// jump.
+  static const slide = Duration(milliseconds: 200);
 }
 
 /// Colors that Material's ColorScheme has no slot for.

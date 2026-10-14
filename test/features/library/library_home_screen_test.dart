@@ -94,16 +94,16 @@ void main() {
     expect(container.read(homeTypeProvider), isNull);
     expect(container.read(homeStatusProvider), isNull);
     expect(find.byType(StatusSegmentedControl), findsNothing);
-    // The chip row is lazy and still scrolled to Books; bring All back.
+    // The chip row scrolled back to the start on its own, so All is in view.
     final row = find.byWidgetPredicate(
-      (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.right,
     );
-    await tester.drag(row, const Offset(300, 0));
-    await tester.pumpAndSettle();
+    expect(tester.state<ScrollableState>(row).position.pixels, 0);
     expect(
       tester.widget<PillChip>(find.widgetWithText(PillChip, 'All')).selected,
       isTrue,
     );
+    expect(find.widgetWithText(PillChip, 'All').hitTestable(), findsOneWidget);
 
     container
         .read(libraryFilterProvider.notifier)
