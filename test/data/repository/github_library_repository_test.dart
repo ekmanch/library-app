@@ -6,6 +6,7 @@ import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/operations/operations.dart';
 import 'package:library_app/data/repository/github_library_repository.dart';
+import 'package:library_app/data/repository/local_library_repository.dart';
 import 'package:library_app/data/sync/sync_status.dart';
 import 'package:library_app/dev/fake_github_api.dart';
 
@@ -25,13 +26,22 @@ void main() {
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
-  GitHubLibraryRepository repository() => GitHubLibraryRepository(
+  GitHubLibraryRepository repository({
+    String name = 'ekmanch/library',
+    String path = 'library.json',
+  }) => GitHubLibraryRepository(
     directory: dir,
     api: github,
-    path: 'library.json',
+    repository: name,
+    path: path,
     branch: 'main',
     debounce: debounce,
     log: logged.add,
+  );
+
+  /// GitHub's file as someone else would leave it: Dirt rated 5.
+  final ratedElsewhere = encodeLibrary(
+    sampleLibrary().copyWith(entries: [mummy, dirt.copyWith(rating: 5)]),
   );
 
   /// Lets the debounce fire and every sync finish.
@@ -134,7 +144,7 @@ void main() {
     repo.dispose();
   });
 
-  test('a file changed on GitHub is taken, with the edits on top', () async {
+  test('a file changed only on GitHub is pulled', () async {
     final repo = repository();
     await repo.load();
     await repo.flush();
@@ -143,45 +153,117 @@ void main() {
     await pumpEventQueue();
 
     // Someone rates Dirt on another device.
-    github.setFile(
-      'library.json',
-      encodeLibrary(
-        sampleLibrary().copyWith(entries: [mummy, dirt.copyWith(rating: 5)]),
-      ),
-    );
-    await repo.apply(SetStatus(mummy.id, EntryStatus.want));
-    await settle(repo);
+    github.setFile('library.json', ratedElsewhere);
+    await repo.checkForChanges();
     await sub.cancel();
 
+    final pulled = decodeLibrary(ratedElsewhere);
+    expect(await repo.load(), pulled);
+    expect(emitted.last, pulled);
+    expect(github.putCount, 0);
+    expect(repo.status.phase, SyncPhase.idle);
+    expect(repo.status.lastSynced, isNotNull);
+    repo.dispose();
+  });
+
+  test('changed on both sides, the sync stops at a conflict', () async {
+    final repo = repository();
+    await repo.load();
+    await repo.flush();
+    github.setFile('library.json', ratedElsewhere);
+    await repo.apply(SetStatus(mummy.id, EntryStatus.want));
+    await settle(repo);
+
+    expect(repo.status.phase, SyncPhase.conflict);
+    expect(repo.status.pendingCount, 1);
+    // Nothing moved: GitHub keeps its file, the phone keeps its edit.
+    expect(github.putCount, 0);
+    expect(github.text('library.json'), ratedElsewhere);
+    final mine = await repo.load();
+    expect(mine.entryById(mummy.id)!.status, EntryStatus.want);
+    expect(mine.entryById(dirt.id)!.rating, isNot(5));
+    expect(logged, contains(contains('waiting for a choice')));
+
+    // Another check changes nothing either.
+    await repo.checkForChanges();
+    expect(repo.status.phase, SyncPhase.conflict);
+    expect(github.putCount, 0);
+    repo.dispose();
+  });
+
+  test(
+    'a save refused for a stale sha is checked, not retried blindly',
+    () async {
+      final repo = repository();
+      await repo.load();
+      await repo.flush();
+      await repo.apply(SetStatus(mummy.id, EntryStatus.want));
+      // GitHub refuses the sha, yet the file turns out unchanged (a
+      // spurious 409): no conflict, and the queue waits for the next round.
+      github.failNextPut = GitHubFailure.conflict;
+      await settle(repo);
+      expect(github.putCount, 1);
+      expect(repo.status.phase, SyncPhase.idle);
+      expect(repo.status.pendingCount, 1);
+      expect(logged, contains(contains('changed under the save')));
+
+      await repo.syncNow();
+      expect(github.putCount, 2);
+      expect(repo.status.pendingCount, 0);
+      expect(
+        decodeLibrary(github.text('library.json')!).entryById(mummy.id)!.status,
+        EntryStatus.want,
+      );
+      repo.dispose();
+    },
+  );
+
+  test('"Keep mine" writes the phone\'s copy over GitHub\'s', () async {
+    final repo = repository();
+    await repo.load();
+    await repo.flush();
+    github.setFile('library.json', ratedElsewhere);
+    await repo.apply(SetStatus(mummy.id, EntryStatus.want));
+    await settle(repo);
+    expect(repo.status.phase, SyncPhase.conflict);
+
+    await repo.resolveConflict(keepMine: true);
+    expect(repo.status.phase, SyncPhase.idle);
+    expect(repo.status.pendingCount, 0);
+    expect(github.putCount, 1);
     final saved = decodeLibrary(github.text('library.json')!);
-    expect(saved.entryById(dirt.id)!.rating, 5);
+    expect(saved, await repo.load());
     expect(saved.entryById(mummy.id)!.status, EntryStatus.want);
-    expect(await repo.load(), saved);
-    expect(emitted.last, saved);
+    expect(saved.entryById(dirt.id)!.rating, isNot(5));
+    final commits = await github.commits(
+      'library.json',
+      branch: 'main',
+      limit: 1,
+    );
+    expect(commits.single.message, startsWith("Keep this phone's copy"));
+    expect(commits.single.message, contains('Mark The Mummy as want'));
+    // Back in step: the next check is quiet.
+    await repo.checkForChanges();
+    expect(repo.status.phase, SyncPhase.idle);
     expect(github.putCount, 1);
     repo.dispose();
   });
 
-  test('a conflict refetches, re-applies and saves again', () async {
+  test('"Keep GitHub\'s" takes its file and drops the queue', () async {
     final repo = repository();
     await repo.load();
     await repo.flush();
+    github.setFile('library.json', ratedElsewhere);
     await repo.apply(SetStatus(mummy.id, EntryStatus.want));
-    // The file changes between the check and the save.
-    github.failNextPut = GitHubFailure.conflict;
-    github.setFile(
-      'library.json',
-      encodeLibrary(
-        sampleLibrary().copyWith(entries: [mummy, dirt.copyWith(rating: 5)]),
-      ),
-    );
     await settle(repo);
-    expect(github.putCount, 2);
-    final saved = decodeLibrary(github.text('library.json')!);
-    expect(saved.entryById(dirt.id)!.rating, 5);
-    expect(saved.entryById(mummy.id)!.status, EntryStatus.want);
+    expect(repo.status.phase, SyncPhase.conflict);
+
+    await repo.resolveConflict(keepMine: false);
     expect(repo.status.phase, SyncPhase.idle);
     expect(repo.status.pendingCount, 0);
+    expect(github.putCount, 0);
+    expect(await repo.load(), decodeLibrary(ratedElsewhere));
+    expect(pendingFile(), isNot(contains('Mark The Mummy')));
     repo.dispose();
   });
 
@@ -341,27 +423,82 @@ void main() {
     repo.dispose();
   });
 
-  test(
-    'a cache that differs with nothing pending is replaced, never saved',
-    () async {
-      final repo = repository();
-      await repo.load();
-      await repo.flush();
-      repo.dispose();
-      // A bug, or an older app, left something in the cache.
-      File('${dir.path}/library.json').writeAsStringSync(
-        encodeLibrary(sampleLibrary().copyWith(entries: [mummy])),
-      );
+  test('a cache that differs with nothing queued is pushed', () async {
+    final repo = repository();
+    await repo.load();
+    await repo.flush();
+    repo.dispose();
+    // Edits made while the library was kept on the phone (D16), with no
+    // queue to say what they were.
+    final mine = sampleLibrary().copyWith(entries: [mummy]);
+    File('${dir.path}/library.json').writeAsStringSync(encodeLibrary(mine));
 
-      final again = repository();
-      expect((await again.load()).entries, hasLength(1));
-      await again.flush();
-      expect(await again.load(), sampleLibrary());
-      expect(github.putCount, 0);
-      expect(logged, contains(contains('GitHub\'s copy')));
-      again.dispose();
-    },
-  );
+    final again = repository();
+    expect(await again.load(), mine);
+    await settle(again);
+    expect(github.putCount, 1);
+    expect(decodeLibrary(github.text('library.json')!), mine);
+    final commits = await github.commits(
+      'library.json',
+      branch: 'main',
+      limit: 1,
+    );
+    expect(commits.single.message, 'Save the changes made on this phone');
+    expect(again.status.phase, SyncPhase.idle);
+    again.dispose();
+  });
+
+  test('a kept library connected to the same file again is compared', () async {
+    final repo = repository();
+    await repo.load();
+    await repo.flush();
+    await repo.discard(keepLibrary: true);
+    repo.dispose();
+    // Edited on the phone meanwhile, through the local repository.
+    final local = LocalLibraryRepository(
+      File('${dir.path}/library.json'),
+      seed: () async => seedText,
+    );
+    await local.apply(SetStatus(mummy.id, EntryStatus.want));
+    await local.flush();
+    local.dispose();
+
+    // Only the phone changed: pushed.
+    final again = repository();
+    await again.load();
+    await settle(again);
+    expect(github.putCount, 1);
+    expect(
+      decodeLibrary(github.text('library.json')!).entryById(mummy.id)!.status,
+      EntryStatus.want,
+    );
+    again.dispose();
+  });
+
+  test('a base written for another file does not count', () async {
+    final repo = repository();
+    await repo.load();
+    await repo.flush();
+    await repo.discard(keepLibrary: true);
+    repo.dispose();
+    final local = LocalLibraryRepository(
+      File('${dir.path}/library.json'),
+      seed: () async => seedText,
+    );
+    await local.apply(SetStatus(mummy.id, EntryStatus.want));
+    await local.flush();
+    local.dispose();
+
+    // Connected to another repo: no base, so GitHub's copy is taken.
+    github.setFile('library.json', ratedElsewhere);
+    final other = repository(name: 'ekmanch/other');
+    await other.load();
+    await settle(other);
+    expect(github.putCount, 0);
+    expect(await other.load(), decodeLibrary(ratedElsewhere));
+    expect(logged, contains(contains('no base')));
+    other.dispose();
+  });
 
   test('discard removes the cache, the queue and the meta', () async {
     final repo = repository();
@@ -375,16 +512,18 @@ void main() {
     repo.dispose();
   });
 
-  test('discard keeping the library leaves only library.json', () async {
+  test('discard keeping the library leaves it and its base', () async {
     final repo = repository();
     await repo.load();
+    await repo.flush();
     github.failure = GitHubFailure.offline;
     await repo.apply(SetStatus(mummy.id, EntryStatus.want));
     await repo.discard(keepLibrary: true);
     await Future<void>.delayed(debounce * 2);
-    expect(dir.listSync().map((f) => f.uri.pathSegments.last), [
+    expect(dir.listSync().map((f) => f.uri.pathSegments.last).toSet(), {
       'library.json',
-    ]);
+      'sync.json',
+    });
     expect(github.putCount, 0);
     repo.dispose();
   });

@@ -55,7 +55,8 @@ enum SyncBanner {
     SyncPhase.offline => offline,
     SyncPhase.failed => couldNotSave,
     SyncPhase.tokenProblem => tokenProblem,
-    SyncPhase.idle || SyncPhase.checking => null,
+    // The conflict's banner and dialog (D17) come with their mockup.
+    SyncPhase.idle || SyncPhase.checking || SyncPhase.conflict => null,
   };
 }
 

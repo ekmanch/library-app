@@ -16,27 +16,31 @@ import 'library_repository.dart';
 import 'library_sync.dart';
 import 'local_library_repository.dart';
 
-/// The library on GitHub, with a copy on the device (DESIGN.md section 9).
+/// The library on GitHub, with a copy on the device (DESIGN.md section 9
+/// and 10b).
 ///
 /// Reads: the cache shows at once; a conditional raw request asks GitHub
 /// whether the file changed, on load and whenever the UI asks. Writes: an
 /// operation goes into `pending.json`, then into the cache; after a short
 /// pause every pending operation is sent as one commit whose message is
-/// the operation's summary ("Mark The Mummy as done"). A conflict fetches
-/// the new file and re-applies the pending operations. Offline, the queue
+/// the operation's summary ("Mark The Mummy as done"). Offline, the queue
 /// waits for the next trigger.
 ///
-/// GitHub is the reference: a cache that differs from GitHub with nothing
-/// pending is replaced, never pushed.
+/// Every sync is a three-way comparison against the base in `sync.json`,
+/// the blob of the file as it was when both sides last matched: the
+/// phone's copy against the base's canonical form, GitHub's blob against
+/// the base's blob. Neither changed: nothing to do. Only the phone:
+/// push. Only GitHub: pull. Both, or a save refused for a stale sha: a
+/// conflict, and nothing moves until the user picks a side.
 class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   GitHubLibraryRepository({
     required Directory directory,
     required this._api,
+    required this.repository,
     required this.path,
     required this.branch,
     this.debounce = const Duration(milliseconds: 2500),
     DateTime Function()? now,
-    this.maxConflictRetries = 3,
     void Function(String message)? log,
   }) : _now = now ?? DateTime.now,
        _log = log ?? debugPrint,
@@ -51,13 +55,19 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   static File _file(Directory directory, String name) =>
       File('${directory.path}${Platform.pathSeparator}$name');
 
+  /// "owner/repo".
+  final String repository;
+
   /// The file inside the repo, e.g. `library.json`.
   final String path;
   final String branch;
 
+  /// The file the sync meta must be about, or it is no base (see
+  /// [SyncMeta.target]).
+  String get _target => '$repository:$path@$branch';
+
   /// How long edits are gathered before they go out as one commit.
   final Duration debounce;
-  final int maxConflictRetries;
 
   final GitHubApi _api;
   final DateTime Function() _now;
@@ -130,17 +140,24 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   }
 
   @override
+  Future<void> resolveConflict({required bool keepMine}) {
+    _debounce?.cancel();
+    return _enqueue(() => _resolve(keepMine: keepMine));
+  }
+
+  @override
   Future<void> discard({bool keepLibrary = false}) async {
     _discarded = true;
     _debounce?.cancel();
     await _syncing;
     if (keepLibrary) {
+      // The file and its base stay, for the comparison on a reconnect.
       await _cache.flush();
     } else {
       await _cache.delete();
+      await _metaStore.delete();
     }
     await _pending.delete();
-    await _metaStore.delete();
   }
 
   /// Waits for the writes and the syncs in progress. Does not start any.
@@ -162,7 +179,7 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
     await _pending.load();
     if (!_metaLoaded) {
       // The seed download may have set it meanwhile.
-      _meta ??= await _metaStore.load();
+      _meta ??= await _loadMeta();
       _metaLoaded = true;
     }
     try {
@@ -176,6 +193,17 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
       _setStatus(_status.copyWith(phase: _phaseFor(e.failure)));
       rethrow;
     }
+  }
+
+  /// The stored base, unless it is about another file.
+  Future<SyncMeta?> _loadMeta() async {
+    final meta = await _metaStore.load();
+    if (meta == null) return null;
+    if (meta.target != null && meta.target != _target) {
+      _log('The sync meta is for ${meta.target}, not $_target: no base.');
+      return null;
+    }
+    return meta;
   }
 
   /// The cache's seed on a new install: the file from GitHub.
@@ -211,16 +239,19 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
     });
   }
 
-  /// One round: settle a save whose answer was lost, check for changes,
-  /// then send what is pending. Failures end up in the status.
+  /// One round: settle a save whose answer was lost, compare both sides
+  /// to the base, then pull, push, or stop at a conflict. Failures end up
+  /// in the status.
   Future<void> _sync({required bool push}) async {
     try {
       await _ensureLoaded();
       _setStatus(_status.copyWith(phase: SyncPhase.checking));
       await _resolveInFlight();
-      await _check();
-      if (push) await _push();
-      _setStatus(_status.copyWith(phase: SyncPhase.idle));
+      var conflict = await _check();
+      if (!conflict && push) conflict = await _push();
+      _setStatus(
+        _status.copyWith(phase: conflict ? SyncPhase.conflict : SyncPhase.idle),
+      );
     } on GitHubException catch (e) {
       _log('Sync failed: $e');
       _setStatus(_status.copyWith(phase: _phaseFor(e.failure)));
@@ -270,58 +301,81 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
     if (landed) {
       _log('The save "${inFlight.message}" landed under later changes.');
       await _pending.remove(inFlight.ids);
+      // The base moves to the save: the later changes are GitHub's alone,
+      // and the check that follows pulls them.
+      await _saveMeta(
+        SyncMeta(
+          remoteSha: inFlight.blobSha,
+          canonicalSha: inFlight.blobSha,
+          lastSynced: _meta?.lastSynced,
+          lastChecked: now,
+        ),
+      );
     } else {
       await _pending.clearInFlight();
     }
-    // The check that follows sees a changed file and takes it.
+    // The check that follows sees a changed file and compares.
   }
 
-  /// Asks GitHub whether the file changed. If it did, GitHub's copy wins
-  /// and the pending operations are applied on top of it.
-  Future<void> _check() async {
+  /// The blob sha of the phone's copy in the canonical form.
+  String get _localSha => _shaOf(_cache.current!);
+
+  /// Asks GitHub whether the file changed and compares both sides to the
+  /// base. Pulls when only GitHub changed. Returns true for a conflict:
+  /// both changed, and nothing is touched.
+  Future<bool> _check() async {
     final meta = _meta;
-    final cached = _cache.current;
-    final drift =
-        meta != null &&
-        cached != null &&
-        _pending.isEmpty &&
-        _shaOf(cached) != meta.canonicalSha;
-    if (drift) {
-      _log(
-        'The cached library differs from GitHub with nothing pending; '
-        'taking GitHub\'s copy.',
-      );
-    }
-    final raw = await _api.getFileRaw(
-      path,
-      branch: branch,
-      etag: drift ? null : meta?.etag,
-    );
     final now = _now();
-    if (raw == null) {
-      // 304: unchanged.
-      await _saveMeta(
-        meta!.copyWith(
-          lastChecked: now,
-          lastSynced: _pending.isEmpty ? now : null,
-        ),
-      );
-      return;
+    if (meta == null) {
+      // No base (a lost sync.json, or one for another file): GitHub's
+      // copy, with whatever is queued applied on top.
+      await _takeRemote(null, now);
+      return false;
     }
-    if (!drift && meta != null && raw.blobSha == meta.remoteSha) {
+    final raw = await _api.getFileRaw(path, branch: branch, etag: meta.etag);
+    final remoteChanged = raw != null && raw.blobSha != meta.remoteSha;
+    final localChanged = _localSha != meta.canonicalSha;
+    if (!remoteChanged) {
       await _saveMeta(
         meta.copyWith(
-          etag: raw.etag,
+          etag: raw?.etag ?? meta.etag,
           lastChecked: now,
-          lastSynced: _pending.isEmpty ? now : null,
+          lastSynced: localChanged ? null : now,
         ),
       );
-      return;
+      return false;
     }
+    if (!localChanged) {
+      await _takeRemote(raw, now);
+      return false;
+    }
+    _log(
+      'The file changed on GitHub and on this phone since they last '
+      'matched; waiting for a choice.',
+    );
+    await _saveMeta(meta.copyWith(lastChecked: now));
+    return true;
+  }
+
+  /// Takes GitHub's copy ([raw], or a fresh download) as the cache and
+  /// the new base. With [reapply] the queued operations go on top of it,
+  /// dropping any that no longer applies; without it the queue is
+  /// dropped whole ("Keep GitHub's").
+  Future<void> _takeRemote(
+    RawFile? raw,
+    DateTime now, {
+    bool reapply = true,
+  }) async {
+    raw ??= await _api.getFileRaw(path, branch: branch);
+    if (raw == null) throw StateError('unconditional request answered 304');
     final remote = decodeLibrary(raw.text);
     var library = remote;
     final dropped = <int>[];
     for (final pending in _pending.operations) {
+      if (!reapply) {
+        dropped.add(pending.id);
+        continue;
+      }
       try {
         library = pending.operation.apply(library);
       } on Object catch (e) {
@@ -336,67 +390,123 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
         etag: raw.etag,
         remoteSha: raw.blobSha,
         canonicalSha: _shaOf(remote),
-        lastSynced: _pending.isEmpty ? now : meta?.lastSynced,
+        lastSynced: _pending.isEmpty ? now : _meta?.lastSynced,
         lastChecked: now,
       ),
     );
   }
 
-  /// Sends the pending operations as one commit. A conflict means the
-  /// file changed since the check: take the new file, re-apply, try again.
-  Future<void> _push() async {
-    for (var attempt = 0; ; attempt++) {
+  /// Sends the phone's copy as one commit when it differs from the base:
+  /// the queued operations with their summaries, or, with nothing queued
+  /// (edits made while the library was kept on the phone), a plain
+  /// message. Returns true when GitHub refused the sha: the file changed
+  /// since the check, which is a conflict unless the check now says
+  /// otherwise.
+  Future<bool> _push() async {
+    final meta = _meta!;
+    final operations = _pending.operations;
+    final ids = operations.map((o) => o.id).toList();
+    final bytes = utf8.encode(encodeLibrary(_cache.current!));
+    final sha = gitBlobSha(bytes);
+    if (sha == meta.canonicalSha) {
+      // Nothing to send: the changes cancel out, or are there already.
+      if (ids.isNotEmpty) await _pending.remove(ids);
+      return false;
+    }
+    final message = operations.isEmpty
+        ? 'Save the changes made on this phone'
+        : _message(operations);
+    await _pending.markInFlight(
+      InFlight(ids: ids, blobSha: sha, message: message, startedAt: _now()),
+    );
+    _setStatus(_status.copyWith(phase: SyncPhase.saving));
+    try {
+      final result = await _api.putFile(
+        path,
+        branch: branch,
+        bytes: bytes,
+        message: message,
+        sha: meta.remoteSha,
+      );
+      await _saved(result);
+      await _pending.remove(ids);
+      return false;
+    } on GitHubException catch (e) {
+      if (e.failure != GitHubFailure.conflict) rethrow;
+      // A rejected save never landed. The file changed under it: both
+      // sides changed, unless the check finds the phone's copy on GitHub.
+      await _pending.clearInFlight();
+      _log('The file changed under the save.');
+      _setStatus(_status.copyWith(phase: SyncPhase.checking));
+      return _check();
+    }
+  }
+
+  /// The user picked a side (D17). Keep mine: the phone's copy replaces
+  /// GitHub's, whatever is there now. Keep GitHub's: its copy replaces
+  /// the phone's and the queue is dropped.
+  Future<void> _resolve({required bool keepMine}) async {
+    try {
+      await _ensureLoaded();
+      final now = _now();
+      if (!keepMine) {
+        _setStatus(_status.copyWith(phase: SyncPhase.checking));
+        await _takeRemote(null, now, reapply: false);
+        _setStatus(_status.copyWith(phase: SyncPhase.idle));
+        return;
+      }
+      _setStatus(_status.copyWith(phase: SyncPhase.saving));
+      final current = await _api.getFileRaw(path, branch: branch);
+      if (current == null) {
+        throw StateError('unconditional request answered 304');
+      }
       final operations = _pending.operations;
-      if (operations.isEmpty) return;
-      final meta = _meta!;
       final ids = operations.map((o) => o.id).toList();
       final bytes = utf8.encode(encodeLibrary(_cache.current!));
-      final sha = gitBlobSha(bytes);
-      if (sha == meta.remoteSha) {
-        // The changes cancel out, or they are on GitHub already.
-        await _pending.remove(ids);
-        return;
-      }
-      final message = _message(operations);
+      final message = [
+        "Keep this phone's copy of the library",
+        if (operations.isNotEmpty) '',
+        for (final o in operations) '- ${o.summary}',
+      ].join('\n');
       await _pending.markInFlight(
-        InFlight(ids: ids, blobSha: sha, message: message, startedAt: _now()),
-      );
-      _setStatus(_status.copyWith(phase: SyncPhase.saving));
-      try {
-        final result = await _api.putFile(
-          path,
-          branch: branch,
-          bytes: bytes,
+        InFlight(
+          ids: ids,
+          blobSha: gitBlobSha(bytes),
           message: message,
-          sha: meta.remoteSha,
-        );
-        final now = _now();
-        await _saveMeta(
-          SyncMeta(
-            // The raw ETag is the quoted blob sha (checked live), so the
-            // next check can be conditional without a download first.
-            etag: '"${result.blobSha}"',
-            remoteSha: result.blobSha,
-            canonicalSha: result.blobSha,
-            commitSha: result.commitSha,
-            lastSynced: now,
-            lastChecked: now,
-          ),
-        );
-        await _pending.remove(ids);
-        return;
-      } on GitHubException catch (e) {
-        if (e.failure != GitHubFailure.conflict ||
-            attempt >= maxConflictRetries) {
-          rethrow;
-        }
-        // A rejected save never landed.
-        await _pending.clearInFlight();
-        _log('The file changed under the save; taking it and trying again.');
-        _setStatus(_status.copyWith(phase: SyncPhase.checking));
-        await _check();
-      }
+          startedAt: now,
+        ),
+      );
+      final result = await _api.putFile(
+        path,
+        branch: branch,
+        bytes: bytes,
+        message: message,
+        sha: current.blobSha,
+      );
+      await _saved(result);
+      await _pending.remove(ids);
+      _setStatus(_status.copyWith(phase: SyncPhase.idle));
+    } on GitHubException catch (e) {
+      _log('Resolving the conflict failed: $e');
+      _setStatus(_status.copyWith(phase: _phaseFor(e.failure)));
     }
+  }
+
+  /// The base after a successful save: the file is what the phone wrote.
+  Future<void> _saved(PutResult result) async {
+    final now = _now();
+    await _saveMeta(
+      SyncMeta(
+        // The raw ETag is the quoted blob sha (checked live), so the
+        // next check can be conditional without a download first.
+        etag: '"${result.blobSha}"',
+        remoteSha: result.blobSha,
+        canonicalSha: result.blobSha,
+        commitSha: result.commitSha,
+        lastSynced: now,
+        lastChecked: now,
+      ),
+    );
   }
 
   /// One operation: its summary. Several: the first and how many more,
@@ -411,6 +521,7 @@ class GitHubLibraryRepository implements LibraryRepository, LibrarySync {
   }
 
   Future<void> _saveMeta(SyncMeta meta) async {
+    meta = meta.copyWith(target: _target);
     _meta = meta;
     _setStatus(
       _status.copyWith(

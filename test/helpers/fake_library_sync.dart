@@ -17,6 +17,9 @@ class FakeLibrarySync implements LibrarySync {
   /// Discards that kept the library on the phone (D16).
   int keeps = 0;
 
+  /// Conflict resolutions, true for "Keep mine".
+  final resolutions = <bool>[];
+
   @override
   Stream<SyncStatus> get statusChanges => _changes.stream;
 
@@ -31,6 +34,10 @@ class FakeLibrarySync implements LibrarySync {
 
   @override
   Future<void> syncNow() async => syncNows++;
+
+  @override
+  Future<void> resolveConflict({required bool keepMine}) async =>
+      resolutions.add(keepMine);
 
   @override
   Future<void> discard({bool keepLibrary = false}) async {

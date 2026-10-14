@@ -74,6 +74,7 @@ class ConnectionScreen extends ConsumerWidget {
     SyncPhase.offline => 'Offline',
     SyncPhase.failed => 'Could not save to GitHub',
     SyncPhase.tokenProblem => 'GitHub refused the token',
+    SyncPhase.conflict => 'Changed here and on GitHub',
   };
 
   /// The status card's second line: what is waiting, else when the phone
@@ -104,7 +105,9 @@ class ConnectionScreen extends ConsumerWidget {
             SyncPhase.idle => colors.success,
             SyncPhase.checking || SyncPhase.saving => theme.colorScheme.primary,
             SyncPhase.offline => colors.muted,
-            SyncPhase.failed || SyncPhase.tokenProblem => colors.dangerText,
+            SyncPhase.failed ||
+            SyncPhase.tokenProblem ||
+            SyncPhase.conflict => colors.dangerText,
           };
     return Scaffold(
       body: SafeArea(

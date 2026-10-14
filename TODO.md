@@ -138,6 +138,10 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [x] D1 "Rating, highest first": 10 down to 1, unrated last, ties by title; rail sections are the ratings that exist
 - [x] A25, A26 Released as a wheel picker (year, month, day; tap the year to type it) in place of the text field
 - [x] D15, D16 Disconnect in two steps: confirm, then keep the library on the phone (local mode, D6 offers "Connect to GitHub") or delete it (first run at F2)
+- [x] Sync as a three-way comparison against the base in `sync.json` (blob shas): push, pull, or stop at a conflict; a stale-sha refusal is checked, not retried; the base knows which file it is about, so a kept library reconnected to the same file is compared
+- [x] Verified that the data repo's `library.json` and the app's codec produce the same bytes, and that the repo's hook never writes it
+- [ ] D17 Conflict: A12 banner "Changed here and on GitHub" with a button that opens the dialog ("Keep mine" / "Keep GitHub's"); the dialog needs its mockup first
+- [ ] D18 Reconnecting a kept library to another repo or file: ask which library to keep, and let "Create a new library" (F5) create it from the phone's library; needs its mockup first (today GitHub's copy is taken)
 
 ## Phase 5: Lookups and images
 
@@ -149,7 +153,6 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 
 ## Later
 
-- [ ] Connecting a repo again while the library is kept on the phone (D6 after D16): today the file on GitHub wins on the first sync, so edits made on the phone meanwhile are lost silently; offer to upload the phone's library, or say so before connecting
 - [ ] Revisit whether entry details show the cover whenever a title is opened, not only in a photo view (decision 19 of the 1g audit: keep the current behavior for now)
 
 - [ ] Linux desktop layout

@@ -88,6 +88,7 @@ final libraryRepositoryProvider = Provider<LibraryRepository>((ref) {
   final repository = GitHubLibraryRepository(
     directory: ref.watch(appDataDirectoryProvider),
     api: api,
+    repository: target.repository,
     path: target.file,
     branch: target.branch,
   );

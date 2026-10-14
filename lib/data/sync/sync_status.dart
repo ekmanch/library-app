@@ -20,6 +20,11 @@ enum SyncPhase {
 
   /// GitHub refused the token.
   tokenProblem,
+
+  /// The file changed on GitHub and on this phone since they last
+  /// matched. Nothing moves until a side is picked
+  /// ([LibrarySync.resolveConflict]).
+  conflict,
 }
 
 /// The sync state the banners (A12) and D6 show.

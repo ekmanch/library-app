@@ -9,6 +9,7 @@ import '../storage/json_file.dart';
 @immutable
 class SyncMeta {
   const SyncMeta({
+    this.target,
     this.etag,
     required this.remoteSha,
     required this.canonicalSha,
@@ -16,6 +17,12 @@ class SyncMeta {
     this.lastSynced,
     this.lastChecked,
   });
+
+  /// Which file this is the base of: "owner/repo:path@branch". A base
+  /// only applies to the same file; one written for another file (a
+  /// library kept on the phone, then connected elsewhere) is ignored.
+  /// Null in a sync.json from before this field.
+  final String? target;
 
   /// The ETag of the last download, for the next conditional request.
   /// For the raw format it is the quoted blob sha, so a save sets it too.
@@ -41,6 +48,7 @@ class SyncMeta {
   final DateTime? lastChecked;
 
   SyncMeta copyWith({
+    String? target,
     Object? etag = _unset,
     String? remoteSha,
     String? canonicalSha,
@@ -48,6 +56,7 @@ class SyncMeta {
     DateTime? lastSynced,
     DateTime? lastChecked,
   }) => SyncMeta(
+    target: target ?? this.target,
     etag: etag == _unset ? this.etag : etag as String?,
     remoteSha: remoteSha ?? this.remoteSha,
     canonicalSha: canonicalSha ?? this.canonicalSha,
@@ -59,6 +68,7 @@ class SyncMeta {
   static const _unset = Object();
 
   Map<String, Object?> toJson() => {
+    'target': target,
     'etag': etag,
     'remoteSha': remoteSha,
     'canonicalSha': canonicalSha,
@@ -73,6 +83,7 @@ class SyncMeta {
     final canonicalSha = json['canonicalSha'];
     if (remoteSha is! String || canonicalSha is! String) return null;
     return SyncMeta(
+      target: json['target'] as String?,
       etag: json['etag'] as String?,
       remoteSha: remoteSha,
       canonicalSha: canonicalSha,
@@ -88,6 +99,7 @@ class SyncMeta {
   @override
   bool operator ==(Object other) =>
       other is SyncMeta &&
+      other.target == target &&
       other.etag == etag &&
       other.remoteSha == remoteSha &&
       other.canonicalSha == canonicalSha &&
@@ -97,6 +109,7 @@ class SyncMeta {
 
   @override
   int get hashCode => Object.hash(
+    target,
     etag,
     remoteSha,
     canonicalSha,

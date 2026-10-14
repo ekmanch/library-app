@@ -18,8 +18,15 @@ abstract interface class LibrarySync {
   /// and Retry on a banner.
   Future<void> syncNow();
 
-  /// Disconnect: stops syncing and removes the queue and the sync meta
-  /// from the device, and the cached library too unless [keepLibrary],
-  /// which leaves `library.json` in place for use without a sync (D16).
+  /// The file changed on both sides ([SyncPhase.conflict]): keep this
+  /// phone's copy, which overwrites GitHub's, or take GitHub's, which
+  /// drops the changes made here.
+  Future<void> resolveConflict({required bool keepMine});
+
+  /// Disconnect: stops syncing and removes the queue from the device. The
+  /// cached library and the sync meta go too, unless [keepLibrary], which
+  /// leaves `library.json` and its base (`sync.json`) in place for use
+  /// without a sync (D16), and for the comparison when the same file is
+  /// connected again.
   Future<void> discard({bool keepLibrary = false});
 }

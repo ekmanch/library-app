@@ -34,6 +34,20 @@ void main() {
     expect(meta.copyWith(lastChecked: DateTime.utc(2027)).etag, '"abc"');
   });
 
+  test('the target rides along and an old file has none', () {
+    const withTarget = SyncMeta(
+      target: 'ekmanch/library:library.json@main',
+      remoteSha: 'a',
+      canonicalSha: 'b',
+    );
+    expect(SyncMeta.fromJson(withTarget.toJson()), withTarget);
+    expect(
+      SyncMeta.fromJson({'remoteSha': 'a', 'canonicalSha': 'b'})!.target,
+      isNull,
+    );
+    expect(withTarget.copyWith(etag: 'e').target, withTarget.target);
+  });
+
   test('a file without the shas is no meta', () {
     expect(SyncMeta.fromJson({'etag': 'x'}), isNull);
   });
