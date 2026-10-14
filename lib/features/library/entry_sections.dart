@@ -41,7 +41,8 @@ const _months = [
 /// Groups an already sorted list into sections that follow the sort: decades
 /// for the year orders (with "Older" before 1960 and a last section for
 /// entries without a date), months of the current year and then whole years
-/// for newest added, first letters for title order with "#" for digits.
+/// for newest added, first letters for title order with "#" for digits, and
+/// the ratings that exist (10 down to 1, then Unrated) for the rating order.
 List<EntrySection> sectionEntries(
   List<Entry> sorted,
   LibrarySort sort, {
@@ -113,6 +114,23 @@ EntrySection _keyOf(Entry entry, LibrarySort sort, DateTime now) {
         label: letter,
         railLabel: letter,
         bubbleLabel: letter,
+        entries: const [],
+      );
+    case LibrarySort.ratingHighest:
+      final rating = entry.rating;
+      if (rating == null) {
+        // The rail is 36 dp wide, too narrow for "Unrated" at its size.
+        return const EntrySection(
+          label: 'Unrated',
+          railLabel: 'None',
+          bubbleLabel: 'Unrated',
+          entries: [],
+        );
+      }
+      return EntrySection(
+        label: '$rating / 10',
+        railLabel: '$rating',
+        bubbleLabel: '$rating / 10',
         entries: const [],
       );
   }

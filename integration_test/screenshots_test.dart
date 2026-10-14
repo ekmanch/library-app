@@ -1102,6 +1102,20 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'l1-rail-year');
 
+    await tester.tap(find.text('Year, newest first'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rating, highest first'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'l1-rail-rating');
+    await tester.tap(find.text('Rating, highest first'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Year, newest first'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Grid with covers'));

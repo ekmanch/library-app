@@ -63,7 +63,7 @@ Everything here was decided during the design phase. Screen IDs refer to artboar
 | A22 | Album details with track ratings | See section 5 |
 | A23 | Filter result: Music + Songs is the Music view | For music the kind plays the status segment's part: Music + Songs opens the Music view on Songs ("Show 3 songs"), and Music alone opens it on Artists ("Show 12 music entries"). Music with both kinds, or with a status, opens results. |
 | A24 | Filter result: Music + Albums is the Music view | Same as A23, on Albums ("Show 9 albums"). |
-| L1, L2, L3 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
+| L1, L2, L3 | Long list with a jump rail | The rail shows when both hold: the list is at least three screens tall, and it has two sections or more. Then the text and list views get section headers and a rail on the right that jumps to a section. Sections follow the sort: decades for the year orders (Older before 1960, "Not released yet" last for entries without a date), months of the current year and then whole years for newest added, first letters for title order with "#" for digits, letters for music artists (1d), and for the rating order the ratings that exist, 10 down to 1 and then Unrated (the rail says "None" for it, as "Unrated" does not fit). The highlighted rail label follows the scroll position. A short list has neither headers nor rail. |
 | L4 | Long grid with fast scroll | Same rule. The grid keeps no headers; a thumb on the right appears while scrolling and can be dragged, and a bubble next to it names the section at the top of the screen. |
 | L5 | Filtered results, one type | Removable chips and the count stay put; the rows scroll, grouped by type. Same rule. When every result is of one type, sections follow the sort, headers in that type's color, rail of short labels. |
 | L6 | Filtered results, several types | Same rule. One section per type in type order, headers in the type colors, and the rail shows one colored dot per type instead of labels; the current dot is a little larger. A short result list keeps its type headings and no rail. |
@@ -105,7 +105,7 @@ Plan rules:
 
 | ID | Screen |
 |---|---|
-| D1 | Sort menu |
+| D1 | Sort menu: Newest added, Title A to Z, Year newest first, Year oldest first, Rating highest first (10 down to 1, unrated last, ties by title; albums and songs by their own rating). |
 | D2 | When: a day or a period |
 | D3 | Plan menu |
 | D4 | Remove from plan, or everywhere |

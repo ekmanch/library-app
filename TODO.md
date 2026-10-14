@@ -135,6 +135,7 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [x] Read the version for About from the build (package_info_plus)
 - [x] Opt-in live test against `ekmanch/libri-scratch` (create, conditional read, save, stale sha, a file over 1 MB); the device check on the S25 is the owner's
 - [x] Lock the app to portrait (manifest and `main()`)
+- [x] D1 "Rating, highest first": 10 down to 1, unrated last, ties by title; rail sections are the ratings that exist
 
 ## Phase 5: Lookups and images
 

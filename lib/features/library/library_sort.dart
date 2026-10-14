@@ -1,8 +1,8 @@
 import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 
-/// The sort choices in D1.
-enum LibrarySort { newestAdded, titleAz, yearNewest, yearOldest }
+/// The sort choices in D1, in menu order.
+enum LibrarySort { newestAdded, titleAz, yearNewest, yearOldest, ratingHighest }
 
 extension LibrarySortLabel on LibrarySort {
   String get label => switch (this) {
@@ -10,6 +10,7 @@ extension LibrarySortLabel on LibrarySort {
     LibrarySort.titleAz => 'Title, A to Z',
     LibrarySort.yearNewest => 'Year, newest first',
     LibrarySort.yearOldest => 'Year, oldest first',
+    LibrarySort.ratingHighest => 'Rating, highest first',
   };
 }
 
@@ -31,6 +32,17 @@ int _byYear(Entry a, Entry b, {required bool newestFirst}) {
   return c != 0 ? c : _byTitle(a, b);
 }
 
+/// 10 first, down to 1; unrated entries last; ties by title. Albums and
+/// songs sort by their own rating.
+int _byRatingDesc(Entry a, Entry b) {
+  final ra = a.rating, rb = b.rating;
+  if (ra == null && rb == null) return _byTitle(a, b);
+  if (ra == null) return 1;
+  if (rb == null) return -1;
+  final c = rb.compareTo(ra);
+  return c != 0 ? c : _byTitle(a, b);
+}
+
 /// A new, sorted list.
 List<Entry> sortEntries(Iterable<Entry> entries, LibrarySort sort) {
   final list = entries.toList();
@@ -43,6 +55,8 @@ List<Entry> sortEntries(Iterable<Entry> entries, LibrarySort sort) {
       list.sort((a, b) => _byYear(a, b, newestFirst: true));
     case LibrarySort.yearOldest:
       list.sort((a, b) => _byYear(a, b, newestFirst: false));
+    case LibrarySort.ratingHighest:
+      list.sort(_byRatingDesc);
   }
   return list;
 }

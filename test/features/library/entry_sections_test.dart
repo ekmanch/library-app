@@ -85,6 +85,34 @@ void main() {
     expect(sections[1].entries.length, 2);
   });
 
+  test('rating order: 10 down to 1, unrated last, ties by title', () {
+    final entries = sortEntries([
+      mummy.copyWith(title: 'b', rating: 8),
+      mummy.copyWith(title: 'c', rating: null),
+      mummy.copyWith(title: 'a', rating: 8),
+      mummy.copyWith(title: 'd', rating: 10),
+      mummy.copyWith(title: 'f', rating: null),
+      mummy.copyWith(title: 'e', rating: 1),
+    ], LibrarySort.ratingHighest);
+    expect(entries.map((e) => e.title), ['d', 'a', 'b', 'e', 'c', 'f']);
+
+    final sections = sectionEntries(entries, LibrarySort.ratingHighest);
+    expect(sections.map((s) => s.label), [
+      '10 / 10',
+      '8 / 10',
+      '1 / 10',
+      'Unrated',
+    ]);
+    expect(sections.map((s) => s.railLabel), ['10', '8', '1', 'None']);
+    expect(sections.map((s) => s.bubbleLabel), [
+      '10 / 10',
+      '8 / 10',
+      '1 / 10',
+      'Unrated',
+    ]);
+    expect(sections[1].entries.map((e) => e.title), ['a', 'b']);
+  });
+
   test('the rail needs three screens and two sections', () {
     expect(
       showJumpRail(sectionCount: 2, contentHeight: 3000, viewportHeight: 1000),

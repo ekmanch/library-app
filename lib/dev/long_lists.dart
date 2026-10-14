@@ -35,7 +35,9 @@ Library padForLongLists(Library library, {int perType = 120}) {
           released: Released(1925 + (i * 7) % 100),
           added: DateTime(2026, 10, 9).subtract(Duration(days: i * 5)),
           status: statuses[i % statuses.length],
-          rating: null,
+          // Every rating from 10 down to 4, and every fourth unrated, so
+          // the rating sort's rail has sections to jump to.
+          rating: i % 4 == 3 ? null : 10 - (i % 7),
           tags: const [],
           tracks: null,
           seasonalOnly: false,

@@ -21,6 +21,7 @@ import 'package:library_app/widgets/entry_row.dart';
 import 'package:library_app/widgets/labels.dart';
 import 'package:library_app/widgets/section_heading.dart';
 import 'package:library_app/widgets/segmented_control.dart';
+import 'package:library_app/widgets/sheet_frame.dart';
 
 import 'package:library_app/dev/long_lists.dart';
 
@@ -229,6 +230,19 @@ void main() {
     await tester.tap(find.text('Newest added'));
     await tester.pumpAndSettle();
     expect(find.text('Sort by'), findsOneWidget);
+    // D1 lists the rating order last.
+    final labels = tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(SheetFrame),
+            matching: find.byType(Text),
+          ),
+        )
+        .map((t) => t.data)
+        .whereType<String>()
+        .where((t) => LibrarySort.values.any((s) => s.label == t))
+        .toList();
+    expect(labels.last, 'Rating, highest first');
     await tester.tap(find.text('Title, A to Z'));
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
