@@ -166,6 +166,15 @@ void main() {
       final noArtist = await deezer.match('dirt', type: MediaType.music);
       expect(sent.last.url.queryParameters['q'], 'album:"dirt"');
       expect(noArtist!.source, 'deezer:album:6');
+      // Only a remaster on offer: it is still the album.
+      final remaster = await source(
+        (_) async => json({
+          'data': [
+            {...dirtAlbum, 'id': 7, 'title': 'Dirt (2022 Remaster)'},
+          ],
+        }),
+      ).match('Dirt', type: MediaType.music, creator: 'Alice in Chains');
+      expect(remaster!.source, 'deezer:album:7');
       expect(await deezer.match('Facelift', type: MediaType.music), isNull);
     },
   );

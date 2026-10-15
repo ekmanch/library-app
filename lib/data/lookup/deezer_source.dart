@@ -134,19 +134,26 @@ class DeezerSource extends HttpLookupSource implements MusicSource {
     final hits = [
       for (final item in await _list('/search/album', {
         'q': _albumQuery(title, creator),
-        'limit': '5',
+        'limit': '10',
       }))
         ?_album(item),
     ];
-    for (final hit in hits) {
-      if (sameTitle(hit.title, title) &&
-          (creator == null ||
-              creator.isEmpty ||
-              (hit.creator != null && sameTitle(hit.creator!, creator)))) {
-        return hit;
-      }
-    }
-    return null;
+    // The plain album before a remaster or a deluxe edition of it; the
+    // artist must agree when one is known.
+    final byArtist = [
+      for (final hit in hits)
+        if (creator == null ||
+            creator.isEmpty ||
+            (hit.creator != null && sameTitle(hit.creator!, creator)))
+          hit,
+    ];
+    return pickByTitleAndYear(
+      byArtist,
+      title,
+      year: null,
+      titleOf: (m) => m.title,
+      yearOf: (_) => null,
+    );
   }
 
   /// ("album", "302127") from "deezer:album:302127".

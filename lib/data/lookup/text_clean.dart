@@ -40,3 +40,53 @@ String _titleKey(String title) {
   if (key.startsWith('the ')) key = key.substring(4);
   return key.replaceAll(' ', '');
 }
+
+/// Edition notes a provider tacks on: "Dirt (2022 Remaster)", "Rooster -
+/// Remastered", "Dune [Deluxe Edition]". [looseTitle] drops them.
+final _editionNote = RegExp(
+  r'\s*[\(\[][^\)\]]*\b(remaster(ed)?|edition|deluxe|expanded|anniversary|'
+  r'version|bonus|explicit|live|mono|stereo|re-?issue|special)\b[^\)\]]*[\)\]]'
+  r'|\s+-\s+(remaster(ed)?|\d{4} remaster(ed)?|live|mono|stereo)\b.*$',
+  caseSensitive: false,
+);
+
+/// The title without an edition note at its end.
+String looseTitle(String title) => title.replaceAll(_editionNote, '').trim();
+
+/// Whether two titles are the same once edition notes are set aside too.
+bool sameLooseTitle(String a, String b) =>
+    sameTitle(looseTitle(a), looseTitle(b));
+
+/// The key a stored track rating is matched to a listed track by, when
+/// their ids differ: the title without case, punctuation or an edition
+/// note.
+String trackTitleKey(String title) => _titleKey(looseTitle(title));
+
+/// The one hit for an entry: the same title in the same year; else the
+/// same title a year off (a festival run, a late release); else, when no
+/// year is known, the first with the same title; else, with edition notes
+/// set aside, the same again. Nothing when the title is not there.
+T? pickByTitleAndYear<T>(
+  List<T> hits,
+  String title, {
+  required int? year,
+  required String Function(T) titleOf,
+  required int? Function(T) yearOf,
+}) {
+  for (final same in [sameTitle, sameLooseTitle]) {
+    final matches = [
+      for (final h in hits)
+        if (same(titleOf(h), title)) h,
+    ];
+    if (matches.isEmpty) continue;
+    if (year == null) return matches.first;
+    for (final h in matches) {
+      if (yearOf(h) == year) return h;
+    }
+    for (final h in matches) {
+      final y = yearOf(h);
+      if (y != null && (y - year).abs() <= 1) return h;
+    }
+  }
+  return null;
+}

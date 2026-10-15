@@ -58,18 +58,11 @@ class TmdbSource extends HttpLookupSource {
     return decodeObject(response);
   }
 
-  Future<List<LookupMatch>> _search(
-    String query,
-    MediaType type, {
-    int? year,
-  }) async {
+  Future<List<LookupMatch>> _search(String query, MediaType type) async {
     final kind = _kind(type);
     final json = await _get('search/$kind', {
       'query': query,
       'include_adult': 'false',
-      if (year != null)
-        (kind == 'tv' ? 'first_air_date_year' : 'primary_release_year'):
-            '$year',
     });
     return [for (final item in objectsAt(json, 'results')) ?_match(item, type)];
   }
@@ -106,13 +99,13 @@ class TmdbSource extends HttpLookupSource {
     int? year,
     String? creator,
   }) async {
-    final hits = await _search(title, type, year: year);
-    final exact = hits.where((m) => sameTitle(m.title, title));
-    if (exact.isNotEmpty) return exact.first;
-    // With the year narrowing the search, TMDB's first hit is the title
-    // under another spelling or language; without one, a different title
-    // is a different work.
-    return year != null && hits.isNotEmpty ? hits.first : null;
+    return pickByTitleAndYear(
+      await _search(title, type),
+      title,
+      year: year,
+      titleOf: (m) => m.title,
+      yearOf: (m) => m.released?.year,
+    );
   }
 
   /// "tmdb:movie:603" -> ("movie", "603"); anything else is "other".

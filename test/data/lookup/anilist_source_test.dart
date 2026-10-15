@@ -92,7 +92,7 @@ void main() {
     expect(sent.length, 1);
   });
 
-  test('match narrows by season year and wants the same title', () async {
+  test('match wants the same title and prefers the year', () async {
     final anilist = source(
       (_) async => json(200, {
         'data': {
@@ -106,17 +106,17 @@ void main() {
     expect((jsonDecode(sent.single.body) as Map)['variables'], {
       'search': 'AKIRA',
       'perPage': 5,
-      'year': 1988,
     });
     expect(hit!.source, 'anilist:47');
+    // A year off still counts; a different title never does.
+    expect(
+      (await anilist.match('Akira', type: MediaType.anime, year: 1989))!.source,
+      'anilist:47',
+    );
     expect(await anilist.match('Paprika', type: MediaType.anime), isNull);
     expect(
-      (await anilist.match(
-        'Paprika',
-        type: MediaType.anime,
-        year: 1988,
-      ))!.source,
-      'anilist:47',
+      await anilist.match('Paprika', type: MediaType.anime, year: 1988),
+      isNull,
     );
   });
 

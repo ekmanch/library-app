@@ -28,9 +28,9 @@ class AniListSource extends HttpLookupSource {
 
   static const _searchQuery =
       '''
-query (\$search: String, \$perPage: Int, \$year: Int) {
+query (\$search: String, \$perPage: Int) {
   Page(perPage: \$perPage) {
-    media(search: \$search, type: ANIME, sort: SEARCH_MATCH, seasonYear: \$year) {
+    media(search: \$search, type: ANIME, sort: SEARCH_MATCH) {
 $_fields
     }
   }
@@ -117,15 +117,10 @@ $_fields
     );
   }
 
-  Future<List<LookupMatch>> _search(
-    String query, {
-    int? year,
-    int limit = 10,
-  }) async {
+  Future<List<LookupMatch>> _search(String query, {int limit = 10}) async {
     final data = await _query(_searchQuery, {
       'search': query,
       'perPage': limit,
-      'year': ?year,
     });
     final page = data['Page'] as Map<String, Object?>? ?? const {};
     return [for (final media in objectsAt(page, 'media')) ?_match(media)];
@@ -145,11 +140,13 @@ $_fields
     int? year,
     String? creator,
   }) async {
-    final hits = await _search(title, year: year, limit: 5);
-    for (final hit in hits) {
-      if (sameTitle(hit.title, title)) return hit;
-    }
-    return year != null && hits.isNotEmpty ? hits.first : null;
+    return pickByTitleAndYear(
+      await _search(title, limit: 5),
+      title,
+      year: year,
+      titleOf: (m) => m.title,
+      yearOf: (m) => m.released?.year,
+    );
   }
 
   static int _parse(String source) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/library_providers.dart';
 import '../../data/lookup/lookup_failure.dart';
 import '../../data/lookup/lookup_providers.dart';
+import '../../data/lookup/text_clean.dart';
 import '../../data/lookup/track_info.dart';
 import '../../data/lookup/track_list_service.dart';
 import '../../data/models/entry.dart';
@@ -280,10 +281,9 @@ class _TrackListState extends State<_TrackList> {
     for (final track in rated) {
       if (track.id != null && track.id == info.id) return track;
     }
+    final key = trackTitleKey(info.title);
     for (final track in rated) {
-      if (track.title.trim().toLowerCase() == info.title.trim().toLowerCase()) {
-        return track;
-      }
+      if (trackTitleKey(track.title) == key) return track;
     }
     return null;
   }

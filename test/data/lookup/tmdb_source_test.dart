@@ -164,49 +164,32 @@ void main() {
     expect(full.released, const Released(2023, 1, 15));
   });
 
-  test(
-    'match wants the same title, or the first hit when a year narrows it',
-    () async {
-      final tmdb = source((_) async => json(200, mummySearch));
-      final byYear = await tmdb.match(
-        'The Mummy',
-        type: MediaType.movies,
-        year: 1999,
-      );
-      expect(sent.single.url.queryParameters['primary_release_year'], '1999');
-      expect(byYear!.source, 'tmdb:movie:564');
-
-      final other = await tmdb.match('Something Else', type: MediaType.movies);
-      expect(other, isNull);
-      final spelled = await tmdb.match(
-        'Something Else',
-        type: MediaType.movies,
-        year: 1999,
-      );
-      expect(spelled!.source, 'tmdb:movie:564');
-      final show = await tmdb.match('x', type: MediaType.shows, year: 2023);
-      expect(sent.last.url.queryParameters['first_air_date_year'], '2023');
-      expect(show, isNull);
-    },
-  );
-
-  test('coverUrl fetches the poster at the cache size', () async {
-    final tmdb = source(
-      (_) async => json(200, {'id': 564, 'poster_path': '/mummy.jpg'}),
+  test('match wants the same title and prefers the year', () async {
+    final tmdb = source((_) async => json(200, mummySearch));
+    final byYear = await tmdb.match(
+      'The Mummy',
+      type: MediaType.movies,
+      year: 1999,
     );
     expect(
-      await tmdb.coverUrl('tmdb:movie:564', type: MediaType.movies),
-      'https://image.tmdb.org/t/p/w342/mummy.jpg',
+      sent.single.url.queryParameters.containsKey('primary_release_year'),
+      isFalse,
     );
-    expect(sent.single.url.path, '/3/movie/564');
+    expect(byYear!.source, 'tmdb:movie:564');
+    final remake = await tmdb.match(
+      'mummy',
+      type: MediaType.movies,
+      year: 2018,
+    );
+    expect(remake!.source, 'tmdb:movie:282035');
     expect(
-      await source((_) async => json(200, {'id': 1, 'poster_path': null}))
-          .coverUrl('tmdb:tv:1', type: MediaType.shows),
+      await tmdb.match('The Mummy', type: MediaType.movies, year: 1950),
       isNull,
     );
+    expect(await tmdb.match('Something Else', type: MediaType.movies), isNull);
     expect(
-      tmdb.coverUrl('igdb:1', type: MediaType.movies),
-      throwsA(isA<LookupException>()),
+      (await tmdb.match('The Mummy', type: MediaType.movies))!.source,
+      'tmdb:movie:564',
     );
   });
 

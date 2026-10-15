@@ -185,18 +185,15 @@ class IgdbSource extends HttpLookupSource {
     int? year,
     String? creator,
   }) async {
-    final same = [
-      for (final hit in await _search(title, 10))
-        if (sameTitle(hit.title, title)) hit,
-    ];
-    if (year != null) {
-      for (final hit in same) {
-        if (hit.released?.year == year) return hit;
-      }
-    }
-    // The same name again is usually a remake or a port; without a year to
-    // tell them apart the first (IGDB's best) is taken.
-    return same.isEmpty ? null : same.first;
+    // The same name again is usually a remake or a port; the year tells
+    // them apart, and without one the first (IGDB's best) is taken.
+    return pickByTitleAndYear(
+      await _search(title, 10),
+      title,
+      year: year,
+      titleOf: (m) => m.title,
+      yearOf: (m) => m.released?.year,
+    );
   }
 
   static int _parse(String source) {
