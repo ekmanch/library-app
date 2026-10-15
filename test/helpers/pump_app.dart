@@ -20,7 +20,8 @@ Library loadFixture() =>
     decodeLibrary(File(FixtureLibraryRepository.assetPath).readAsStringSync());
 
 /// Pumps [home] inside a MaterialApp with the app theme and a provider
-/// container whose repository serves [library]. Returns the container.
+/// container whose repository serves [library] and whose lookups are the
+/// fake (or [lookupOverrides]). Returns the container.
 Future<ProviderContainer> pumpApp(
   WidgetTester tester,
   Widget home, {
@@ -29,6 +30,7 @@ Future<ProviderContainer> pumpApp(
   DisplayPreferences? prefs,
   LibraryRepository? repository,
   List<Override> overrides = const [],
+  List<Override>? lookupOverrides,
 }) async {
   final lib = library ?? loadFixture();
   mockPackageInfo();
@@ -38,7 +40,7 @@ Future<ProviderContainer> pumpApp(
         repository ??
             FixtureLibraryRepository(loadJson: () async => encodeLibrary(lib)),
       ),
-      ...fakeLookupOverrides(),
+      ...lookupOverrides ?? fakeLookupOverrides(),
       ...overrides,
     ],
   );

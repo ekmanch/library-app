@@ -12,6 +12,8 @@ import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/dev/fake_github_api.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
+import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/shell/app_shell.dart';
@@ -214,6 +216,7 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
   await a.step('new entry', () async {
     await a.tap(find.byType(AddButton));
     await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pump(NewEntryScreen.debounce);
     await tester.pumpAndSettle();
     await a.check('A13 new entry');
     await a.tapText('GAME · 2013');
@@ -335,6 +338,7 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           initialConnectionProvider.overrideWithValue(
             LibraryConnection.disconnected,
           ),
@@ -377,6 +381,7 @@ void main() {
       final handle = tester.ensureSemantics();
       final container = ProviderContainer(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(
               loadJson: () async => encodeLibrary(loadFixture()),

@@ -103,6 +103,7 @@ void main() {
       ),
     );
     expect(FakeLookupSource(configured: false).isConfigured, isFalse);
+    expect(offline.issued('tmdb:movie:1'), isTrue);
   });
 
   test('two fixture albums have a track list', () {

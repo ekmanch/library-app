@@ -127,6 +127,10 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   late Set<BookFormat> _formats;
   late bool _seasonalOnly;
   late String _description;
+
+  /// The lookup id, from the match or the entry. Cleared when the type
+  /// changes, since the id would point at the wrong thing.
+  String? _source;
   bool _saving = false;
 
   @override
@@ -172,6 +176,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     _formats = {...?entry?.formats};
     _seasonalOnly = entry?.seasonalOnly ?? false;
     _description = entry?.description ?? match?.description ?? '';
+    _source = entry?.source ?? match?.source;
   }
 
   @override
@@ -295,6 +300,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
   void _pickType(MediaType type) {
     setState(() {
+      if (type != _type) _source = null;
       _type = type;
       _kind = type == MediaType.music ? (_kind ?? MusicKind.album) : null;
       if (!_statusOptions.contains(_status)) _status = EntryStatus.want;
@@ -359,6 +365,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       description: _description,
       seasonalOnly: _seasonalOnly,
       added: base?.added ?? DateTime(now.year, now.month, now.day),
+      source: _source,
       platform: _type == MediaType.games && platform.isNotEmpty
           ? platform
           : null,

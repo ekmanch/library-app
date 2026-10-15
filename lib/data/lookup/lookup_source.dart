@@ -14,6 +14,10 @@ abstract class LookupSource {
   /// asked and the screen says the lookup is not set up.
   bool get isConfigured => true;
 
+  /// Whether [source] ("tmdb:movie:603") is one of this source's ids. The
+  /// fake answers for every provider.
+  bool issued(String source) => LookupMatch.providerOf(source) == id;
+
   /// Candidates for what the user typed (A13), in the provider's order.
   Future<List<LookupMatch>> search(
     String query, {

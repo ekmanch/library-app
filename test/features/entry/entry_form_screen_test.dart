@@ -152,6 +152,34 @@ void main() {
     expect(entry.description, "Kate Bush's fifth studio album.");
   });
 
+  testWidgets('a match\'s source is saved with the entry', (tester) async {
+    final container = await pumpApp(
+      tester,
+      EntryFormScreen.create(
+        match: FakeLookupSource.catalogSearch('perfect blue').single,
+      ),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    expect(repo(container).current!.entries.last.source, 'anilist:437');
+  });
+
+  testWidgets('changing the type drops the match\'s source', (tester) async {
+    final container = await pumpApp(
+      tester,
+      EntryFormScreen.create(
+        match: FakeLookupSource.catalogSearch('perfect blue').single,
+      ),
+    );
+    await tester.tap(find.widgetWithText(PillChip, 'Movies'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    final saved = repo(container).current!.entries.last;
+    expect(saved.type, MediaType.movies);
+    expect(saved.source, isNull);
+  });
+
   testWidgets('a song match gets the album field', (tester) async {
     final container = await pumpApp(
       tester,
@@ -172,7 +200,9 @@ void main() {
     tester,
   ) async {
     final fixture = loadFixture();
-    final dracula = fixture.entryById('books/dracula-1897')!;
+    final dracula = fixture
+        .entryById('books/dracula-1897')!
+        .copyWith(source: 'openlibrary:OL45804W');
     final container = await pumpApp(tester, EntryFormScreen.edit(dracula));
     expect(find.text('Edit entry'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Dracula'), findsOneWidget);
@@ -194,9 +224,10 @@ void main() {
     expect(saved.formats, [BookFormat.physical]);
     expect(saved.description, dracula.description);
     expect(saved.added, dracula.added);
+    expect(saved.source, 'openlibrary:OL45804W');
     expect(
       repo(container).current!.entries.indexOf(saved),
-      fixture.entries.indexOf(dracula),
+      fixture.entries.indexWhere((e) => e.id == dracula.id),
     );
   });
 

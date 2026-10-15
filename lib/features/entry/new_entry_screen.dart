@@ -1,9 +1,14 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/lookup/lookup_failure.dart';
 import '../../data/lookup/lookup_match.dart';
+import '../../data/lookup/lookup_providers.dart';
+import '../../data/lookup/lookup_service.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/media_type.dart';
-import '../../dev/fake_lookup.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
@@ -33,10 +38,11 @@ Future<Entry?> openNewEntryScreen(
   );
 }
 
-/// New entry: pick a match (A13). The title typed here is looked up; a
-/// match opens the form prefilled, "Fill in the details myself" opens it
-/// with just the title and type.
-class NewEntryScreen extends StatefulWidget {
+/// New entry: pick a match (A13). The title typed here is looked up online
+/// once typing pauses; a match is fetched in full and opens the form
+/// prefilled, "Fill in the details myself" opens it with just the title
+/// and type. Nothing here names a provider.
+class NewEntryScreen extends ConsumerStatefulWidget {
   const NewEntryScreen({
     super.key,
     this.initialType,
@@ -48,26 +54,101 @@ class NewEntryScreen extends StatefulWidget {
   final String? initialTitle;
   final List<String> initialTags;
 
+  /// How long typing pauses before the lookup runs.
+  static const debounce = Duration(milliseconds: 400);
+
   @override
-  State<NewEntryScreen> createState() => _NewEntryScreenState();
+  ConsumerState<NewEntryScreen> createState() => _NewEntryScreenState();
 }
 
-class _NewEntryScreenState extends State<NewEntryScreen> {
+class _NewEntryScreenState extends ConsumerState<NewEntryScreen> {
   late final _query = TextEditingController(text: widget.initialTitle ?? '');
   late MediaType? _type = widget.initialType;
 
+  Timer? _debounce;
+
+  /// Counts lookups started, so an answer to an older one is dropped.
+  int _request = 0;
+
+  /// The last answer, or null before the first one for this query.
+  LookupResult? _result;
+
+  /// A lookup is pending or in flight.
+  bool _loading = false;
+
+  /// The match being fetched in full before the form opens.
+  LookupMatch? _opening;
+
+  String get _text => _query.text.trim();
+
+  @override
+  void initState() {
+    super.initState();
+    if (_text.isNotEmpty) _lookUp();
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _query.dispose();
     super.dispose();
   }
 
+  void _onQueryChanged(String _) {
+    _debounce?.cancel();
+    if (_text.isEmpty) {
+      setState(() {
+        _result = null;
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+    _debounce = Timer(NewEntryScreen.debounce, _lookUp);
+  }
+
+  void _pickType(MediaType? type) {
+    if (type == _type) return;
+    setState(() => _type = type);
+    _debounce?.cancel();
+    if (_text.isNotEmpty) _lookUp();
+  }
+
+  Future<void> _lookUp() async {
+    final query = _text;
+    final type = _type;
+    final id = ++_request;
+    setState(() => _loading = true);
+    final result = await ref
+        .read(lookupServiceProvider)
+        .search(query, type: type);
+    if (!mounted || id != _request) return;
+    setState(() {
+      _result = result;
+      _loading = false;
+    });
+  }
+
   Future<void> _open({LookupMatch? match}) async {
+    var picked = match;
+    if (match != null) {
+      setState(() => _opening = match);
+      final source = ref.read(lookupServiceProvider).sourceOf(match.source);
+      if (source != null) {
+        try {
+          picked = await source.details(match);
+        } on LookupException {
+          // The search already had the essentials; the form opens with them.
+        }
+      }
+      if (!mounted) return;
+      setState(() => _opening = null);
+    }
     final saved = await openNewEntryForm(
       context,
       type: _type,
-      title: _query.text.trim(),
-      match: match,
+      title: _text,
+      match: picked,
       tags: widget.initialTags,
     );
     if (saved != null && mounted) Navigator.pop(context, saved);
@@ -77,8 +158,9 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
-    final query = _query.text.trim();
-    final matches = FakeLookupSource.catalogSearch(query, type: _type);
+    final query = _text;
+    final result = _result;
+    final matches = result?.matches ?? const <LookupMatch>[];
 
     return Scaffold(
       body: SafeArea(
@@ -106,7 +188,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                     hintText: 'Title',
                     autofocus: query.isEmpty,
                     textCapitalization: TextCapitalization.words,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: _onQueryChanged,
                   ),
                 ],
               ),
@@ -122,7 +204,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                     PillChip(
                       label: 'All',
                       selected: _type == null,
-                      onTap: () => setState(() => _type = null),
+                      onTap: () => _pickType(null),
                     ),
                     for (final t in MediaType.values) ...[
                       const SizedBox(width: 8),
@@ -130,12 +212,27 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                         label: t.label,
                         selected: _type == t,
                         dotColor: colors.forType(t),
-                        onTap: () => setState(() => _type = t),
+                        onTap: () => _pickType(t),
                       ),
                     ],
                   ],
                 ),
               ),
+            ),
+            // A thin line under the chips while a lookup is pending or in
+            // flight, so refining a query never blanks the rows.
+            SizedBox(
+              height: 2,
+              child: _loading && query.isNotEmpty
+                  ? Semantics(
+                      label: 'Looking up',
+                      child: LinearProgressIndicator(
+                        minHeight: 2,
+                        backgroundColor: Colors.transparent,
+                        color: theme.colorScheme.primary,
+                      ),
+                    )
+                  : null,
             ),
             Expanded(
               child: query.isEmpty
@@ -143,26 +240,53 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       children: [
-                        if (matches.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 24),
-                            child: Text(
-                              'No matches for "$query".',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium!.copyWith(
-                                color: colors.muted,
-                              ),
-                            ),
+                        if (result == null)
+                          _Notice('Looking up "$query"…', spinner: true)
+                        else if (result.notConfigured)
+                          _Notice(
+                            _type == null
+                                ? 'Lookups are not set up on this build.'
+                                : 'Lookups for ${_type!.label.toLowerCase()} '
+                                      'are not set up on this build.',
+                          )
+                        else if (result.allFailed case final failure?)
+                          _Notice(
+                            failure == LookupFailure.offline
+                                ? 'Could not reach the lookup. Check your '
+                                      'connection and try again.'
+                                : 'The lookup did not answer. Try again in a '
+                                      'moment.',
+                            onRetry: _lookUp,
+                          )
+                        else if (matches.isEmpty)
+                          _Notice(
+                            _type == null
+                                ? 'No matches for "$query".'
+                                : 'No matches among ${_type!.label.toLowerCase()}.',
                           )
                         else ...[
                           const SectionHeading(
                             'Is it one of these?',
-                            padding: EdgeInsets.fromLTRB(0, 16, 0, 2),
+                            padding: EdgeInsets.fromLTRB(0, 14, 0, 2),
                           ),
                           for (final match in matches)
                             _MatchRow(
                               match: match,
-                              onTap: () => _open(match: match),
+                              opening: _opening == match,
+                              onTap: _opening == null
+                                  ? () => _open(match: match)
+                                  : null,
+                            ),
+                          if (result.partlyFailed)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(
+                                'Some lookups could not be reached.',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodySmall!.copyWith(
+                                  color: colors.muted,
+                                ),
+                              ),
                             ),
                         ],
                       ],
@@ -184,7 +308,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                   AppButton(
                     label: 'Fill in the details myself',
                     kind: AppButtonKind.outline,
-                    onPressed: () => _open(),
+                    onPressed: _opening == null ? () => _open() : null,
                   ),
                 ],
               ),
@@ -196,11 +320,67 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
   }
 }
 
+/// A centered muted line for the states without rows, with a spinner
+/// while looking up, or a "Try again" after a failure.
+class _Notice extends StatelessWidget {
+  const _Notice(this.text, {this.spinner = false, this.onRetry});
+
+  final String text;
+  final bool spinner;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = LibraryColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        children: [
+          if (spinner) ...[
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium!.copyWith(color: colors.muted),
+          ),
+          if (onRetry != null)
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                textStyle: theme.textTheme.labelMedium,
+                minimumSize: const Size(48, 48),
+              ),
+              child: const Text('Try again'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MatchRow extends StatelessWidget {
-  const _MatchRow({required this.match, required this.onTap});
+  const _MatchRow({
+    required this.match,
+    required this.onTap,
+    this.opening = false,
+  });
 
   final LookupMatch match;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// The full details are being fetched for this row.
+  final bool opening;
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +448,17 @@ class _MatchRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            StrokeIcon(AppIcons.chevronRight, size: 18, color: colors.muted),
+            if (opening)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.colorScheme.primary,
+                ),
+              )
+            else
+              StrokeIcon(AppIcons.chevronRight, size: 18, color: colors.muted),
           ],
         ),
       ),

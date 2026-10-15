@@ -98,7 +98,7 @@ void main() {
     }, failure: LookupFailure.offline);
     final result = await LookupService([tmdb, anilist]).search('x');
     expect(result.matches, isNotEmpty);
-    expect(result.failures, {'anilist': LookupFailure.offline});
+    expect(result.failures, [LookupFailure.offline]);
     expect(result.partlyFailed, isTrue);
     expect(result.allFailed, isNull);
   });

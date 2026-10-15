@@ -42,6 +42,10 @@ class FakeLookupSource extends LookupSource {
   @override
   bool get isConfigured => configured;
 
+  /// The catalog carries every provider's ids, so the fake owns them all.
+  @override
+  bool issued(String source) => true;
+
   Future<void> _call(String call) async {
     calls.add(call);
     if (latency > Duration.zero) await Future<void>.delayed(latency);

@@ -17,6 +17,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/dev/fake_github_api.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
+import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/shell/app_shell.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/features/sync/sync_state.dart';
@@ -201,6 +203,7 @@ Future<void> _walk(_Walk w) async {
   await w.step('a13 and a8-new', () async {
     await w.tap(find.byType(AddButton));
     await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pump(NewEntryScreen.debounce);
     await tester.pumpAndSettle();
     await w.shot('a13-new-entry');
     await w.tapText('GAME · 2013');
@@ -316,6 +319,7 @@ void main() {
           ProviderScope(
             key: UniqueKey(),
             overrides: [
+              ...fakeLookupOverrides(),
               libraryRepositoryProvider.overrideWithValue(
                 FixtureLibraryRepository(),
               ),

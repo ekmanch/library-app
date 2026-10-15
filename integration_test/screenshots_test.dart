@@ -16,9 +16,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:library_app/data/library_codec.dart';
 import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/data/lookup/lookup_failure.dart';
 import 'package:library_app/dev/fake_github_api.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
 import 'package:library_app/dev/long_lists.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
@@ -112,6 +115,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -237,6 +241,7 @@ void main() {
     await tester.tap(find.byType(AddButton));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'The Last of Us');
+    await tester.pump(NewEntryScreen.debounce);
     await tester.pumpAndSettle();
     await capture(tester, 'a13-new-entry');
     await tester.tap(find.text('GAME · 2013'));
@@ -368,6 +373,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -482,6 +488,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -600,6 +607,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -711,6 +719,7 @@ void main() {
       ProviderScope(
         key: UniqueKey(),
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -767,6 +776,7 @@ void main() {
       ProviderScope(
         key: UniqueKey(),
         overrides: [
+          ...fakeLookupOverrides(),
           initialConnectionProvider.overrideWithValue(
             LibraryConnection.disconnected,
           ),
@@ -784,6 +794,7 @@ void main() {
       ProviderScope(
         key: UniqueKey(),
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -820,6 +831,7 @@ void main() {
         // A new key, or the first ProviderScope's container is kept.
         key: UniqueKey(),
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(loadJson: () => never.future),
           ),
@@ -835,6 +847,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -1073,6 +1086,7 @@ void main() {
       ProviderScope(
         key: UniqueKey(),
         overrides: [
+          ...fakeLookupOverrides(),
           initialConnectionProvider.overrideWithValue(
             LibraryConnection.disconnected,
           ),
@@ -1096,6 +1110,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(),
           ),
@@ -1212,6 +1227,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...fakeLookupOverrides(),
           libraryRepositoryProvider.overrideWithValue(
             FixtureLibraryRepository(loadJson: () async => encodeLibrary(long)),
           ),
@@ -1298,5 +1314,50 @@ void main() {
     await tester.tap(find.text('M'));
     await tester.pumpAndSettle();
     await capture(tester, 'l3-rail-artists');
+  });
+
+  testWidgets('A13 lookup states: looking up, offline, not set up', (
+    tester,
+  ) async {
+    for (final (name, overrides) in [
+      (
+        'a13-looking-up',
+        fakeLookupOverrides(latency: const Duration(seconds: 30)),
+      ),
+      ('a13-offline', fakeLookupOverrides(failure: LookupFailure.offline)),
+      ('a13-not-set-up', fakeLookupOverrides(configured: false)),
+    ]) {
+      // The root key would carry the last state's open screen over into
+      // the next scope; tear the tree down between them.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(
+        ProviderScope(
+          key: UniqueKey(),
+          overrides: [
+            libraryRepositoryProvider.overrideWithValue(
+              FixtureLibraryRepository(),
+            ),
+            ...overrides,
+          ],
+          child: RepaintBoundary(key: _root, child: const LibraryApp()),
+        ),
+      );
+      // The fixture loads off the frame clock, so settling is not enough.
+      for (
+        var i = 0;
+        i < 50 && find.byType(AddButton).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(AddButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Carrie');
+      // Plain pumps: the spinner of the first state never settles.
+      await tester.pump(NewEntryScreen.debounce);
+      await tester.pump(const Duration(milliseconds: 200));
+      await capture(tester, name);
+    }
   });
 }

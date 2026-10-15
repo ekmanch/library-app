@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_providers.dart';
+import 'package:library_app/data/lookup/lookup_failure.dart';
+import 'package:library_app/data/lookup/lookup_providers.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
+import 'package:library_app/dev/fake_lookup.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
 import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/widgets/chips.dart';
 
@@ -48,9 +52,25 @@ void main() {
     final row = find.byWidgetPredicate(
       (w) => w is ListView && w.scrollDirection == Axis.horizontal,
     );
-    await tester.dragUntilVisible(chip, row, const Offset(-80, 0));
+    await tester.dragUntilVisible(
+      chip,
+      row,
+      Offset(label == 'All' ? 80 : -80, 0),
+    );
     await tester.pumpAndSettle();
     await tester.tap(chip);
+    await tester.pumpAndSettle();
+  }
+
+  /// Types, waits out the debounce and settles.
+  Future<void> type(WidgetTester tester, String text) async {
+    await tester.enterText(find.byType(TextField), text);
+    await tester.pump(NewEntryScreen.debounce);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> open(WidgetTester tester) async {
+    await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
   }
 
@@ -58,14 +78,12 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, const _Opener());
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
+    await open(tester);
     expect(find.text('New entry'), findsOneWidget);
     expect(find.text('IS IT ONE OF THESE?'), findsNothing);
     expect(find.text('Fill in the details myself'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'Carrie');
-    await tester.pumpAndSettle();
+    await type(tester, 'Carrie');
     // One outline around the whole field, none on the text field itself.
     final decoration = tester
         .widget<TextField>(find.byType(TextField))
@@ -76,38 +94,166 @@ void main() {
     expect(rowTitled('Carrie'), findsNWidgets(4));
     expect(find.text('MOVIE · 1976'), findsOneWidget);
     expect(find.text('Brian De Palma'), findsOneWidget);
+    expect(find.text('Not listed?'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'The Last of Us');
-    await tester.pumpAndSettle();
+    await type(tester, 'The Last of Us');
     expect(
       find.text(
         'Naughty Dog · PlayStation 3, PlayStation 4, PlayStation 5, PC',
       ),
       findsOneWidget,
     );
-    await tester.enterText(find.byType(TextField), 'Carrie');
-    await tester.pumpAndSettle();
-    expect(find.text('Not listed?'), findsOneWidget);
 
+    await type(tester, 'Carrie');
     await pickChip(tester, 'Books');
     expect(rowTitled('Carrie'), findsOneWidget);
     expect(find.text('BOOK · 1974'), findsOneWidget);
 
     await pickChip(tester, 'Games');
-    expect(find.text('No matches for "Carrie".'), findsOneWidget);
+    expect(find.text('No matches among games.'), findsOneWidget);
     expect(find.text('Not listed?'), findsNothing);
+    expect(find.text('Fill in the details myself'), findsOneWidget);
+
+    await pickChip(tester, 'All');
+    await type(tester, 'Zelda');
+    expect(find.text('No matches for "Zelda".'), findsOneWidget);
   });
 
-  testWidgets('a match opens the form prefilled and saving closes both', (
+  testWidgets(
+    'the lookup waits for a pause in typing and drops stale answers',
+    (tester) async {
+      const latency = Duration(milliseconds: 300);
+      final container = await pumpApp(
+        tester,
+        const _Opener(),
+        lookupOverrides: fakeLookupOverrides(latency: latency),
+      );
+      final fake =
+          container.read(lookupSourcesProvider).single as FakeLookupSource;
+      await open(tester);
+
+      await tester.enterText(find.byType(TextField), 'Car');
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.enterText(find.byType(TextField), 'Carrie');
+      await tester.pump(const Duration(milliseconds: 100));
+      // Nothing asked yet: typing has not paused.
+      expect(fake.calls, isEmpty);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.text('Looking up "Carrie"…'), findsOneWidget);
+
+      await tester.pump(NewEntryScreen.debounce);
+      expect(fake.calls, hasLength(MediaType.values.length));
+      expect(fake.calls.first, 'search:carrie:movies');
+      // Still waiting for the answer.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // A new query before the answer lands: the old answer is thrown away.
+      await tester.enterText(find.byType(TextField), 'Dune');
+      await tester.pump(NewEntryScreen.debounce);
+      await tester.pump(latency);
+      await tester.pumpAndSettle();
+      expect(rowTitled('Carrie'), findsNothing);
+      expect(rowTitled('Dune'), findsNWidgets(3));
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      // Refining keeps the rows on screen while the next answer comes.
+      await tester.enterText(find.byType(TextField), 'Dune:');
+      await tester.pump(NewEntryScreen.debounce);
+      expect(rowTitled('Dune'), findsNWidgets(3));
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      await tester.pump(latency);
+      await tester.pumpAndSettle();
+      expect(rowTitled('Dune: Awakening'), findsOneWidget);
+      expect(rowTitled('Dune'), findsNothing);
+
+      // Clearing the field clears everything.
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      expect(find.text('IS IT ONE OF THESE?'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets('a title passed in is looked up at once', (tester) async {
+    await pumpApp(tester, const _Opener(type: MediaType.anime, title: 'Akira'));
+    await open(tester);
+    expect(find.text('ANIME · 1988'), findsOneWidget);
+    expect(rowTitled('Akira'), findsOneWidget);
+  });
+
+  group('states', () {
+    Future<void> pumpWith(
+      WidgetTester tester, {
+      LookupFailure? failure,
+      bool configured = true,
+      MediaType? mediaType,
+    }) async {
+      await pumpApp(
+        tester,
+        _Opener(type: mediaType),
+        lookupOverrides: fakeLookupOverrides(
+          failure: failure,
+          configured: configured,
+        ),
+      );
+      await open(tester);
+      await type(tester, 'Carrie');
+    }
+
+    testWidgets('offline says so and offers to try again', (tester) async {
+      await pumpWith(tester, failure: LookupFailure.offline);
+      expect(
+        find.text(
+          'Could not reach the lookup. Check your connection and try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Try again'), findsOneWidget);
+      expect(find.text('Fill in the details myself'), findsOneWidget);
+      expect(find.text('Not listed?'), findsNothing);
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('a provider that did not answer', (tester) async {
+      await pumpWith(tester, failure: LookupFailure.rateLimited);
+      expect(
+        find.text('The lookup did not answer. Try again in a moment.'),
+        findsOneWidget,
+      );
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('a missing key is "not set up", for the type or at all', (
+      tester,
+    ) async {
+      await pumpWith(tester, configured: false, mediaType: MediaType.games);
+      expect(
+        find.text('Lookups for games are not set up on this build.'),
+        findsOneWidget,
+      );
+      expect(find.text('Try again'), findsNothing);
+      await pickChip(tester, 'All');
+      expect(
+        find.text('Lookups are not set up on this build.'),
+        findsOneWidget,
+      );
+      expect(find.text('Fill in the details myself'), findsOneWidget);
+    });
+  });
+
+  testWidgets('a match is fetched in full, opens the form and saves', (
     tester,
   ) async {
     final container = await pumpApp(tester, const _Opener());
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'akira');
-    await tester.pumpAndSettle();
+    final fake =
+        container.read(lookupSourcesProvider).single as FakeLookupSource;
+    await open(tester);
+    await type(tester, 'akira');
     await tester.tap(find.text('ANIME · 1988'));
     await tester.pumpAndSettle();
+    expect(fake.calls.last, 'details:anilist:47');
     expect(find.text('New entry'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Akira'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Katsuhiro Otomo'), findsOneWidget);
@@ -119,16 +265,55 @@ void main() {
     expect(find.text('Added Akira'), findsOneWidget);
     final repo =
         container.read(libraryRepositoryProvider) as FixtureLibraryRepository;
-    expect(repo.current!.entries.last.id, 'anime/akira-1988');
+    final added = repo.current!.entries.last;
+    expect(added.id, 'anime/akira-1988');
+    expect(added.source, 'anilist:47');
+  });
+
+  testWidgets('a match whose details fail still opens the form', (
+    tester,
+  ) async {
+    // The search answers; only the details call fails. The fake fails every
+    // call, so the search is served first with a working fake, then the
+    // details run against a failing one through the service's cache.
+    final container = await pumpApp(
+      tester,
+      const _Opener(),
+      lookupOverrides: fakeLookupOverrides(
+        latency: const Duration(milliseconds: 50),
+      ),
+    );
+    final fake =
+        container.read(lookupSourcesProvider).single as FakeLookupSource;
+    await open(tester);
+    await type(tester, 'akira');
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ANIME · 1988'));
+    await tester.pump();
+    // While the details are fetched the row shows a spinner and nothing
+    // else can be tapped.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Fill in the details myself'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextField, 'Akira'), findsOneWidget);
+    expect(fake.calls.last, 'details:anilist:47');
   });
 
   testWidgets('"Fill in the details myself" keeps the title and type', (
     tester,
   ) async {
     await pumpApp(tester, const _Opener(type: MediaType.games, title: 'Zelda'));
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
-    expect(find.text('No matches for "Zelda".'), findsOneWidget);
+    await open(tester);
+    expect(find.text('No matches among games.'), findsOneWidget);
     await tester.tap(find.text('Fill in the details myself'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Zelda'), findsOneWidget);

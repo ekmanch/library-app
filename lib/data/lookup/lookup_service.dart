@@ -9,7 +9,7 @@ import 'lookup_source.dart';
 class LookupResult {
   const LookupResult({
     this.matches = const [],
-    this.failures = const {},
+    this.failures = const [],
     this.asked = 0,
   });
 
@@ -17,8 +17,8 @@ class LookupResult {
 
   final List<LookupMatch> matches;
 
-  /// Failures by source id. A source that answered is not listed.
-  final Map<String, LookupFailure> failures;
+  /// One entry per ask (a source and a type) that failed.
+  final List<LookupFailure> failures;
 
   /// How many configured sources were asked. Zero means none is set up for
   /// the chosen type (or for any type, on All).
@@ -30,10 +30,10 @@ class LookupResult {
   /// offline when all were offline, rate limited when any was, else other.
   LookupFailure? get allFailed {
     if (asked == 0 || failures.length < asked) return null;
-    if (failures.values.every((f) => f == LookupFailure.offline)) {
+    if (failures.every((f) => f == LookupFailure.offline)) {
       return LookupFailure.offline;
     }
-    if (failures.values.contains(LookupFailure.rateLimited)) {
+    if (failures.contains(LookupFailure.rateLimited)) {
       return LookupFailure.rateLimited;
     }
     return LookupFailure.other;
@@ -73,9 +73,8 @@ class LookupService {
 
   /// The source that issued [sourceId] ("tmdb:movie:603"), or null.
   LookupSource? sourceOf(String sourceId) {
-    final provider = LookupMatch.providerOf(sourceId);
     for (final source in sources) {
-      if (source.id == provider) return source;
+      if (source.issued(sourceId)) return source;
     }
     return null;
   }
@@ -97,15 +96,15 @@ class LookupService {
       for (final (t, source) in asks) _ask(source, trimmed, t, limit),
     ]);
 
-    final failures = <String, LookupFailure>{};
+    final failures = <LookupFailure>[];
     final byType = <MediaType, List<LookupMatch>>{};
     for (final (i, answer) in answers.indexed) {
-      final (t, source) = asks[i];
+      final (t, _) = asks[i];
       switch (answer) {
         case List<LookupMatch> matches:
           byType.putIfAbsent(t, () => []).addAll(matches.take(limit));
         case LookupFailure failure:
-          failures[source.id] = failure;
+          failures.add(failure);
       }
     }
     final result = LookupResult(
