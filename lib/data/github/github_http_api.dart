@@ -1,9 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../net/http_transport.dart';
 import 'github_api.dart';
 
 /// [GitHubApi] over the REST API with a fine-grained token.
@@ -13,7 +12,7 @@ class GitHubHttpApi implements GitHubApi {
     required this._token,
     required this._repository,
     Uri? baseUrl,
-    this.timeout = const Duration(seconds: 20),
+    this.timeout = defaultHttpTimeout,
     this.userAgent = 'Libri',
   }) : _baseUrl = baseUrl ?? Uri.https('api.github.com');
 
@@ -52,12 +51,8 @@ class GitHubHttpApi implements GitHubApi {
   /// Runs [request] and turns transport errors into [GitHubFailure.offline].
   Future<http.Response> _send(Future<http.Response> Function() request) async {
     try {
-      return await request().timeout(timeout);
-    } on SocketException catch (e) {
-      throw GitHubException(GitHubFailure.offline, message: e.message);
-    } on TimeoutException {
-      throw const GitHubException(GitHubFailure.offline, message: 'timed out');
-    } on http.ClientException catch (e) {
+      return await sendOrOffline(request, timeout: timeout);
+    } on NetworkUnreachable catch (e) {
       throw GitHubException(GitHubFailure.offline, message: e.message);
     }
   }
