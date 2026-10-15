@@ -101,6 +101,17 @@ Future<void> closeSheet(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Waits (up to 3 s) until at least [count] images are on screen: covers
+/// come from the fake fetcher through the file system, off the frame
+/// clock, so settling alone can capture the placeholders.
+Future<void> waitForImages(WidgetTester tester, {int count = 1}) async {
+  for (var i = 0; i < 30; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (find.byType(Image).evaluate().length >= count) break;
+  }
+  await tester.pumpAndSettle();
+}
+
 Future<void> pickView(WidgetTester tester, String label) async {
   await tester.tap(find.byTooltip('Change view'));
   await tester.pumpAndSettle();
@@ -242,7 +253,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'The Last of Us');
     await tester.pump(NewEntryScreen.debounce);
-    await tester.pumpAndSettle();
+    await waitForImages(tester, count: 4);
     await capture(tester, 'a13-new-entry');
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();
@@ -408,7 +419,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Dune');
     await tester.pump(NewEntryScreen.debounce);
-    await tester.pumpAndSettle();
+    await waitForImages(tester, count: 2);
     await capture(tester, 'a13-look-up-again');
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
@@ -577,7 +588,8 @@ void main() {
     await tester.tap(find.byType(AddButton));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'The Last of Us');
-    await tester.pumpAndSettle();
+    await tester.pump(NewEntryScreen.debounce);
+    await waitForImages(tester, count: 4);
     await capture(tester, 'large-text-a13-new-entry');
     await tester.tap(find.text('GAME · 2013'));
     await tester.pumpAndSettle();

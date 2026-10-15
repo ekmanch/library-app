@@ -174,6 +174,20 @@ void main() {
     },
   );
 
+  testWidgets('the rows show the fetched covers', (tester) async {
+    await pumpApp(tester, const _Opener());
+    await open(tester);
+    await type(tester, 'Dune');
+    // The fake fetcher writes the cover off the frame clock.
+    for (var i = 0; i < 40 && find.byType(Image).evaluate().length < 4; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+    }
+    expect(find.byType(Image), findsNWidgets(4));
+  });
+
   testWidgets('a title passed in is looked up at once', (tester) async {
     await pumpApp(tester, const _Opener(type: MediaType.anime, title: 'Akira'));
     await open(tester);
