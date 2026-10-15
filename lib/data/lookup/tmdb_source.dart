@@ -88,6 +88,7 @@ class TmdbSource extends HttpLookupSource {
       released: date == null ? null : Released.tryParse(date),
       description: stringAt(item, 'overview') ?? '',
       coverUrl: poster == null ? null : '$_images$rowPosterWidth$poster',
+      largeCoverUrl: poster == null ? null : '$_images$coverPosterWidth$poster',
     );
   }
 

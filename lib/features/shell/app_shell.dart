@@ -15,6 +15,7 @@ import '../plans/plan_screen.dart';
 import '../plans/plan_progress.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_scheduler.dart';
+import '../../data/images/artwork_providers.dart';
 import '../../data/library_providers.dart';
 import 'fab_action.dart';
 import 'floating_nav_bar.dart';
@@ -66,6 +67,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.initState();
     _scheduler = SyncScheduler(sync: () => ref.read(librarySyncProvider))
       ..start();
+    // Covers and photos of entries that are gone get cleaned up once per
+    // session, a little after the library loads.
+    ref.listenManual(artworkPrunerProvider, (_, _) {});
     // A plan whose first date has come turns its Started switch on, so the
     // switch always shows the real state (S9). Plans never stop on their
     // own.

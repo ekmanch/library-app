@@ -32,4 +32,7 @@ List<Override> fakeLookupOverrides({
   appCacheDirectoryProvider.overrideWithValue(
     cacheDirectory ?? Directory.systemTemp.createTempSync('libri-cache-'),
   ),
+  // The session prune and its timer stay out of tests and walks; the
+  // prune itself has its own test.
+  artworkPrunerProvider.overrideWith((ref) {}),
 ];

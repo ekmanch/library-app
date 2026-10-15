@@ -3,6 +3,7 @@ import 'dart:async';
 import '../data/lookup/lookup_failure.dart';
 import '../data/lookup/lookup_match.dart';
 import '../data/lookup/lookup_source.dart';
+import '../data/lookup/music_source.dart';
 import '../data/lookup/track_info.dart';
 import '../data/models/entry.dart';
 import '../data/models/entry_id.dart';
@@ -15,7 +16,7 @@ import '../data/models/released.dart';
 /// entry gets a (fake) cover in a photo view. [latency] shows the loading
 /// state, [failure] makes every call fail that way, and `configured:
 /// false` is a provider without its key.
-class FakeLookupSource extends LookupSource {
+class FakeLookupSource extends LookupSource implements MusicSource {
   FakeLookupSource({
     this.latency = Duration.zero,
     this.failure,
@@ -104,6 +105,20 @@ class FakeLookupSource extends LookupSource {
     return 'fake://cover/$shape/$source';
   }
 
+  @override
+  Future<List<TrackInfo>> albumTracks(String albumSource) async {
+    await _call('tracks:$albumSource');
+    return _trackListsBySource[albumSource] ?? const [];
+  }
+
+  /// Every artist but "Various Artists" has a photo.
+  @override
+  Future<String?> artistPhotoUrl(String name) async {
+    await _call('photo:$name');
+    if (name.trim().toLowerCase() == 'various artists') return null;
+    return 'fake://cover/square/artist:${slugify(name)}';
+  }
+
   /// The catalog, synchronously: a case-insensitive substring match on the
   /// title, titles that start with the query first.
   static List<LookupMatch> catalogSearch(String query, {MediaType? type}) {
@@ -121,6 +136,25 @@ class FakeLookupSource extends LookupSource {
   /// The track list of [album] (A22) for two fixture albums, or null.
   static List<TrackInfo>? fakeTrackList(Entry album) => _trackLists[album.id];
 }
+
+/// The same two lists, by the album's lookup id.
+const _trackListsBySource = <String, List<TrackInfo>>{
+  'deezer:album:91627': [
+    (id: 'deezer:track:1016550', title: 'Them Bones'),
+    (id: 'deezer:track:1016551', title: 'Dam That River'),
+    (id: 'deezer:track:1016552', title: 'Rain When I Die'),
+    (id: 'deezer:track:1016553', title: 'Down in a Hole'),
+    (id: 'deezer:track:1016554', title: 'Sickman'),
+    (id: 'deezer:track:1016555', title: 'Rooster'),
+    (id: 'deezer:track:1016556', title: 'Junkhead'),
+    (id: 'deezer:track:1016557', title: 'Dirt'),
+    (id: 'deezer:track:1016558', title: 'God Smack'),
+    (id: 'deezer:track:1016559', title: 'Iron Gland'),
+    (id: 'deezer:track:1016560', title: 'Hate to Feel'),
+    (id: 'deezer:track:1016561', title: 'Angry Chair'),
+    (id: 'deezer:track:1016562', title: 'Would?'),
+  ],
+};
 
 const _trackLists = <String, List<TrackInfo>>{
   'music/dirt-alice-in-chains': [

@@ -20,6 +20,7 @@ class LookupMatch {
     this.platforms = const [],
     this.tags = const [],
     this.coverUrl,
+    this.largeCoverUrl,
   });
 
   final MediaType type;
@@ -47,6 +48,12 @@ class LookupMatch {
   /// A cover or artwork image, sized for a list row.
   final String? coverUrl;
 
+  /// The same image at the size the cache keeps (a details header on a 3x
+  /// screen), when the provider offers one; else [coverUrl] serves.
+  final String? largeCoverUrl;
+
+  String? get cacheCoverUrl => largeCoverUrl ?? coverUrl;
+
   /// The provider part of a lookup id: "tmdb" for "tmdb:movie:603".
   static String providerOf(String source) =>
       source.substring(0, source.indexOf(':').clamp(0, source.length));
@@ -60,6 +67,7 @@ class LookupMatch {
     List<String>? platforms,
     List<String>? tags,
     String? coverUrl,
+    String? largeCoverUrl,
   }) => LookupMatch(
     type: type,
     title: title,
@@ -72,6 +80,7 @@ class LookupMatch {
     platforms: platforms ?? this.platforms,
     tags: tags ?? this.tags,
     coverUrl: coverUrl ?? this.coverUrl,
+    largeCoverUrl: largeCoverUrl ?? this.largeCoverUrl,
   );
 
   @override
@@ -87,7 +96,8 @@ class LookupMatch {
       other.albumSource == albumSource &&
       listEquals(other.platforms, platforms) &&
       listEquals(other.tags, tags) &&
-      other.coverUrl == coverUrl;
+      other.coverUrl == coverUrl &&
+      other.largeCoverUrl == largeCoverUrl;
 
   @override
   int get hashCode => Object.hash(type, title, source, released, coverUrl);

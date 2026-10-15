@@ -83,6 +83,9 @@ class OpenLibrarySource extends HttpLookupSource {
       coverUrl: coverId is num && coverId > 0
           ? _cover(coverId.toInt(), '-M')
           : null,
+      largeCoverUrl: coverId is num && coverId > 0
+          ? _cover(coverId.toInt(), '-L')
+          : null,
     );
   }
 

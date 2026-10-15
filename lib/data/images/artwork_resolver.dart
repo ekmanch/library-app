@@ -1,0 +1,326 @@
+import 'dart:async';
+import 'dart:collection';
+
+import '../lookup/deezer_source.dart';
+import '../lookup/lookup_failure.dart';
+import '../lookup/lookup_service.dart';
+import '../lookup/music_source.dart';
+import '../models/entry.dart';
+import '../models/media_type.dart';
+import '../models/music_kind.dart';
+import '../storage/json_file.dart';
+
+/// Finds the cover image of an entry and the photo of an artist, and
+/// remembers what it found in `artwork.json` on the device. An entry with
+/// a `source` asks that provider for its cover; one without is matched by
+/// title, year and creator (a song by its album), on the device only, so
+/// `library.json` never changes. A record is dropped when the entry's
+/// title, year, creator or source changed. A miss is tried again after
+/// [missRetry]; being offline, rate limited or not set up is not recorded.
+/// At most [concurrency] lookups run at once, in the order asked; a
+/// request can be released before its turn (the row scrolled away).
+class ArtworkResolver {
+  ArtworkResolver({
+    required this.lookups,
+    required this.cache,
+    this.concurrency = 2,
+    DateTime Function()? now,
+    this.missRetry = const Duration(days: 14),
+    this.writeDelay = const Duration(seconds: 2),
+  }) : _now = now ?? DateTime.now;
+
+  final LookupService lookups;
+  final JsonFile cache;
+  final int concurrency;
+  final Duration missRetry;
+  final Duration writeDelay;
+  final DateTime Function() _now;
+
+  final _entries = <String, _Record>{};
+  final _artists = <String, _Record>{};
+  Future<void>? _loading;
+  bool _dirty = false;
+  Timer? _writeTimer;
+
+  final _queue = Queue<_Job>();
+  final _jobs = <String, _Job>{};
+  var _running = 0;
+
+  /// Reads `artwork.json` once.
+  Future<void> load() => _loading ??= () async {
+    final json = await cache.read();
+    if (json == null) return;
+    _readInto(_entries, json['entries']);
+    _readInto(_artists, json['artists']);
+  }();
+
+  static void _readInto(Map<String, _Record> into, Object? json) {
+    if (json is! Map<String, Object?>) return;
+    for (final MapEntry(:key, :value) in json.entries) {
+      if (value is Map<String, Object?>) {
+        final record = _Record.fromJson(value);
+        if (record != null) into[key] = record;
+      }
+    }
+  }
+
+  // Entries ----------------------------------------------------------------
+
+  /// What identifies the entry for the record: a change to any of these
+  /// means a new lookup.
+  static String keyFor(Entry entry) => [
+    entry.title,
+    entry.year ?? '',
+    entry.creator ?? '',
+    entry.album ?? '',
+    entry.source ?? '',
+  ].join('|');
+
+  _Record? _recordOf(Entry entry) {
+    final record = _entries[entry.id];
+    if (record == null) return null;
+    if (record.key != keyFor(entry)) {
+      _entries.remove(entry.id);
+      _markDirty();
+      return null;
+    }
+    return record;
+  }
+
+  /// The cover URL when it is already known, without waiting. Null before
+  /// [load], for a miss, and for an entry never looked at.
+  String? cachedCoverUrl(Entry entry) => _recordOf(entry)?.url;
+
+  /// The cover URL, looking it up when needed; null when there is none
+  /// (or none could be fetched right now).
+  Future<String?> coverUrl(Entry entry) async {
+    await load();
+    final record = _recordOf(entry);
+    if (record != null) {
+      if (record.url != null) return record.url;
+      if (_now().difference(record.resolved) < missRetry) return null;
+    }
+    return _enqueue('entry:${entry.id}', () => _resolveEntry(entry));
+  }
+
+  /// Drops the request for [entryId] if it has not started.
+  void release(String entryId) => _release('entry:$entryId');
+
+  /// Forgets what was found for [entryId], so the next ask looks again
+  /// (after "Look up again" set a source).
+  void forget(String entryId) {
+    if (_entries.remove(entryId) != null) _markDirty();
+  }
+
+  Future<String?> _resolveEntry(Entry entry) async {
+    final String? url;
+    try {
+      url = await _findCover(entry);
+    } on LookupException catch (e) {
+      // Not an answer: ask again next time.
+      if (e.failure != LookupFailure.other) return null;
+      _entries[entry.id] = _Record(key: keyFor(entry), resolved: _now());
+      _markDirty();
+      return null;
+    }
+    _entries[entry.id] = _Record(
+      key: keyFor(entry),
+      url: url,
+      resolved: _now(),
+    );
+    _markDirty();
+    return url;
+  }
+
+  Future<String?> _findCover(Entry entry) async {
+    if (entry.source case final source?) {
+      final provider = lookups.sourceOf(source);
+      if (provider == null) return null;
+      return provider.coverUrl(source, type: entry.type);
+    }
+    final isSong =
+        entry.type == MediaType.music && entry.kind == MusicKind.song;
+    final title = isSong ? (entry.album ?? entry.title) : entry.title;
+    for (final provider in lookups.sourcesFor(entry.type)) {
+      final match = await provider.match(
+        title,
+        type: entry.type,
+        year: isSong ? null : entry.year,
+        creator: entry.creator,
+      );
+      if (match != null) return match.cacheCoverUrl;
+    }
+    return null;
+  }
+
+  // Artists -----------------------------------------------------------------
+
+  static String _artistKey(String name) => name.trim().toLowerCase();
+
+  MusicSource? get _music {
+    for (final source in lookups.sources) {
+      if (source.isConfigured && source is MusicSource) {
+        return source as MusicSource;
+      }
+    }
+    return null;
+  }
+
+  String? cachedArtistPhotoUrl(String name) => _artists[_artistKey(name)]?.url;
+
+  Future<String?> artistPhotoUrl(String name) async {
+    await load();
+    final key = _artistKey(name);
+    if (DeezerSource.noPhoto.contains(key)) return null;
+    final record = _artists[key];
+    if (record != null) {
+      if (record.url != null) return record.url;
+      if (_now().difference(record.resolved) < missRetry) return null;
+    }
+    return _enqueue('artist:$key', () => _resolveArtist(name, key));
+  }
+
+  void releaseArtist(String name) => _release('artist:${_artistKey(name)}');
+
+  Future<String?> _resolveArtist(String name, String key) async {
+    final music = _music;
+    if (music == null) return null;
+    final String? url;
+    try {
+      url = await music.artistPhotoUrl(name);
+    } on LookupException catch (e) {
+      if (e.failure != LookupFailure.other) return null;
+      _artists[key] = _Record(key: key, resolved: _now());
+      _markDirty();
+      return null;
+    }
+    _artists[key] = _Record(key: key, url: url, resolved: _now());
+    _markDirty();
+    return url;
+  }
+
+  // Housekeeping ------------------------------------------------------------
+
+  /// Drops the records of entries and artists that are gone and returns
+  /// the URLs still wanted, for the image cache's own prune.
+  Future<Set<String>> prune({
+    required Iterable<Entry> entries,
+    required Iterable<String> artists,
+  }) async {
+    await load();
+    final ids = {for (final e in entries) e.id};
+    final names = {for (final a in artists) _artistKey(a)};
+    final before = _entries.length + _artists.length;
+    _entries.removeWhere((id, _) => !ids.contains(id));
+    _artists.removeWhere((key, _) => !names.contains(key));
+    if (_entries.length + _artists.length != before) _markDirty();
+    await flush();
+    return {
+      for (final r in _entries.values) ?r.url,
+      for (final r in _artists.values) ?r.url,
+    };
+  }
+
+  /// Writes the records now, when something changed.
+  Future<void> flush() async {
+    _writeTimer?.cancel();
+    _writeTimer = null;
+    if (!_dirty) return;
+    _dirty = false;
+    await cache.write({
+      'version': 1,
+      'entries': {for (final e in _entries.entries) e.key: e.value.toJson()},
+      'artists': {for (final a in _artists.entries) a.key: a.value.toJson()},
+    });
+  }
+
+  void dispose() {
+    _writeTimer?.cancel();
+    for (final job in _queue) {
+      job.completer.complete(null);
+    }
+    _queue.clear();
+    _jobs.clear();
+  }
+
+  void _markDirty() {
+    _dirty = true;
+    _writeTimer ??= Timer(writeDelay, flush);
+  }
+
+  // The queue ---------------------------------------------------------------
+
+  Future<String?> _enqueue(String id, Future<String?> Function() work) {
+    final existing = _jobs[id];
+    if (existing != null) return existing.completer.future;
+    final job = _Job(id, work);
+    _jobs[id] = job;
+    _queue.add(job);
+    _pump();
+    return job.completer.future;
+  }
+
+  void _release(String id) {
+    final job = _jobs[id];
+    if (job == null || job.started) return;
+    _queue.remove(job);
+    _jobs.remove(id);
+    job.completer.complete(null);
+  }
+
+  void _pump() {
+    while (_running < concurrency && _queue.isNotEmpty) {
+      final job = _queue.removeFirst();
+      job.started = true;
+      _running++;
+      job
+          .work()
+          .then(
+            job.completer.complete,
+            onError: (Object e, StackTrace s) {
+              job.completer.complete(null);
+            },
+          )
+          .whenComplete(() {
+            _running--;
+            _jobs.remove(job.id);
+            _pump();
+          });
+    }
+  }
+}
+
+class _Job {
+  _Job(this.id, this.work);
+
+  final String id;
+  final Future<String?> Function() work;
+  final completer = Completer<String?>();
+  bool started = false;
+}
+
+/// One remembered answer: the URL, or a miss (no URL) with when it was
+/// looked for.
+class _Record {
+  const _Record({required this.key, this.url, required this.resolved});
+
+  final String key;
+  final String? url;
+  final DateTime resolved;
+
+  static _Record? fromJson(Map<String, Object?> json) {
+    final key = json['key'];
+    final resolved = json['resolved'];
+    if (key is! String || resolved is! String) return null;
+    final date = DateTime.tryParse(resolved);
+    if (date == null) return null;
+    final url = json['url'];
+    return _Record(key: key, url: url is String ? url : null, resolved: date);
+  }
+
+  Map<String, Object?> toJson() => {
+    'key': key,
+    if (url != null) 'url': url,
+    'resolved': resolved.toUtc().toIso8601String(),
+  };
+}

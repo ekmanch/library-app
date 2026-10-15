@@ -1,10 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dev/demo_states.dart';
 import '../../dev/fake_images.dart';
+import '../../features/music/artist_index.dart';
 import '../library_providers.dart';
+import '../lookup/lookup_providers.dart';
+import '../models/library.dart';
+import '../storage/json_file.dart';
+import 'artwork_resolver.dart';
 import 'image_cache_store.dart';
 import 'image_fetcher.dart';
 
@@ -22,3 +28,54 @@ final imageCacheProvider = Provider<ImageCacheStore>(
     fetcher: ref.watch(imageFetcherProvider),
   ),
 );
+
+/// Covers and artist photos resolved for entries, with the records in
+/// `artwork.json` under the app cache folder.
+final artworkResolverProvider = Provider<ArtworkResolver>((ref) {
+  final cache = ref.watch(appCacheDirectoryProvider);
+  final resolver = ArtworkResolver(
+    lookups: ref.watch(lookupServiceProvider),
+    cache: JsonFile(File('${cache.path}${Platform.pathSeparator}artwork.json')),
+  );
+  ref.onDispose(resolver.dispose);
+  return resolver;
+});
+
+/// Once per session, a little after the library first loads: drops the
+/// records and image files of entries and artists that are gone. The app
+/// shell watches it so it runs.
+final artworkPrunerProvider = Provider<void>((ref) {
+  var done = false;
+  Timer? timer;
+  ref.listen(libraryProvider, (_, next) {
+    final library = next.value;
+    if (library == null || done) return;
+    done = true;
+    timer = Timer(ArtworkPruner.delay, () async {
+      final current = ref.read(libraryProvider).value ?? library;
+      await ArtworkPruner(
+        resolver: ref.read(artworkResolverProvider),
+        images: ref.read(imageCacheProvider),
+      ).run(current);
+    });
+  }, fireImmediately: true);
+  ref.onDispose(() => timer?.cancel());
+});
+
+/// The prune itself, also run by the tests.
+class ArtworkPruner {
+  const ArtworkPruner({required this.resolver, required this.images});
+
+  final ArtworkResolver resolver;
+  final ImageCacheStore images;
+
+  static const delay = Duration(seconds: 15);
+
+  Future<void> run(Library library) async {
+    final keep = await resolver.prune(
+      entries: library.entries,
+      artists: [for (final artist in artistIndex(library.entries)) artist.name],
+    );
+    await images.prune(keep);
+  }
+}

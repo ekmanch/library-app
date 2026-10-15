@@ -79,6 +79,7 @@ class DeezerSource extends HttpLookupSource implements MusicSource {
       source: 'deezer:album:${id.toInt()}',
       creator: _artistName(item),
       coverUrl: stringAt(item, 'cover_medium'),
+      largeCoverUrl: stringAt(item, 'cover_big'),
     );
   }
 
@@ -96,6 +97,7 @@ class DeezerSource extends HttpLookupSource implements MusicSource {
       album: stringAt(album, 'title'),
       albumSource: albumId is num ? 'deezer:album:${albumId.toInt()}' : null,
       coverUrl: stringAt(album, 'cover_medium'),
+      largeCoverUrl: stringAt(album, 'cover_big'),
     );
   }
 

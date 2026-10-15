@@ -113,6 +113,7 @@ $_fields
       description: stripHtml(stringAt(media, 'description') ?? ''),
       tags: [for (final g in media['genres'] as List? ?? const []) '$g'],
       coverUrl: stringAt(cover, 'large'),
+      largeCoverUrl: stringAt(cover, 'extraLarge'),
     );
   }
 
