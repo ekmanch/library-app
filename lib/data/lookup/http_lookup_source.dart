@@ -7,29 +7,14 @@ import 'lookup_failure.dart';
 import 'lookup_source.dart';
 import 'rate_limiter.dart';
 
-/// What the HTTP-backed sources share: one client, the offline mapping, the
-/// status check and JSON decoding, and a [RateLimiter] so a scroll through
-/// a photo view never bursts past a provider's limit.
-abstract class HttpLookupSource extends LookupSource {
-  HttpLookupSource(
-    this.client, {
-    required Duration minGap,
-    this.timeout = defaultHttpTimeout,
-    this.userAgent = 'Libri',
-  }) : limiter = RateLimiter(minGap);
-
-  final http.Client client;
-  final Duration timeout;
-  final String userAgent;
-  final RateLimiter limiter;
-
-  /// Throws [LookupFailure.notConfigured] before any request when a key is
-  /// missing; every public method starts here.
-  void requireConfigured() {
-    if (!isConfigured) {
-      throw const LookupException(LookupFailure.notConfigured);
-    }
-  }
+/// What the HTTP-backed lookups share: the offline mapping, the status
+/// check, JSON decoding, and a [RateLimiter] so a scroll through a photo
+/// view never bursts past a provider's limit.
+mixin LookupHttp {
+  http.Client get client;
+  Duration get timeout;
+  String get userAgent;
+  RateLimiter get limiter;
 
   /// Runs [request] under the rate limiter; transport errors become
   /// [LookupFailure.offline].
@@ -93,6 +78,33 @@ abstract class HttpLookupSource extends LookupSource {
       // Not JSON; fall through.
     }
     return response.reasonPhrase ?? '';
+  }
+}
+
+/// A [LookupSource] over HTTP, with one client and a rate limiter.
+abstract class HttpLookupSource extends LookupSource with LookupHttp {
+  HttpLookupSource(
+    this.client, {
+    required Duration minGap,
+    this.timeout = defaultHttpTimeout,
+    this.userAgent = 'Libri',
+  }) : limiter = RateLimiter(minGap);
+
+  @override
+  final http.Client client;
+  @override
+  final Duration timeout;
+  @override
+  final String userAgent;
+  @override
+  final RateLimiter limiter;
+
+  /// Throws [LookupFailure.notConfigured] before any request when a key is
+  /// missing; every public method starts here.
+  void requireConfigured() {
+    if (!isConfigured) {
+      throw const LookupException(LookupFailure.notConfigured);
+    }
   }
 }
 
