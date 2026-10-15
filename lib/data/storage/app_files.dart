@@ -10,3 +10,11 @@ Future<Directory> appDataDirectory() async {
   final documents = await getApplicationDocumentsDirectory();
   return Directory('${documents.path}${Platform.pathSeparator}libri');
 }
+
+/// The folder for what Libri can fetch again: cover images, artist photos,
+/// track lists, the IGDB token. It sits in the app cache directory, which
+/// the system may clear, under the same `libri` subfolder.
+Future<Directory> appCacheDirectory() async {
+  final cache = await getApplicationCacheDirectory();
+  return Directory('${cache.path}${Platform.pathSeparator}libri');
+}

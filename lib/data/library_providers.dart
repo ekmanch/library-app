@@ -28,6 +28,14 @@ final appDataDirectoryProvider = Provider<Directory>(
   ),
 );
 
+/// The folder for the caches (images, track lists, the IGDB token). Also
+/// overridden in `main`, with no default.
+final appCacheDirectoryProvider = Provider<Directory>(
+  (ref) => throw UnimplementedError(
+    'Override appCacheDirectoryProvider in the root ProviderScope.',
+  ),
+);
+
 final httpClientProvider = Provider<http.Client>((ref) {
   final client = http.Client();
   ref.onDispose(client.close);

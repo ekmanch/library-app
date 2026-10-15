@@ -24,15 +24,23 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Phone-first and portrait only; the manifest locks Android the same way.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(await bootstrap(await appDataDirectory()));
+  runApp(
+    await bootstrap(
+      await appDataDirectory(),
+      cacheDirectory: await appCacheDirectory(),
+    ),
+  );
 }
 
 /// The app with its storage in [directory]: the cached `library.json`,
-/// `pending.json`, `sync.json`, `connection.json` and `preferences.json`.
+/// `pending.json`, `sync.json`, `connection.json` and `preferences.json`;
+/// and its caches (images, track lists, the IGDB token) in
+/// [cacheDirectory], a `cache` subfolder of [directory] when not given.
 /// The integration tests pass a temporary folder, a memory [tokenStore]
 /// and a fake [api].
 Future<Widget> bootstrap(
   Directory directory, {
+  Directory? cacheDirectory,
   TokenStore? tokenStore,
   GitHubApiFactory? api,
 }) async {
@@ -62,6 +70,10 @@ Future<Widget> bootstrap(
   return ProviderScope(
     overrides: [
       appDataDirectoryProvider.overrideWithValue(directory),
+      appCacheDirectoryProvider.overrideWithValue(
+        cacheDirectory ??
+            Directory('${directory.path}${Platform.pathSeparator}cache'),
+      ),
       tokenStoreProvider.overrideWithValue(tokens),
       connectionStoreProvider.overrideWithValue(connections),
       initialTokenProvider.overrideWithValue(token),
