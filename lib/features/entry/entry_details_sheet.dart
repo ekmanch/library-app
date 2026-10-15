@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
+import '../../data/lookup/lookup_failure.dart';
+import '../../data/lookup/lookup_providers.dart';
 import '../../data/lookup/track_info.dart';
+import '../../data/lookup/track_list_service.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/music_kind.dart';
 import '../../data/models/track.dart';
 import '../../data/operations/operations.dart';
-import '../../dev/fake_lookup.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/chips.dart';
@@ -159,7 +161,7 @@ class EntryDetailsSheet extends ConsumerWidget {
             const SizedBox(height: 13),
             _TrackList(
               album: entry,
-              trackList: FakeLookupSource.fakeTrackList(entry),
+              trackList: ref.watch(trackListProvider(entry.id)),
               onRate: rateTrack,
             ),
           ],
@@ -246,10 +248,11 @@ class EntryDetailsSheet extends ConsumerWidget {
   }
 }
 
-/// The Tracks section of an album (A22). With a cached track list every
-/// track is listed, numbered, with its rating or "Rate"; the first six are
-/// shown until "Show all" is tapped. Without one, only the rated tracks are
-/// listed and a line says the full list needs a connection.
+/// The Tracks section of an album (A22). With a track list every track is
+/// listed, numbered, with its rating or "Rate"; the first six are shown
+/// until "Show all" is tapped. While it loads, when it could not be fetched
+/// (offline) or when the source has none, only the rated tracks are listed
+/// and a line says why.
 class _TrackList extends StatefulWidget {
   const _TrackList({
     required this.album,
@@ -258,7 +261,7 @@ class _TrackList extends StatefulWidget {
   });
 
   final Entry album;
-  final List<TrackInfo>? trackList;
+  final AsyncValue<TrackList?> trackList;
   final Future<void> Function(TrackInfo track, Track? current) onRate;
 
   static const collapsedCount = 6;
@@ -270,12 +273,34 @@ class _TrackList extends StatefulWidget {
 class _TrackListState extends State<_TrackList> {
   bool _expanded = false;
 
+  /// The stored rating of a listed track: by id when one matches, else by
+  /// title, so ratings stored under another provider's ids still show.
   Track? _ratingOf(TrackInfo info) {
-    for (final track in widget.album.tracks ?? const <Track>[]) {
-      final byId = track.id != null && info.id.isNotEmpty;
-      if (byId ? track.id == info.id : track.title == info.title) return track;
+    final rated = widget.album.tracks ?? const <Track>[];
+    for (final track in rated) {
+      if (track.id != null && track.id == info.id) return track;
+    }
+    for (final track in rated) {
+      if (track.title.trim().toLowerCase() == info.title.trim().toLowerCase()) {
+        return track;
+      }
     }
     return null;
+  }
+
+  /// Why only the rated tracks are listed.
+  static String _reason(AsyncValue<TrackList?> value, bool anyRated) {
+    final String why;
+    if (value.isLoading) {
+      why = 'Loading the track list\u2026';
+    } else if (value.error case LookupException(
+      failure: LookupFailure.offline,
+    )) {
+      why = 'The full track list needs a connection.';
+    } else {
+      why = 'No track list was found for this album.';
+    }
+    return anyRated ? why : 'No tracks rated yet. $why';
   }
 
   @override
@@ -283,7 +308,7 @@ class _TrackListState extends State<_TrackList> {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final rated = widget.album.tracks ?? const <Track>[];
-    final full = widget.trackList;
+    final full = widget.trackList.value?.tracks;
     final List<(int? number, TrackInfo info, Track? rating)> rows;
     if (full == null) {
       rows = [
@@ -359,12 +384,7 @@ class _TrackListState extends State<_TrackList> {
           ),
         if (full == null) ...[
           const SizedBox(height: 8),
-          Text(
-            rated.isEmpty
-                ? 'No tracks rated yet. The full track list needs a connection.'
-                : 'The full track list needs a connection.',
-            style: muted,
-          ),
+          Text(_reason(widget.trackList, rated.isNotEmpty), style: muted),
         ] else if (!_expanded && full.length > _TrackList.collapsedCount)
           Align(
             alignment: Alignment.centerLeft,

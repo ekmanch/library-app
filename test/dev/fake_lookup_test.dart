@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/lookup/lookup_failure.dart';
 import 'package:library_app/data/lookup/lookup_match.dart';
-import 'package:library_app/data/models/entry.dart';
-import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/dev/fake_lookup.dart';
 
@@ -106,24 +104,22 @@ void main() {
     expect(offline.issued('tmdb:movie:1'), isTrue);
   });
 
-  test('two fixture albums have a track list', () {
-    expect(fakeTrackListIds(), containsAll(['music/dirt-alice-in-chains']));
+  test('the fixture albums Dirt and Dark Side have a track list', () async {
+    final fake = FakeLookupSource();
+    expect((await fake.albumTracks('fake:dirt')).length, 13);
+    expect(
+      (await fake.albumTracks('deezer:album:91627')).first.title,
+      'Them Bones',
+    );
+    expect(
+      (await fake.albumTracks('fake:the-dark-side-of-the-moon')).last.title,
+      'Eclipse',
+    );
+    expect(await fake.albumTracks('fake:nothing'), isEmpty);
+    expect(
+      await fake.artistPhotoUrl('Kate Bush'),
+      'fake://cover/square/artist:kate-bush',
+    );
+    expect(await fake.artistPhotoUrl('Various Artists'), isNull);
   });
 }
-
-/// The album ids with a fake track list, through the public API.
-List<String> fakeTrackListIds() => [
-  for (final id in [
-    'music/dirt-alice-in-chains',
-    'music/the-dark-side-of-the-moon-pink-floyd',
-  ])
-    if (FakeLookupSource.fakeTrackList(_album(id)) != null) id,
-];
-
-Entry _album(String id) => Entry(
-  id: id,
-  type: MediaType.music,
-  title: id,
-  status: EntryStatus.want,
-  added: DateTime(2026),
-);

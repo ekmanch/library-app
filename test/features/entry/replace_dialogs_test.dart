@@ -40,6 +40,30 @@ void main() {
       expect(albumOfSong(library, otherArtist), isNull);
     });
 
+    test('albumOfSong trusts a matching album id over the names', () {
+      final linked = library.copyWith(
+        entries: [
+          mummy,
+          dirt.copyWith(source: 'deezer:album:91627'),
+          noAlbum,
+        ],
+      );
+      // No album title on the song, but the lookup said which album.
+      expect(
+        albumOfSong(linked, noAlbum, albumSource: 'deezer:album:91627')?.id,
+        dirt.id,
+      );
+      // An id nothing carries falls back to the names.
+      expect(
+        albumOfSong(linked, would, albumSource: 'deezer:album:1')?.id,
+        dirt.id,
+      );
+      expect(
+        albumOfSong(linked, noAlbum, albumSource: 'deezer:album:1'),
+        isNull,
+      );
+    });
+
     test('absorbSongs moves ratings into the track list, once', () {
       final rooster = would.copyWith(id: 'r', title: 'Rooster', rating: 5);
       final unrated = would.copyWith(id: 'u', title: 'Dirt', rating: null);

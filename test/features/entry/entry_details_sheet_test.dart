@@ -11,6 +11,9 @@ import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/settings/entry_view.dart';
 import 'package:library_app/widgets/segmented_control.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:library_app/data/lookup/lookup_failure.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/slow_save_repository.dart';
@@ -38,8 +41,13 @@ void main() {
   Future<ProviderContainer> open(
     WidgetTester tester, {
     String entryId = _mummy,
+    List<Override>? lookupOverrides,
   }) async {
-    final container = await pumpApp(tester, _Opener(entryId));
+    final container = await pumpApp(
+      tester,
+      _Opener(entryId),
+      lookupOverrides: lookupOverrides,
+    );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
     return container;
@@ -134,7 +142,7 @@ void main() {
       final tracks = repo(container).current!.entryById(dirt)!.tracks!;
       expect(tracks.length, 4);
       expect(tracks.last.title, 'Dam That River');
-      expect(tracks.last.id, 'mb:7c9a2');
+      expect(tracks.last.id, 'deezer:track:1016551');
       expect(tracks.last.rating, 5);
       expect(find.text('4 of 13 rated'), findsOneWidget);
 
@@ -150,17 +158,46 @@ void main() {
       );
     });
 
-    testWidgets('without a track list only the rated tracks show', (
+    testWidgets('an album the source has no list for shows the rated ones', (
       tester,
     ) async {
       await open(tester, entryId: 'music/master-of-puppets-metallica');
       expect(find.text('1 rated'), findsOneWidget);
       expect(find.text('Master of Puppets'), findsNWidgets(2)); // Title, track.
       expect(
-        find.text('The full track list needs a connection.'),
+        find.text('No track list was found for this album.'),
         findsOneWidget,
       );
       expect(find.text('Rate'), findsNothing);
+    });
+
+    testWidgets('offline without a cached list says it needs a connection', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        entryId: 'music/master-of-puppets-metallica',
+        lookupOverrides: fakeLookupOverrides(failure: LookupFailure.offline),
+      );
+      expect(
+        find.text('The full track list needs a connection.'),
+        findsOneWidget,
+      );
+      expect(find.text('1 rated'), findsOneWidget);
+    });
+
+    testWidgets('a rating stored under another id still shows, by title', (
+      tester,
+    ) async {
+      // The fixture's Dirt ratings carry "mb:" ids; the fake list has
+      // Deezer ids.
+      await open(tester, entryId: dirt);
+      expect(find.text('3 of 13 rated'), findsOneWidget);
+      expect(
+        find.text('9 / 10'),
+        findsNWidgets(2),
+      ); // Them Bones, Down in a Hole.
+      expect(find.text('10 / 10'), findsNWidgets(2)); // Album, Rooster.
     });
 
     testWidgets('a song has no track list', (tester) async {

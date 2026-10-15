@@ -9,6 +9,8 @@ import '../../features/music/artist_index.dart';
 import '../library_providers.dart';
 import '../lookup/lookup_providers.dart';
 import '../models/library.dart';
+import '../models/music_kind.dart';
+import '../lookup/track_list_service.dart';
 import '../storage/json_file.dart';
 import 'artwork_resolver.dart';
 import 'image_cache_store.dart';
@@ -60,6 +62,7 @@ void startArtworkPruner(Ref ref) {
       await ArtworkPruner(
         resolver: ref.read(artworkResolverProvider),
         images: ref.read(imageCacheProvider),
+        tracks: ref.read(trackListServiceProvider),
       ).run(current);
     });
   }, fireImmediately: true);
@@ -68,10 +71,15 @@ void startArtworkPruner(Ref ref) {
 
 /// The prune itself, also run by the tests.
 class ArtworkPruner {
-  const ArtworkPruner({required this.resolver, required this.images});
+  const ArtworkPruner({
+    required this.resolver,
+    required this.images,
+    this.tracks,
+  });
 
   final ArtworkResolver resolver;
   final ImageCacheStore images;
+  final TrackListService? tracks;
 
   static const delay = Duration(seconds: 15);
 
@@ -81,5 +89,9 @@ class ArtworkPruner {
       artists: [for (final artist in artistIndex(library.entries)) artist.name],
     );
     await images.prune(keep);
+    await tracks?.prune([
+      for (final e in library.entries)
+        if (e.kind == MusicKind.album) e,
+    ]);
   }
 }

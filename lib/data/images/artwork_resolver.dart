@@ -24,7 +24,7 @@ import '../storage/json_file.dart';
 class ArtworkResolver {
   ArtworkResolver({
     required this.lookups,
-    required this.cache,
+    this.cache,
     this.concurrency = 2,
     DateTime Function()? now,
     this.missRetry = const Duration(days: 14),
@@ -32,7 +32,9 @@ class ArtworkResolver {
   }) : _now = now ?? DateTime.now;
 
   final LookupService lookups;
-  final JsonFile cache;
+
+  /// `artwork.json`; null keeps the records in memory only (the tests).
+  final JsonFile? cache;
   final int concurrency;
   final Duration missRetry;
   final Duration writeDelay;
@@ -40,6 +42,10 @@ class ArtworkResolver {
 
   final _entries = <String, _Record>{};
   final _artists = <String, _Record>{};
+
+  /// Why the last lookup of an entry gave no answer (offline, rate
+  /// limited, not set up); in memory only, cleared by an answer.
+  final _failures = <String, LookupFailure>{};
   Future<void>? _loading;
   bool _dirty = false;
   Timer? _writeTimer;
@@ -50,7 +56,7 @@ class ArtworkResolver {
 
   /// Reads `artwork.json` once.
   Future<void> load() => _loading ??= () async {
-    final json = await cache.read();
+    final json = await cache?.read();
     if (json == null) return;
     _readInto(_entries, json['entries']);
     _readInto(_artists, json['artists']);
@@ -93,6 +99,26 @@ class ArtworkResolver {
   /// [load], for a miss, and for an entry never looked at.
   String? cachedCoverUrl(Entry entry) => _recordOf(entry)?.url;
 
+  /// The lookup id the entry was matched to on the device, when known.
+  String? cachedSource(Entry entry) => _recordOf(entry)?.source;
+
+  /// The lookup id of an entry without a `source`: the one its cover was
+  /// matched to, looking it up when needed (the track list of an album).
+  /// Throws [LookupException] when the lookup gave no answer, so being
+  /// offline is told from a miss.
+  Future<String?> matchedSource(Entry entry) async {
+    await load();
+    final record = _recordOf(entry);
+    if (record != null) return record.source;
+    await coverUrl(entry);
+    final after = _recordOf(entry);
+    if (after == null) {
+      final failure = _failures[entry.id];
+      if (failure != null) throw LookupException(failure);
+    }
+    return after?.source;
+  }
+
   /// The cover URL, looking it up when needed; null when there is none
   /// (or none could be fetched right now).
   Future<String?> coverUrl(Entry entry) async {
@@ -115,30 +141,40 @@ class ArtworkResolver {
   }
 
   Future<String?> _resolveEntry(Entry entry) async {
-    final String? url;
+    String? url;
+    String? source;
     try {
-      url = await _findCover(entry);
+      final found = await _findCover(entry);
+      url = found.$1;
+      source = found.$2;
     } on LookupException catch (e) {
       // Not an answer: ask again next time.
-      if (e.failure != LookupFailure.other) return null;
+      if (e.failure != LookupFailure.other) {
+        _failures[entry.id] = e.failure;
+        return null;
+      }
       _entries[entry.id] = _Record(key: keyFor(entry), resolved: _now());
       _markDirty();
       return null;
     }
+    _failures.remove(entry.id);
     _entries[entry.id] = _Record(
       key: keyFor(entry),
       url: url,
+      source: source,
       resolved: _now(),
     );
     _markDirty();
     return url;
   }
 
-  Future<String?> _findCover(Entry entry) async {
+  /// The cover URL and, for an entry matched on the device, the id it was
+  /// matched to (the album's, for a song).
+  Future<(String?, String?)> _findCover(Entry entry) async {
     if (entry.source case final source?) {
       final provider = lookups.sourceOf(source);
-      if (provider == null) return null;
-      return provider.coverUrl(source, type: entry.type);
+      if (provider == null) return (null, null);
+      return (await provider.coverUrl(source, type: entry.type), null);
     }
     final isSong =
         entry.type == MediaType.music && entry.kind == MusicKind.song;
@@ -150,9 +186,9 @@ class ArtworkResolver {
         year: isSong ? null : entry.year,
         creator: entry.creator,
       );
-      if (match != null) return match.cacheCoverUrl;
+      if (match != null) return (match.cacheCoverUrl, match.source);
     }
-    return null;
+    return (null, null);
   }
 
   // Artists -----------------------------------------------------------------
@@ -228,6 +264,11 @@ class ArtworkResolver {
   Future<void> flush() async {
     _writeTimer?.cancel();
     _writeTimer = null;
+    final cache = this.cache;
+    if (cache == null) {
+      _dirty = false;
+      return;
+    }
     if (_dirty) {
       _dirty = false;
       await cache.write({
@@ -249,6 +290,8 @@ class ArtworkResolver {
   }
 
   void _markDirty() {
+    // Nothing to write without a file; no timer either.
+    if (cache == null) return;
     _dirty = true;
     if (writeDelay == Duration.zero) {
       // No timer: the tests end with none pending. A failed write of a
@@ -313,10 +356,19 @@ class _Job {
 /// One remembered answer: the URL, or a miss (no URL) with when it was
 /// looked for.
 class _Record {
-  const _Record({required this.key, this.url, required this.resolved});
+  const _Record({
+    required this.key,
+    this.url,
+    this.source,
+    required this.resolved,
+  });
 
   final String key;
   final String? url;
+
+  /// The lookup id the entry was matched to, when it has no source of its
+  /// own.
+  final String? source;
   final DateTime resolved;
 
   static _Record? fromJson(Map<String, Object?> json) {
@@ -326,12 +378,19 @@ class _Record {
     final date = DateTime.tryParse(resolved);
     if (date == null) return null;
     final url = json['url'];
-    return _Record(key: key, url: url is String ? url : null, resolved: date);
+    final source = json['source'];
+    return _Record(
+      key: key,
+      url: url is String ? url : null,
+      source: source is String ? source : null,
+      resolved: date,
+    );
   }
 
   Map<String, Object?> toJson() => {
     'key': key,
     if (url != null) 'url': url,
+    if (source != null) 'source': source,
     'resolved': resolved.toUtc().toIso8601String(),
   };
 }

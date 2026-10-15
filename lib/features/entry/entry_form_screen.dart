@@ -439,7 +439,11 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     if (entry.type == MediaType.music && mounted) {
       final ReplaceChoice? choice;
       if (entry.kind == MusicKind.song) {
-        final album = albumOfSong(library, entry);
+        final album = albumOfSong(
+          library,
+          entry,
+          albumSource: _match?.albumSource,
+        );
         choice = album == null
             ? ReplaceChoice.keepBoth
             : await showReplaceAlbumDialog(

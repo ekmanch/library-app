@@ -5,7 +5,6 @@ import '../data/lookup/lookup_match.dart';
 import '../data/lookup/lookup_source.dart';
 import '../data/lookup/music_source.dart';
 import '../data/lookup/track_info.dart';
-import '../data/models/entry.dart';
 import '../data/models/entry_id.dart';
 import '../data/models/media_type.dart';
 import '../data/models/released.dart';
@@ -132,57 +131,40 @@ class FakeLookupSource extends LookupSource implements MusicSource {
     final rest = hits.where((m) => !m.title.toLowerCase().startsWith(q));
     return [...starts, ...rest];
   }
-
-  /// The track list of [album] (A22) for two fixture albums, or null.
-  static List<TrackInfo>? fakeTrackList(Entry album) => _trackLists[album.id];
 }
 
-/// The same two lists, by the album's lookup id.
-const _trackListsBySource = <String, List<TrackInfo>>{
-  'deezer:album:91627': [
-    (id: 'deezer:track:1016550', title: 'Them Bones'),
-    (id: 'deezer:track:1016551', title: 'Dam That River'),
-    (id: 'deezer:track:1016552', title: 'Rain When I Die'),
-    (id: 'deezer:track:1016553', title: 'Down in a Hole'),
-    (id: 'deezer:track:1016554', title: 'Sickman'),
-    (id: 'deezer:track:1016555', title: 'Rooster'),
-    (id: 'deezer:track:1016556', title: 'Junkhead'),
-    (id: 'deezer:track:1016557', title: 'Dirt'),
-    (id: 'deezer:track:1016558', title: 'God Smack'),
-    (id: 'deezer:track:1016559', title: 'Iron Gland'),
-    (id: 'deezer:track:1016560', title: 'Hate to Feel'),
-    (id: 'deezer:track:1016561', title: 'Angry Chair'),
-    (id: 'deezer:track:1016562', title: 'Would?'),
-  ],
-};
+/// Track lists for the catalog's Dirt and for the fixture's Dirt and Dark
+/// Side of the Moon (matched on the device as `fake:<slug>`).
+const _dirt = [
+  (id: 'deezer:track:1016550', title: 'Them Bones'),
+  (id: 'deezer:track:1016551', title: 'Dam That River'),
+  (id: 'deezer:track:1016552', title: 'Rain When I Die'),
+  (id: 'deezer:track:1016553', title: 'Down in a Hole'),
+  (id: 'deezer:track:1016554', title: 'Sickman'),
+  (id: 'deezer:track:1016555', title: 'Rooster'),
+  (id: 'deezer:track:1016556', title: 'Junkhead'),
+  (id: 'deezer:track:1016557', title: 'Dirt'),
+  (id: 'deezer:track:1016558', title: 'God Smack'),
+  (id: 'deezer:track:1016559', title: 'Iron Gland'),
+  (id: 'deezer:track:1016560', title: 'Hate to Feel'),
+  (id: 'deezer:track:1016561', title: 'Angry Chair'),
+  (id: 'deezer:track:1016562', title: 'Would?'),
+];
 
-const _trackLists = <String, List<TrackInfo>>{
-  'music/dirt-alice-in-chains': [
-    (id: 'mb:7c9a1', title: 'Them Bones'),
-    (id: 'mb:7c9a2', title: 'Dam That River'),
-    (id: 'mb:7c9a3', title: 'Rain When I Die'),
-    (id: 'mb:7c9a4', title: 'Down in a Hole'),
-    (id: 'mb:7c9a5', title: 'Sickman'),
-    (id: 'mb:7c9a7', title: 'Rooster'),
-    (id: 'mb:7c9a6', title: 'Junkhead'),
-    (id: 'mb:7c9a8', title: 'Dirt'),
-    (id: 'mb:7c9a9', title: 'God Smack'),
-    (id: 'mb:7c9a10', title: 'Iron Gland'),
-    (id: 'mb:7c9a11', title: 'Hate to Feel'),
-    (id: 'mb:7c9a12', title: 'Angry Chair'),
-    (id: 'mb:7c9a13', title: 'Would?'),
-  ],
-  'music/the-dark-side-of-the-moon-pink-floyd': [
-    (id: 'mb:dsotm01', title: 'Speak to Me'),
-    (id: 'mb:dsotm02', title: 'Breathe (In the Air)'),
-    (id: 'mb:dsotm03', title: 'On the Run'),
-    (id: 'mb:dsotm04', title: 'Time'),
-    (id: 'mb:dsotm05', title: 'The Great Gig in the Sky'),
-    (id: 'mb:dsotm06', title: 'Money'),
-    (id: 'mb:dsotm07', title: 'Us and Them'),
-    (id: 'mb:dsotm08', title: 'Any Colour You Like'),
-    (id: 'mb:dsotm09', title: 'Brain Damage'),
-    (id: 'mb:dsotm10', title: 'Eclipse'),
+const _trackListsBySource = <String, List<TrackInfo>>{
+  'fake:dirt': _dirt,
+  'deezer:album:91627': _dirt,
+  'fake:the-dark-side-of-the-moon': [
+    (id: 'deezer:track:3133701', title: 'Speak to Me'),
+    (id: 'deezer:track:3133702', title: 'Breathe (In the Air)'),
+    (id: 'deezer:track:3133703', title: 'On the Run'),
+    (id: 'deezer:track:3133704', title: 'Time'),
+    (id: 'deezer:track:3133705', title: 'The Great Gig in the Sky'),
+    (id: 'deezer:track:3133706', title: 'Money'),
+    (id: 'deezer:track:3133707', title: 'Us and Them'),
+    (id: 'deezer:track:3133708', title: 'Any Colour You Like'),
+    (id: 'deezer:track:3133709', title: 'Brain Damage'),
+    (id: 'deezer:track:3133710', title: 'Eclipse'),
   ],
 };
 

@@ -13,7 +13,7 @@ enum ReplaceChoice { keepBoth, replace }
 
 String _norm(String? text) => (text ?? '').trim().toLowerCase();
 
-/// Same artist, by name, when both have one. Lookup ids come in phase 5.
+/// Same artist, by name, when both have one.
 bool _sameArtist(Entry a, Entry b) =>
     _norm(a.creator).isNotEmpty && _norm(a.creator) == _norm(b.creator);
 
@@ -30,9 +30,21 @@ List<Entry> songsFromAlbum(Library library, Entry album) => library.entries
     )
     .toList();
 
-/// The album entry [song] is from, if saved. No album info on the song
-/// means no match. Saving the song then asks D13.
-Entry? albumOfSong(Library library, Entry song) {
+/// The album entry [song] is from, if saved: the one with the song's
+/// album id ([albumSource], from the lookup) when both are known, else by
+/// artist and album title. No album info on the song means no match.
+/// Saving the song then asks D13.
+Entry? albumOfSong(Library library, Entry song, {String? albumSource}) {
+  if (albumSource != null) {
+    for (final e in library.entries) {
+      if (e.type == MediaType.music &&
+          e.kind != MusicKind.song &&
+          e.id != song.id &&
+          e.source == albumSource) {
+        return e;
+      }
+    }
+  }
   if (_norm(song.album).isEmpty) return null;
   for (final e in library.entries) {
     if (e.type == MediaType.music &&

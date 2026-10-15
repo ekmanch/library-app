@@ -7,7 +7,8 @@ import '../data/images/artwork_resolver.dart';
 import '../data/library_providers.dart';
 import '../data/lookup/lookup_failure.dart';
 import '../data/lookup/lookup_providers.dart';
-import '../data/storage/json_file.dart';
+import '../data/lookup/track_list_service.dart';
+import '../data/lookup/track_list_store.dart';
 import 'fake_images.dart';
 import 'fake_lookup.dart';
 
@@ -37,18 +38,16 @@ List<Override> fakeLookupOverrides({
   appCacheDirectoryProvider.overrideWithValue(
     cacheDirectory ?? Directory.systemTemp.createTempSync('libri-cache-'),
   ),
-  // Records are written at once, so no write timer is pending when a
-  // widget test ends.
+  // The resolver's records and the track lists stay in memory: no file
+  // the widget tests would have to wait for, no write timer pending.
   artworkResolverProvider.overrideWith(
-    (ref) => ArtworkResolver(
+    (ref) => ArtworkResolver(lookups: ref.watch(lookupServiceProvider)),
+  ),
+  trackListServiceProvider.overrideWith(
+    (ref) => TrackListService(
       lookups: ref.watch(lookupServiceProvider),
-      cache: JsonFile(
-        File(
-          '${ref.watch(appCacheDirectoryProvider).path}'
-          '${Platform.pathSeparator}artwork.json',
-        ),
-      ),
-      writeDelay: Duration.zero,
+      resolver: ref.watch(artworkResolverProvider),
+      store: MemoryTrackListStore(),
     ),
   ),
 ];
