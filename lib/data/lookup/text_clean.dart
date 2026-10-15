@@ -25,3 +25,18 @@ String stripHtml(String html) {
       .replaceAll(RegExp(r'\n{3,}'), '\n\n');
   return text.trim();
 }
+
+/// Whether two titles are the same once case, punctuation, diacritics and
+/// a leading "The" are set aside: "Salem's Lot" is "Salems lot", "The
+/// Mummy" is "Mummy".
+bool sameTitle(String a, String b) => _titleKey(a) == _titleKey(b);
+
+String _titleKey(String title) {
+  var key = title
+      .toLowerCase()
+      .replaceAll(RegExp(r"['’]"), '')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
+      .trim();
+  if (key.startsWith('the ')) key = key.substring(4);
+  return key.replaceAll(' ', '');
+}
