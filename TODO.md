@@ -145,11 +145,15 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 
 ## Phase 5: Lookups and images
 
-- [ ] A13 Pick a match for real: TMDB (movies, shows), AniList (anime), Google Books or Open Library (books), Steam then IGDB (games), a music source for albums and tracks
-- [ ] Fill in released, creator, description and album from the match
-- [ ] Covers and artist photos, cached on the device
-- [ ] Track lists for A22, cached on the device
-- [ ] API keys kept out of the repo
+Built on 2026-10-15; the decisions are in DESIGN.md section 10 and 10c.
+
+- [x] A13 Pick a match for real: TMDB (movies, shows), AniList (anime), Open Library with a Google Books fill-in (books), IGDB (games), Deezer (albums, songs); loading, offline, "not set up" and partial-failure states; the full details fetched on the pick
+- [x] Fill in released, creator, description, album, platforms and tag suggestions from the match, and the lookup id into `source`
+- [x] Covers and artist photos in the photo views, cached on the device; entries without a `source` are matched on the device (`artwork.json`), never written back; pruned once per session
+- [x] Track lists for A22 from Deezer, cached on the device; ratings stored under earlier ids still match by title
+- [x] API keys kept out of the repo: `secrets.json` (git-ignored) through `--dart-define-from-file`, `secrets.example.json` committed; a missing key means "not set up", never a crash
+- [x] "Look up again" from A8: A13 as a picker on the entry's type and title; a pick sets `source`, fills only the empty fields and replaces the device-matched cover
+- [x] Opt-in live test against the real providers (`LIBRI_LIVE_LOOKUPS=1`)
 
 ## Later
 
@@ -158,5 +162,6 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [ ] Linux desktop layout
 - [ ] Split `library.json` per type if it grows too large
 - [ ] General "Show cover images" data-saving option
+- [ ] Store the album's lookup id on song entries so D12 (saving an album when its songs exist) can match by id, as D13 does
 - [ ] About dialog: tapping the version line in Settings opens a small dialog with the app icon, Libri version and a credits line for the lookup sources. TMDB requires attribution, so this is the one exception to "no provider names in the UI".
 - [ ] Move lookup API keys off the device: research a small proxy (Cloudflare Workers free tier as first candidate) that holds the TMDB/IGDB/Google Books keys as server secrets and forwards lookup requests, so no key is compiled into the APK. Consider Play Integrity to limit who can call it. Only needed if the app is ever distributed beyond my own phone.
