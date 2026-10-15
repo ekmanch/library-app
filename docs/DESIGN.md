@@ -193,7 +193,8 @@ Greeting screens, to be built later in phase 1 (see TODO.md). The canvas has F1 
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-10-01"
+      "added": "2026-10-01",
+      "source": null
     }
   ],
   "plans": [
@@ -226,7 +227,7 @@ Field rules:
 - `platform` (games) uses spelled-out names, one spelling per platform: "PlayStation 5", not "PS5" (see `lib/data/models/platform_names.dart`).
 - `when` on a plan item: `null`, or `from` and `to` (equal for a single day).
 - Type-specific fields: `platform` (games), `formats` (books: `audiobook`, `physical`), and for music `kind` (`album` or `song`), `album` (songs, optional), `tracks` (albums, optional: `[{ "title", "id", "rating" }]`).
-- Lookup IDs for entries (to re-fetch covers and track lists) can be added as a `source` field when lookups are built.
+- `source`: the lookup id the entry was found by (to re-fetch covers and track lists), for example `"tmdb:movie:694"`, or `null`. Always written, right after `added` and before the type-specific fields; `null` for every migrated entry and for entries added by hand. The data repo's validator only checks that it is text or `null`, not its format.
 
 Not in the file: covers, track lists, view choices, theme, sort order. Those are caches or device preferences.
 

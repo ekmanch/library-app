@@ -158,3 +158,5 @@ Built on 2026-10-13; the decisions are in DESIGN.md section 10b.
 - [ ] Linux desktop layout
 - [ ] Split `library.json` per type if it grows too large
 - [ ] General "Show cover images" data-saving option
+- [ ] About dialog: tapping the version line in Settings opens a small dialog with the app icon, Libri version and a credits line for the lookup sources. TMDB requires attribution, so this is the one exception to "no provider names in the UI".
+- [ ] Move lookup API keys off the device: research a small proxy (Cloudflare Workers free tier as first candidate) that holds the TMDB/IGDB/Google Books keys as server secrets and forwards lookup requests, so no key is compiled into the APK. Consider Play Integrity to limit who can call it. Only needed if the app is ever distributed beyond my own phone.
