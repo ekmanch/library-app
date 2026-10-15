@@ -59,68 +59,74 @@ class _SearchFieldState extends State<SearchField> {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final onChanged = widget.onChanged;
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.only(left: 14, right: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        // One outline: the accent while typing, the field outline at rest.
-        border: Border.all(
-          color: _focus.hasFocus
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outline,
+    // A tap anywhere in the 52 dp box focuses the field; the field itself
+    // is one line, centered by layout. (An expanding multi-line field
+    // centered through textAlignVertical sat its text at the top on
+    // Android once the keyboard's suggestion strip was up.)
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _focus.requestFocus(),
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.only(left: 14, right: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          // One outline: the accent while typing, the field outline at rest.
+          border: Border.all(
+            color: _focus.hasFocus
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          StrokeIcon(AppIcons.search, color: colors.muted),
-          const SizedBox(width: 10),
-          Expanded(
-            // The field fills the box's height, so the whole 52 dp box is
-            // its touch area, with the text centered in it.
-            child: TextField(
-              expands: true,
-              maxLines: null,
-              textAlignVertical: TextAlignVertical.center,
-              controller: controller,
-              focusNode: _focus,
-              autofocus: widget.autofocus,
-              onChanged: onChanged,
-              onSubmitted: widget.onSubmitted,
-              textInputAction: widget.textInputAction,
-              textCapitalization: widget.textCapitalization,
-              style: theme.textTheme.bodyLarge!.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+        child: Row(
+          children: [
+            StrokeIcon(AppIcons.search, color: colors.muted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Center(
+                child: TextField(
+                  maxLines: 1,
+                  controller: controller,
+                  focusNode: _focus,
+                  autofocus: widget.autofocus,
+                  onChanged: onChanged,
+                  onSubmitted: widget.onSubmitted,
+                  textInputAction: widget.textInputAction,
+                  textCapitalization: widget.textCapitalization,
+                  style: theme.textTheme.bodyLarge!.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: widget.hintText,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
               ),
             ),
-          ),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (context, value, _) => value.text.isEmpty
-                ? const SizedBox(width: 10)
-                : IconButton(
-                    onPressed: () {
-                      controller.clear();
-                      onChanged?.call('');
-                    },
-                    tooltip: widget.clearTooltip,
-                    icon: const StrokeIcon(AppIcons.close, size: 18),
-                  ),
-          ),
-        ],
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => value.text.isEmpty
+                  ? const SizedBox(width: 10)
+                  : IconButton(
+                      onPressed: () {
+                        controller.clear();
+                        onChanged?.call('');
+                      },
+                      tooltip: widget.clearTooltip,
+                      icon: const StrokeIcon(AppIcons.close, size: 18),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
