@@ -395,6 +395,28 @@ void main() {
     container.read(libraryFilterProvider.notifier).clear();
     await tester.pumpAndSettle();
 
+    // A8 with "Look up again", and A13 as the picker it opens (phase 5).
+    await pickChip(tester, 'Movies');
+    await tester.ensureVisible(find.text('Dune: Part Two'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dune: Part Two'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a8-look-up-again');
+    await tester.tap(find.text('Look up again'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Dune');
+    await tester.pump(NewEntryScreen.debounce);
+    await tester.pumpAndSettle();
+    await capture(tester, 'a13-look-up-again');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await closeSheet(tester);
+    await pickChip(tester, 'All');
+
     // A20: Movies as a list with covers.
     await pickChip(tester, 'Movies');
     await pickView(tester, 'List with covers');

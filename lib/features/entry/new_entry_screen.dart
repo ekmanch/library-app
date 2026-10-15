@@ -39,21 +39,41 @@ Future<Entry?> openNewEntryScreen(
   );
 }
 
+/// "Look up again" from the form (A8): the same screen as A13, started on
+/// the entry's type and title, that hands the picked match back instead
+/// of opening a form. Resolves with null when nothing was picked.
+Future<LookupMatch?> openMatchPicker(
+  BuildContext context, {
+  required MediaType type,
+  required String title,
+}) {
+  return Navigator.of(context, rootNavigator: true).push<LookupMatch>(
+    MaterialPageRoute(
+      builder: (_) =>
+          NewEntryScreen(initialType: type, initialTitle: title, pick: true),
+    ),
+  );
+}
+
 /// New entry: pick a match (A13). The title typed here is looked up online
 /// once typing pauses; a match is fetched in full and opens the form
 /// prefilled, "Fill in the details myself" opens it with just the title
-/// and type. Nothing here names a provider.
+/// and type. With [pick] the screen is "Look up again": a match is handed
+/// back to the form that asked, and there is no "Fill in" button. Nothing
+/// here names a provider.
 class NewEntryScreen extends ConsumerStatefulWidget {
   const NewEntryScreen({
     super.key,
     this.initialType,
     this.initialTitle,
     this.initialTags = const [],
+    this.pick = false,
   });
 
   final MediaType? initialType;
   final String? initialTitle;
   final List<String> initialTags;
+  final bool pick;
 
   /// How long typing pauses before the lookup runs.
   static const debounce = Duration(milliseconds: 400);
@@ -145,6 +165,10 @@ class _NewEntryScreenState extends ConsumerState<NewEntryScreen> {
       if (!mounted) return;
       setState(() => _opening = null);
     }
+    if (widget.pick) {
+      Navigator.pop(context, picked);
+      return;
+    }
     final saved = await openNewEntryForm(
       context,
       type: _type,
@@ -169,7 +193,7 @@ class _NewEntryScreenState extends ConsumerState<NewEntryScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PageHeader(
-              title: 'New entry',
+              title: widget.pick ? 'Look up again' : 'New entry',
               onBack: () => Navigator.pop(context),
             ),
             Padding(
@@ -293,27 +317,28 @@ class _NewEntryScreenState extends ConsumerState<NewEntryScreen> {
                       ],
                     ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (matches.isNotEmpty) ...[
-                    Text(
-                      'Not listed?',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall,
+            if (!widget.pick)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (matches.isNotEmpty) ...[
+                      Text(
+                        'Not listed?',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    AppButton(
+                      label: 'Fill in the details myself',
+                      kind: AppButtonKind.outline,
+                      onPressed: _opening == null ? () => _open() : null,
                     ),
-                    const SizedBox(height: 6),
                   ],
-                  AppButton(
-                    label: 'Fill in the details myself',
-                    kind: AppButtonKind.outline,
-                    onPressed: _opening == null ? () => _open() : null,
-                  ),
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),

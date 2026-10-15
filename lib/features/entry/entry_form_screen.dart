@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/images/artwork_providers.dart';
 import '../../data/library_providers.dart';
 import '../../data/models/book_format.dart';
 import '../../data/lookup/lookup_match.dart';
@@ -26,6 +27,7 @@ import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segmented_control.dart';
 import '../settings/display_preferences.dart';
+import 'new_entry_screen.dart';
 import 'released_sheet.dart';
 import 'rating_sheet.dart';
 import 'replace_dialogs.dart';
@@ -131,6 +133,11 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   /// The lookup id, from the match or the entry. Cleared when the type
   /// changes, since the id would point at the wrong thing.
   String? _source;
+
+  /// The match the form was filled from: the one it opened with, or one
+  /// picked with "Look up again". While there is none the form offers to
+  /// look the entry up.
+  LookupMatch? _match;
   bool _saving = false;
 
   @override
@@ -138,6 +145,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     super.initState();
     final entry = widget.entry;
     final match = widget.match;
+    _match = match;
     _type = entry?.type ?? match?.type ?? widget.type ?? MediaType.movies;
     _kind =
         entry?.kind ??
@@ -250,7 +258,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   /// new names offered under the field. At most six in total.
   void _prepareSuggestions(Library library) {
     _suggestionsPrepared = true;
-    final match = widget.match;
+    final match = _match;
     if (match == null) return;
     final existing = library.allTags;
     final matched = <String>[];
@@ -296,6 +304,44 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       _newTags[tag] = category;
       _tags.add(tag);
     });
+  }
+
+  /// "Look up again": A13 on this entry's type and title; a pick fills in
+  /// what the form has empty and sets the source. The owner's own text is
+  /// never overwritten.
+  Future<void> _lookUpAgain() async {
+    final match = await openMatchPicker(
+      context,
+      type: _type,
+      title: _title.text.trim(),
+    );
+    if (match == null || !mounted) return;
+    setState(() => _applyMatch(match));
+  }
+
+  void _applyMatch(LookupMatch match) {
+    _match = match;
+    _source = match.source;
+    if (_title.text.trim().isEmpty) _title.text = match.title;
+    if (_creator.text.trim().isEmpty && match.creator != null) {
+      _creator.text = match.creator!;
+    }
+    _released ??= match.released;
+    if (_description.isEmpty) _description = match.description;
+    if (_type == MediaType.music) {
+      _kind = match.album == null ? MusicKind.album : MusicKind.song;
+      if (_album.text.trim().isEmpty && match.album != null) {
+        _album.text = match.album!;
+      }
+    }
+    for (final platform in match.platforms) {
+      _addPlatformOption(platform);
+    }
+    // The tag suggestions are matched against the library on the next
+    // build, as for a new entry.
+    _suggestedExisting = const [];
+    _suggestedNew = const [];
+    _suggestionsPrepared = false;
   }
 
   void _pickType(MediaType type) {
@@ -425,6 +471,10 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     if (widget.isEditing) {
       await repository.apply(UpdateEntry(entry));
       saved = entry;
+      // A new source replaces the cover that was matched on the device.
+      if (entry.source != widget.entry!.source) {
+        ref.read(artworkResolverProvider).forget(entry.id);
+      }
     } else {
       final result = await repository.apply(AddEntry(entry));
       saved = result.entries.last;
@@ -471,7 +521,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 children: [
-                  if (widget.match != null) ...[
+                  if (_match == null) ...[
+                    AppButton(
+                      label: 'Look up again',
+                      kind: AppButtonKind.outline,
+                      onPressed: _lookUpAgain,
+                    ),
+                    const SizedBox(height: 14),
+                  ] else ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,

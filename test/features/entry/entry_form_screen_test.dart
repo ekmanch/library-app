@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/book_format.dart';
+import 'package:library_app/data/models/entry.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/models/music_kind.dart';
@@ -11,6 +12,7 @@ import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/entry/tag_picker_sheet.dart';
 import 'package:library_app/features/entry/entry_form_screen.dart';
+import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/dev/fake_lookup.dart';
 import 'package:library_app/widgets/chips.dart';
@@ -178,6 +180,110 @@ void main() {
     final saved = repo(container).current!.entries.last;
     expect(saved.type, MediaType.movies);
     expect(saved.source, isNull);
+  });
+
+  group('Look up again', () {
+    /// Dracula without its details, under a title the fake catalog knows.
+    Entry bare() => loadFixture()
+        .entryById('books/dracula-1897')!
+        .copyWith(
+          title: 'Carrie',
+          creator: null,
+          released: null,
+          description: '',
+          tags: [],
+          note: 'Keep me',
+        );
+
+    testWidgets('a pick fills only what is empty and sets the source', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, EntryFormScreen.edit(bare()));
+      expect(find.text('Look up again'), findsOneWidget);
+      expect(find.textContaining('Details fetched online'), findsNothing);
+
+      await tester.tap(find.text('Look up again'));
+      await tester.pumpAndSettle();
+      // The picker starts on the entry's type and title, with no footer.
+      expect(find.text('Look up again'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Carrie'), findsOneWidget);
+      expect(find.text('Fill in the details myself'), findsNothing);
+      await tester.pump(NewEntryScreen.debounce);
+      await tester.pumpAndSettle();
+      expect(find.text('BOOK · 1974'), findsOneWidget);
+      expect(find.text('MOVIE · 1976'), findsNothing);
+      await tester.tap(find.text('BOOK · 1974'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit entry'), findsOneWidget);
+      expect(find.text('Look up again'), findsNothing);
+      expect(find.textContaining('Details fetched online'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Stephen King'), findsOneWidget);
+      expect(find.text('1974'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      final saved = repo(container).current!.entryById('books/dracula-1897')!;
+      expect(saved.source, 'openlibrary:OL81613W');
+      expect(saved.creator, 'Stephen King');
+      expect(saved.released, const Released(1974));
+      expect(saved.description, isNotEmpty);
+      expect(saved.note, 'Keep me');
+      expect(saved.status, EntryStatus.done);
+      expect(saved.tags, contains('horror'));
+    });
+
+    testWidgets('the owner\'s own creator and year stay', (tester) async {
+      final dracula = loadFixture()
+          .entryById('books/dracula-1897')!
+          .copyWith(title: 'Carrie');
+      final container = await pumpApp(tester, EntryFormScreen.edit(dracula));
+      await tester.tap(find.text('Look up again'));
+      await tester.pumpAndSettle();
+      await tester.pump(NewEntryScreen.debounce);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BOOK · 1974'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Bram Stoker'), findsOneWidget);
+      expect(find.text('1897'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      final saved = repo(container).current!.entryById('books/dracula-1897')!;
+      expect(saved.creator, 'Bram Stoker');
+      expect(saved.released, const Released(1897));
+      expect(saved.source, 'openlibrary:OL81613W');
+    });
+
+    testWidgets('back without a pick changes nothing', (tester) async {
+      await pumpApp(tester, EntryFormScreen.edit(bare()));
+      await tester.tap(find.text('Look up again'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit entry'), findsOneWidget);
+      expect(find.text('Look up again'), findsOneWidget);
+      expect(find.textContaining('Details fetched online'), findsNothing);
+      expect(find.widgetWithText(TextField, 'Stephen King'), findsNothing);
+    });
+
+    testWidgets('the row is there for a new entry by hand', (tester) async {
+      await pumpApp(
+        tester,
+        const EntryFormScreen.create(type: MediaType.games, title: 'Zelda'),
+      );
+      expect(find.text('Look up again'), findsOneWidget);
+    });
+
+    testWidgets('the row is not there while a match is applied', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        EntryFormScreen.create(
+          match: FakeLookupSource.catalogSearch('akira').first,
+        ),
+      );
+      expect(find.text('Look up again'), findsNothing);
+    });
   });
 
   testWidgets('a song match gets the album field', (tester) async {
