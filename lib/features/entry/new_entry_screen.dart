@@ -457,10 +457,12 @@ class _MatchRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
+                  // Two lines, so a long title keeps the part that tells
+                  // it from the others ("The Last of Us: Left Behind").
                   Text(
                     match.title,
                     style: theme.textTheme.titleMedium,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (subtitle.isNotEmpty) ...[
