@@ -195,6 +195,55 @@ void main() {
     },
   );
 
+  test(
+    'the fill-in reads the volume itself when the list has no text',
+    () async {
+      final fill = GoogleBooksFillIn(
+        MockClient((request) async {
+          sent.add(request);
+          if (request.url.path.endsWith('/volumes')) {
+            expect(request.url.queryParameters['maxResults'], '10');
+            expect(request.url.queryParameters['projection'], 'full');
+            return json(200, {
+              'items': [
+                {
+                  'id': 'abc',
+                  'volumeInfo': {
+                    'imageLinks': {'thumbnail': 'http://g/abc.jpg'},
+                  },
+                },
+                {
+                  'id': 'def',
+                  'volumeInfo': {'title': 'Dracula'},
+                },
+              ],
+            });
+          }
+          expect(request.url.path, '/books/v1/volumes/abc');
+          return json(200, {
+            'id': 'abc',
+            'volumeInfo': {'description': 'The <b>Count</b>.'},
+          });
+        }),
+      );
+      sent = [];
+      final filled = await fill.lookUp('Dracula', author: 'Bram Stoker');
+      expect(sent.length, 2);
+      expect(filled.description, 'The Count.');
+      expect(filled.coverUrl, 'https://g/abc.jpg');
+
+      // Nothing listed: nothing asked further.
+      final none = await GoogleBooksFillIn(
+        MockClient((request) async {
+          sent.add(request);
+          return json(200, {'totalItems': 0});
+        }),
+      ).lookUp('Nothing');
+      expect(none.description, isNull);
+      expect(sent.length, 3);
+    },
+  );
+
   test('a failing fill-in leaves the gaps open rather than failing', () async {
     final ol = source((request) async {
       if (request.url.host == 'openlibrary.org') {

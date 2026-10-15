@@ -34,6 +34,21 @@ void main() {
   final client = http.Client();
   tearDownAll(client.close);
 
+  // Which keys this run has, so a quiet provider dashboard can be told
+  // from a key that never left the shell.
+  String masked(String name) {
+    final value = env[name] ?? '';
+    return value.isEmpty ? '$name unset' : '$name set (${value.length} chars)';
+  }
+
+  setUpAll(() {
+    // ignore: avoid_print
+    print(
+      'Live lookups: ${masked('TMDB_READ_TOKEN')}, ${masked('IGDB_CLIENT_ID')}, '
+      '${masked('IGDB_CLIENT_SECRET')}, ${masked('GOOGLE_BOOKS_KEY')}',
+    );
+  });
+
   test('AniList: search, details and cover', () async {
     final anilist = AniListSource(client);
     final hits = await anilist.search('Akira', type: MediaType.anime);

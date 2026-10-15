@@ -34,7 +34,10 @@ class GoogleBooksFillIn with LookupHttp {
   final Uri _baseUrl;
 
   /// A description and a cover for [title] (by [author] when known), either
-  /// null when Google Books has none. Throws [LookupException] on failure.
+  /// null when Google Books has none. The search lists up to ten volumes;
+  /// their records often leave the description out, so when none has one
+  /// the first volume's own record is read too. Throws [LookupException]
+  /// on failure.
   Future<({String? description, String? coverUrl})> lookUp(
     String title, {
     String? author,
@@ -49,30 +52,60 @@ class GoogleBooksFillIn with LookupHttp {
           queryParameters: {
             'q': q,
             'printType': 'books',
-            'maxResults': '3',
+            'projection': 'full',
+            'maxResults': '10',
             if (key.isNotEmpty) 'key': key,
           },
         ),
-        headers: {'Accept': 'application/json', 'User-Agent': userAgent},
+        headers: _headers,
       ),
     );
     check(response);
     String? description;
     String? cover;
+    String? firstId;
     for (final item in objectsAt(decodeObject(response), 'items')) {
-      final info = item['volumeInfo'] as Map<String, Object?>? ?? const {};
-      description ??= switch (stringAt(info, 'description')) {
-        final text? => stripHtml(text),
-        null => null,
-      };
-      final links = info['imageLinks'] as Map<String, Object?>? ?? const {};
-      cover ??= switch (stringAt(links, 'thumbnail')) {
-        final url? => cleanCoverUrl(url),
-        null => null,
-      };
+      firstId ??= stringAt(item, 'id');
+      final found = _read(item);
+      description ??= found.description;
+      cover ??= found.coverUrl;
       if (description != null && cover != null) break;
     }
+    if (description == null && firstId != null) {
+      final record = await send(
+        () => client.get(
+          _baseUrl.replace(
+            path: '${_baseUrl.path}/$firstId',
+            queryParameters: {if (key.isNotEmpty) 'key': key},
+          ),
+          headers: _headers,
+        ),
+      );
+      check(record);
+      final found = _read(decodeObject(record));
+      description = found.description;
+      cover ??= found.coverUrl;
+    }
     return (description: description, coverUrl: cover);
+  }
+
+  Map<String, String> get _headers => {
+    'Accept': 'application/json',
+    'User-Agent': userAgent,
+  };
+
+  /// What one volume record carries.
+  static ({String? description, String? coverUrl}) _read(
+    Map<String, Object?> item,
+  ) {
+    final info = item['volumeInfo'] as Map<String, Object?>? ?? const {};
+    final text = stringAt(info, 'description');
+    final links = info['imageLinks'] as Map<String, Object?>? ?? const {};
+    final thumb = stringAt(links, 'thumbnail');
+    return (
+      description: text == null ? null : stripHtml(text),
+      coverUrl: thumb == null ? null : cleanCoverUrl(thumb),
+    );
   }
 
   /// Google's thumbnails come over http with a page-curl effect baked in.
