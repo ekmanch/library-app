@@ -43,4 +43,12 @@ void main() {
       expect(findSimilarTag('sci-fi', ['scify', 'scifi']), 'scifi');
     });
   });
+
+  test('canonicalTag maps a lookup\'s synonyms to the library\'s spelling', () {
+    expect(canonicalTag('Science Fiction'), 'scifi');
+    expect(canonicalTag('sci-fi'), 'scifi');
+    expect(canonicalTag('#Horror tales'), 'horror');
+    expect(canonicalTag('Role-playing RPG'), 'rpg');
+    expect(canonicalTag('grunge'), 'grunge');
+  });
 }

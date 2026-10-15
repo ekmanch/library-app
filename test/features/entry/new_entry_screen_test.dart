@@ -244,13 +244,15 @@ void main() {
     ) async {
       await pumpWith(tester, configured: false, mediaType: MediaType.games);
       expect(
-        find.text('Lookups for games are not set up on this build.'),
+        find.text(
+          'Lookups for games are not set up on this build (no API key).',
+        ),
         findsOneWidget,
       );
       expect(find.text('Try again'), findsNothing);
       await pickChip(tester, 'All');
       expect(
-        find.text('Lookups are not set up on this build.'),
+        find.text('Lookups are not set up on this build (no API keys).'),
         findsOneWidget,
       );
       expect(find.text('Fill in the details myself'), findsOneWidget);

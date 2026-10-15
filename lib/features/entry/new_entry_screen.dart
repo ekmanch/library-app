@@ -270,9 +270,11 @@ class _NewEntryScreenState extends ConsumerState<NewEntryScreen> {
                         else if (result.notConfigured)
                           _Notice(
                             _type == null
-                                ? 'Lookups are not set up on this build.'
+                                ? 'Lookups are not set up on this build '
+                                      '(no API keys).'
                                 : 'Lookups for ${_type!.label.toLowerCase()} '
-                                      'are not set up on this build.',
+                                      'are not set up on this build '
+                                      '(no API key).',
                           )
                         else if (result.allFailed case final failure?)
                           _Notice(

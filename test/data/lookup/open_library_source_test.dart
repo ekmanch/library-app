@@ -27,12 +27,15 @@ void main() {
     'cover_i': 8739161,
     'subject': [
       'Vampires',
-      'Fiction',
+      'award:bram_stoker_award=1897',
+      'Fiction, horror, general',
       'Horror',
-      'Transylvania',
+      'English fiction -- 19th century -- History and criticism',
+      'Transylvania (Romania) -- Fiction',
       'Gothic',
       'Classic',
       'Extra',
+      'Another',
     ],
   };
 
@@ -84,7 +87,14 @@ void main() {
         hits[0].coverUrl,
         'https://covers.openlibrary.org/b/id/8739161-M.jpg',
       );
-      expect(hits[0].tags.length, OpenLibrarySource.maxSubjects);
+      expect(hits[0].tags, [
+        'Vampires',
+        'Horror',
+        'Gothic',
+        'Classic',
+        'Extra',
+        'Another',
+      ]);
       expect(hits[0].description, '');
       expect(hits[1].coverUrl, isNull);
       expect(hits[1].released, isNull);

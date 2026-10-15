@@ -13,6 +13,43 @@ String normalizeTag(String raw) {
       .replaceAll(RegExp(r'^-+|-+$'), '');
 }
 
+/// The library's spelling of a genre a lookup names another way:
+/// "science-fiction" is "scifi". Applied to a lookup's suggestions before
+/// they are matched against the existing tags, so a synonym is never
+/// offered as a new tag beside the one that is there.
+const tagAliases = <String, String>{
+  'science-fiction': 'scifi',
+  'sci-fi': 'scifi',
+  'sf': 'scifi',
+  'science-fiction-fiction': 'scifi',
+  'fantasy-fiction': 'fantasy',
+  'horror-fiction': 'horror',
+  'horror-tales': 'horror',
+  'horror-stories': 'horror',
+  'comedies': 'comedy',
+  'comedy-films': 'comedy',
+  'thrillers': 'thriller',
+  'thriller-fiction': 'thriller',
+  'mystery-fiction': 'mystery',
+  'detective-and-mystery-stories': 'mystery',
+  'romance-fiction': 'romance',
+  'love-stories': 'romance',
+  'role-playing-rpg': 'rpg',
+  'role-playing': 'rpg',
+  'platform': 'platformer',
+  'hack-and-slash-beat-em-up': 'hack-and-slash',
+  'turn-based-strategy-tbs': 'strategy',
+  'real-time-strategy-rts': 'strategy',
+  'slice-of-life': 'slice-of-life',
+};
+
+/// [normalizeTag] with any brackets dropped ("Role-playing (RPG)"), then
+/// the library's spelling when [tagAliases] has one.
+String canonicalTag(String raw) {
+  final name = normalizeTag(raw.replaceAll(RegExp(r'[()\[\]]'), ' '));
+  return tagAliases[name] ?? name;
+}
+
 /// The existing tag most like [candidate], or null when none is close.
 ///
 /// Two names are similar when they are the same once hyphens are ignored,

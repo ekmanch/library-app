@@ -264,7 +264,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final matched = <String>[];
     final fresh = <String>[];
     for (final raw in match.tags) {
-      final name = normalizeTag(raw);
+      final name = canonicalTag(raw);
       if (name.isEmpty) continue;
       final hit = existing.contains(name)
           ? name

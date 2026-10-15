@@ -31,6 +31,14 @@ class OpenLibrarySource extends HttpLookupSource {
   /// How many subjects become tag suggestions; the form keeps six at most.
   static const maxSubjects = 6;
 
+  /// Open Library's subjects mix genres with catalog notes ("Fiction, science
+  /// fiction, general"), pseudo-tags ("award:hugo_award=1960") and long
+  /// headings; only short plain ones make sense as tags.
+  static bool _isTagLike(String subject) =>
+      subject.length <= 24 &&
+      !subject.contains(RegExp(r'[:=,(){}\[\]/]')) &&
+      subject.trim().split(RegExp(r'\s+')).length <= 3;
+
   @override
   String get id => 'openlibrary';
 
@@ -77,8 +85,12 @@ class OpenLibrarySource extends HttpLookupSource {
       released: year is num ? Released(year.toInt()) : null,
       creator: authors.isEmpty ? null : authors.join(', '),
       tags: [
-        for (final s in (doc['subject'] as List? ?? const []).take(maxSubjects))
-          '$s',
+        for (final s
+            in (doc['subject'] as List? ?? const [])
+                .map((s) => '$s')
+                .where(_isTagLike)
+                .take(maxSubjects))
+          s,
       ],
       coverUrl: coverId is num && coverId > 0
           ? _cover(coverId.toInt(), '-M')
