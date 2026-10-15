@@ -9,3 +9,11 @@ Future<void> writeAtomically(File file, String text) async {
   await temp.writeAsString(text, flush: true);
   await temp.rename(file.path);
 }
+
+/// [writeAtomically] for bytes (cover images).
+Future<void> writeBytesAtomically(File file, List<int> bytes) async {
+  await file.parent.create(recursive: true);
+  final temp = File('${file.path}.tmp');
+  await temp.writeAsBytes(bytes, flush: true);
+  await temp.rename(file.path);
+}
