@@ -7,6 +7,7 @@ import '../../dev/fake_lookup.dart';
 import '../library_providers.dart';
 import '../storage/json_file.dart';
 import 'anilist_source.dart';
+import 'deezer_source.dart';
 import 'google_books_fill_in.dart';
 import 'igdb_source.dart';
 import 'igdb_token_store.dart';
@@ -41,6 +42,7 @@ final lookupSourcesProvider = Provider<List<LookupSource>>((ref) {
       client,
       fillIn: GoogleBooksFillIn(client, key: LookupKeys.googleBooksKey),
     ),
+    DeezerSource(client),
   ];
 });
 
