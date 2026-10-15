@@ -5,7 +5,7 @@ import '../../data/models/media_type.dart';
 import '../../widgets/entry_row.dart';
 import '../settings/entry_view.dart';
 import '../shell/app_shell.dart';
-import 'cover_placeholder.dart';
+import '../../widgets/cover_image.dart';
 import 'entry_list_views.dart';
 import 'entry_sections.dart';
 import 'library_sort.dart';
@@ -80,7 +80,7 @@ class EntryListBody extends StatelessWidget {
         today: today,
         onTap: () => onTap(entry),
         leading: view == EntryView.listWithPhotos
-            ? CoverPlaceholder(entry: entry, width: 40)
+            ? CoverImage(entry: entry, width: 40)
             : null,
       ),
       flatSlivers: entryListSlivers(

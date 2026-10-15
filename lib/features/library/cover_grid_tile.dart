@@ -4,7 +4,7 @@ import '../../data/models/entry.dart';
 import '../../data/models/entry_status.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
-import 'cover_placeholder.dart';
+import '../../widgets/cover_image.dart';
 
 /// One cell of the grid with covers (A21, L4): the cover, a title of up to
 /// two lines and the year. A check badge on the cover means Done; the
@@ -60,7 +60,7 @@ class CoverGridTile extends StatelessWidget {
           children: [
             Stack(
               children: [
-                CoverPlaceholder(
+                CoverImage(
                   entry: entry,
                   width: constraints.maxWidth,
                   fontSize: 13,

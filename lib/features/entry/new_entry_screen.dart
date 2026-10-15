@@ -12,6 +12,7 @@ import '../../data/models/media_type.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/cached_image.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
@@ -404,13 +405,17 @@ class _MatchRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
+            CachedImage(
+              url: match.coverUrl,
               width: 44,
               height: match.type == MediaType.music ? 44 : 66,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.colorScheme.outline),
+              borderRadius: BorderRadius.circular(8),
+              placeholder: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: theme.colorScheme.outline),
+                ),
               ),
             ),
             const SizedBox(width: 12),

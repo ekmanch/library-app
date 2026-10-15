@@ -7,7 +7,8 @@ import '../../data/models/media_type.dart';
 import '../../widgets/entry_row.dart';
 import '../settings/entry_view.dart';
 import 'cover_grid_tile.dart';
-import 'cover_placeholder.dart';
+import '../../widgets/cover_image.dart';
+import '../../widgets/cover_placeholder.dart';
 import 'sectioned_list_body.dart';
 
 /// Row heights and grid metrics, shared with the jump rail so that section
@@ -86,7 +87,7 @@ List<Widget> entryListSlivers({
             entries[i],
             today: today,
             onTap: () => onTap(entries[i]),
-            leading: CoverPlaceholder(entry: entries[i], width: 40),
+            leading: CoverImage(entry: entries[i], width: 40),
           ),
         ),
       ];

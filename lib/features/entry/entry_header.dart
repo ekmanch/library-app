@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/entry.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/entry_row.dart';
-import '../library/cover_placeholder.dart';
+import '../../widgets/cover_image.dart';
 
 /// The top of a details sheet (A6, A22, S7): the cover spot when a photo
 /// view is chosen, the kind and year in the type color, the title and the
@@ -31,7 +31,7 @@ class EntryHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showCover) ...[
-          CoverPlaceholder(entry: entry, width: 84, fontSize: 10),
+          CoverImage(entry: entry, width: 84, fontSize: 10, labeled: true),
           const SizedBox(width: 14),
         ],
         Expanded(

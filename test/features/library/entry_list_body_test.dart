@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry.dart';
 import 'package:library_app/data/models/released.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
 import 'package:library_app/features/library/entry_list_body.dart';
 import 'package:library_app/features/library/library_sort.dart';
@@ -30,16 +32,20 @@ Future<void> pumpBody(
   await tester.binding.setSurfaceSize(const Size(390, 844));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    MaterialApp(
-      theme: buildTheme(brightness: Brightness.dark),
-      home: Scaffold(
-        body: EntryListBody(
-          entries: sortEntries(entries, sort),
-          sort: sort,
-          view: view,
-          color: Colors.amber,
-          onTap: (_) {},
-          today: DateTime(2026, 10, 10),
+    // The covers in the grid need the (fake) lookups and image cache.
+    ProviderScope(
+      overrides: fakeLookupOverrides(),
+      child: MaterialApp(
+        theme: buildTheme(brightness: Brightness.dark),
+        home: Scaffold(
+          body: EntryListBody(
+            entries: sortEntries(entries, sort),
+            sort: sort,
+            view: view,
+            color: Colors.amber,
+            onTap: (_) {},
+            today: DateTime(2026, 10, 10),
+          ),
         ),
       ),
     ),

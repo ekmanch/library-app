@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter_riverpod/misc.dart';
 
 import '../data/images/artwork_providers.dart';
+import '../data/images/artwork_resolver.dart';
 import '../data/library_providers.dart';
 import '../data/lookup/lookup_failure.dart';
 import '../data/lookup/lookup_providers.dart';
+import '../data/storage/json_file.dart';
 import 'fake_images.dart';
 import 'fake_lookup.dart';
 
@@ -20,6 +22,7 @@ List<Override> fakeLookupOverrides({
   LookupFailure? failure,
   bool configured = true,
   Directory? cacheDirectory,
+  Set<String>? failingImages,
 }) => [
   lookupSourcesProvider.overrideWithValue([
     FakeLookupSource(
@@ -28,11 +31,24 @@ List<Override> fakeLookupOverrides({
       configured: configured,
     ),
   ]),
-  imageFetcherProvider.overrideWithValue(FakeImageFetcher(latency: latency)),
+  imageFetcherProvider.overrideWithValue(
+    FakeImageFetcher(latency: latency, failing: failingImages),
+  ),
   appCacheDirectoryProvider.overrideWithValue(
     cacheDirectory ?? Directory.systemTemp.createTempSync('libri-cache-'),
   ),
-  // The session prune and its timer stay out of tests and walks; the
-  // prune itself has its own test.
-  artworkPrunerProvider.overrideWith((ref) {}),
+  // Records are written at once, so no write timer is pending when a
+  // widget test ends.
+  artworkResolverProvider.overrideWith(
+    (ref) => ArtworkResolver(
+      lookups: ref.watch(lookupServiceProvider),
+      cache: JsonFile(
+        File(
+          '${ref.watch(appCacheDirectoryProvider).path}'
+          '${Platform.pathSeparator}artwork.json',
+        ),
+      ),
+      writeDelay: Duration.zero,
+    ),
+  ),
 ];

@@ -4,9 +4,10 @@ import '../../data/models/entry.dart';
 import '../../data/models/media_type.dart';
 import '../../theme/app_theme.dart';
 
-/// Stands in for a cover until images arrive in phase 5: a colored box
-/// with the title in it. Albums and songs are square, everything else is a
-/// 2:3 poster (the games shape is still open in DESIGN.md).
+/// Stands in for a cover: a colored box
+/// with the title in it, shown until the image is on the device (or when
+/// there is none). Albums and songs are square, everything else is a
+/// 2:3 poster; a game's 3:4 art is cropped to fit it.
 class CoverPlaceholder extends StatelessWidget {
   const CoverPlaceholder({
     super.key,

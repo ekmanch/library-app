@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
-import 'package:library_app/features/library/cover_placeholder.dart';
+import 'package:library_app/widgets/cover_placeholder.dart';
 
 import '../../helpers/sample_library.dart';
 

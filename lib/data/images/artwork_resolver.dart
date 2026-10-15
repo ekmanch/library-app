@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../lookup/deezer_source.dart';
 import '../lookup/lookup_failure.dart';
 import '../lookup/lookup_service.dart';
@@ -221,17 +223,20 @@ class ArtworkResolver {
     };
   }
 
-  /// Writes the records now, when something changed.
+  /// Writes the records now, when something changed, and waits for any
+  /// write still on its way.
   Future<void> flush() async {
     _writeTimer?.cancel();
     _writeTimer = null;
-    if (!_dirty) return;
-    _dirty = false;
-    await cache.write({
-      'version': 1,
-      'entries': {for (final e in _entries.entries) e.key: e.value.toJson()},
-      'artists': {for (final a in _artists.entries) a.key: a.value.toJson()},
-    });
+    if (_dirty) {
+      _dirty = false;
+      await cache.write({
+        'version': 1,
+        'entries': {for (final e in _entries.entries) e.key: e.value.toJson()},
+        'artists': {for (final a in _artists.entries) a.key: a.value.toJson()},
+      });
+    }
+    await cache.flush();
   }
 
   void dispose() {
@@ -245,6 +250,12 @@ class ArtworkResolver {
 
   void _markDirty() {
     _dirty = true;
+    if (writeDelay == Duration.zero) {
+      // No timer: the tests end with none pending. A failed write of a
+      // cache is not worth more than a line in the log.
+      unawaited(flush().catchError((Object e) => debugPrint('artwork: $e')));
+      return;
+    }
     _writeTimer ??= Timer(writeDelay, flush);
   }
 

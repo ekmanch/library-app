@@ -6,7 +6,7 @@ import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/entry/entry_details_sheet.dart';
-import 'package:library_app/features/library/cover_placeholder.dart';
+import 'package:library_app/widgets/cover_placeholder.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/settings/entry_view.dart';
 import 'package:library_app/widgets/segmented_control.dart';

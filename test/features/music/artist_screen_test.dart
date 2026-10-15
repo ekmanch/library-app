@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/data/models/released.dart';
-import 'package:library_app/features/library/cover_placeholder.dart';
+import 'package:library_app/widgets/cover_placeholder.dart';
 import 'package:library_app/features/music/artist_screen.dart';
 import 'package:library_app/features/music/music_tab.dart';
 import 'package:library_app/features/settings/display_preferences.dart';

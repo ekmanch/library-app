@@ -43,8 +43,12 @@ final artworkResolverProvider = Provider<ArtworkResolver>((ref) {
 
 /// Once per session, a little after the library first loads: drops the
 /// records and image files of entries and artists that are gone. The app
-/// shell watches it so it runs.
-final artworkPrunerProvider = Provider<void>((ref) {
+/// shell watches it so it runs. Does nothing unless `main` overrides it
+/// with [startArtworkPruner], so no test has a timer it did not ask for.
+final artworkPrunerProvider = Provider<void>((ref) {});
+
+/// The real pruner, for the root scope in `main`.
+void startArtworkPruner(Ref ref) {
   var done = false;
   Timer? timer;
   ref.listen(libraryProvider, (_, next) {
@@ -60,7 +64,7 @@ final artworkPrunerProvider = Provider<void>((ref) {
     });
   }, fireImmediately: true);
   ref.onDispose(() => timer?.cancel());
-});
+}
 
 /// The prune itself, also run by the tests.
 class ArtworkPruner {

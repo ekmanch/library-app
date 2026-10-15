@@ -6,6 +6,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_info.dart';
+import 'data/images/artwork_providers.dart';
 import 'data/github/token_store.dart';
 import 'data/library_codec.dart';
 import 'data/library_providers.dart';
@@ -81,6 +82,7 @@ Future<Widget> bootstrap(
       preferencesStoreProvider.overrideWithValue(preferences),
       initialDisplayPreferencesProvider.overrideWithValue(prefs),
       if (api != null) gitHubApiFactoryProvider.overrideWithValue(api),
+      artworkPrunerProvider.overrideWith(startArtworkPruner),
       if (longListsEnabled)
         libraryRepositoryProvider.overrideWithValue(
           FixtureLibraryRepository(loadJson: _loadPaddedFixture),

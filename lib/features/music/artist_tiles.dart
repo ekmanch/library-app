@@ -1,51 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_theme.dart';
 import '../library/cover_grid_tile.dart';
-import '../library/cover_placeholder.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/artist_photo.dart';
 import '../library/entry_list_views.dart';
 import 'artist_index.dart';
-
-/// Stands in for an artist photo until images arrive in phase 5: a round
-/// colored disc with the artist's initials. Artist photos are round.
-class ArtistAvatar extends StatelessWidget {
-  const ArtistAvatar({
-    super.key,
-    required this.artist,
-    required this.size,
-    this.initialsSize,
-  });
-
-  final ArtistSummary artist;
-  final double size;
-
-  /// Defaults to a third of the disc; the grid (A18) uses a fixed 22.
-  final double? initialsSize;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = LibraryColors.of(context).coverPlaceholders;
-    final color =
-        palette[CoverPlaceholder.paletteIndex(artist.name, palette.length)];
-    return Semantics(
-      excludeSemantics: true,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: Text(
-          artist.initials,
-          style: TextStyle(
-            fontSize: initialsSize ?? size * 0.34,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xCCFFFFFF),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// One artist in the text or list view (A14, A17): name and what is saved,
 /// "7 albums, 2 songs". A text row is 48 dp with the count on the right;
@@ -90,7 +49,11 @@ class ArtistRow extends StatelessWidget {
           child: photo
               ? Row(
                   children: [
-                    ArtistAvatar(artist: artist, size: 48),
+                    ArtistPhoto(
+                      name: artist.name,
+                      initials: artist.initials,
+                      size: 48,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -166,8 +129,9 @@ class ArtistGridTile extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) => Column(
             children: [
-              ArtistAvatar(
-                artist: artist,
+              ArtistPhoto(
+                name: artist.name,
+                initials: artist.initials,
                 size: constraints.maxWidth,
                 initialsSize: 22,
               ),

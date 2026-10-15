@@ -5,7 +5,7 @@ import 'package:library_app/data/models/media_type.dart';
 import 'package:library_app/data/models/music_kind.dart';
 import 'package:library_app/features/music/music_tab.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
-import 'package:library_app/features/library/cover_placeholder.dart';
+import 'package:library_app/widgets/cover_placeholder.dart';
 import 'package:library_app/features/library/entry_list_body.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/features/library/home_return_provider.dart';

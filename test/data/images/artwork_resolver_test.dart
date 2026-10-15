@@ -121,13 +121,18 @@ void main() {
   late JsonFile file;
   var now = DateTime(2026, 10, 15, 12);
 
-  ArtworkResolver resolver({int concurrency = 2}) => ArtworkResolver(
-    lookups: LookupService([stub]),
-    cache: file,
-    concurrency: concurrency,
-    now: () => now,
-    writeDelay: Duration.zero,
-  );
+  ArtworkResolver resolver({int concurrency = 2}) {
+    final r = ArtworkResolver(
+      lookups: LookupService([stub]),
+      cache: file,
+      concurrency: concurrency,
+      now: () => now,
+      writeDelay: Duration.zero,
+    );
+    // Every write lands before the folder goes.
+    addTearDown(r.flush);
+    return r;
+  }
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('artwork');

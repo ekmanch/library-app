@@ -9,7 +9,7 @@ import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/segmented_control.dart';
 import '../library/cover_grid_tile.dart';
-import '../library/cover_placeholder.dart';
+import '../../widgets/cover_image.dart';
 import '../library/entry_list_body.dart';
 import '../library/entry_list_views.dart';
 import '../library/entry_sections.dart';
@@ -251,9 +251,7 @@ class SongList extends StatelessWidget {
     final grid = view == EntryView.grid;
     final photo = view == EntryView.listWithPhotos;
     Widget row(SongItem item) {
-      final leading = photo
-          ? CoverPlaceholder(entry: item.entry, width: 40)
-          : null;
+      final leading = photo ? CoverImage(entry: item.entry, width: 40) : null;
       final track = item.track;
       if (track == null) {
         return EntryRow.forEntry(
