@@ -27,9 +27,10 @@ void main() {
       'description': '',
       'seasonal_only': false,
       'added': '2026-10-01',
+      'source': null,
     };
 
-    test('round-trips the common fields, writing null rating', () {
+    test('round-trips the common fields, writing null rating and source', () {
       final entry = Entry.fromJson(json);
       expect(entry.status, EntryStatus.inProgress);
       expect(entry.released, const Released(1999));
@@ -57,6 +58,24 @@ void main() {
         {'title': 'Rooster', 'id': 'mb:1', 'rating': 10},
       ]);
       expect(Entry.fromJson(dirt.toJson()), dirt);
+    });
+
+    test('source is written after added, null or a lookup id', () {
+      final entry = Entry.fromJson(json);
+      expect(entry.source, isNull);
+      final keys = entry.toJson().keys.toList();
+      expect(keys.indexOf('source'), keys.indexOf('added') + 1);
+
+      final linked = entry.copyWith(source: 'tmdb:movie:564');
+      expect(linked.toJson()['source'], 'tmdb:movie:564');
+      expect(Entry.fromJson(linked.toJson()), linked);
+      expect(linked.copyWith(source: null).source, isNull);
+    });
+
+    test('a file written before source existed decodes with a null one', () {
+      final old = {...json}..remove('source');
+      expect(Entry.fromJson(old).source, isNull);
+      expect(Entry.fromJson(old).toJson().containsKey('source'), isTrue);
     });
 
     test('copyWith can clear nullable fields', () {

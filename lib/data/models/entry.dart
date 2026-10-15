@@ -33,6 +33,13 @@ abstract class Entry with _$Entry {
     @Default('') String description,
     @JsonKey(name: 'seasonal_only') @Default(false) bool seasonalOnly,
     @DateOnlyConverter() required DateTime added,
+
+    /// The lookup id, "tmdb:movie:603", "deezer:album:302127",
+    /// "openlibrary:OL45804W", or null until a match is picked in A13 or
+    /// "Look up again". Always written, like `rating`. Covers and track lists
+    /// for entries without one are matched on the device and never stored
+    /// here. Changing the type clears it; editing the title never does.
+    String? source,
     // Games.
     @JsonKey(includeIfNull: false) String? platform,
     // Books.

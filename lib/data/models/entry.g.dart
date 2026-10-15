@@ -24,6 +24,7 @@ _Entry _$EntryFromJson(Map<String, dynamic> json) => _Entry(
   description: json['description'] as String? ?? '',
   seasonalOnly: json['seasonal_only'] as bool? ?? false,
   added: const DateOnlyConverter().fromJson(json['added'] as String),
+  source: json['source'] as String?,
   platform: json['platform'] as String?,
   formats: (json['formats'] as List<dynamic>?)
       ?.map((e) => $enumDecode(_$BookFormatEnumMap, e))
@@ -51,6 +52,7 @@ Map<String, dynamic> _$EntryToJson(_Entry instance) => <String, dynamic>{
   'description': instance.description,
   'seasonal_only': instance.seasonalOnly,
   'added': const DateOnlyConverter().toJson(instance.added),
+  'source': instance.source,
   'platform': ?instance.platform,
   'formats': ?instance.formats?.map((e) => _$BookFormatEnumMap[e]!).toList(),
   'kind': ?_$MusicKindEnumMap[instance.kind],

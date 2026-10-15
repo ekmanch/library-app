@@ -75,7 +75,8 @@
       "note": "Perfect October comfort film.",
       "description": "An American adventurer accidentally awakens a cursed high priest in 1920s Egypt.",
       "seasonal_only": false,
-      "added": "2025-10-02"
+      "added": "2025-10-02",
+      "source": null
     },
     {
       "id": "movies/the-thing-1982",
@@ -96,7 +97,8 @@
       "note": "",
       "description": "A research team in Antarctica is hunted by a shape-shifting alien.",
       "seasonal_only": false,
-      "added": "2025-10-05"
+      "added": "2025-10-05",
+      "source": null
     },
     {
       "id": "movies/hereditary-2018",
@@ -114,7 +116,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-09-14"
+      "added": "2026-09-14",
+      "source": null
     },
     {
       "id": "movies/the-nightmare-before-christmas-1993",
@@ -133,7 +136,8 @@
       "note": "",
       "description": "",
       "seasonal_only": true,
-      "added": "2025-10-20"
+      "added": "2025-10-20",
+      "source": null
     },
     {
       "id": "movies/die-hard-1988",
@@ -151,7 +155,8 @@
       "note": "Yes, it is a Christmas movie.",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-12-01"
+      "added": "2025-12-01",
+      "source": null
     },
     {
       "id": "movies/klaus-2019",
@@ -169,7 +174,8 @@
       "note": "",
       "description": "",
       "seasonal_only": true,
-      "added": "2026-09-30"
+      "added": "2026-09-30",
+      "source": null
     },
     {
       "id": "movies/dune-part-two-2024",
@@ -186,7 +192,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-03-11"
+      "added": "2026-03-11",
+      "source": null
     },
     {
       "id": "movies/the-batman-part-ii-2027",
@@ -203,7 +210,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-08-22"
+      "added": "2026-08-22",
+      "source": null
     },
     {
       "id": "movies/paddington-2-2017",
@@ -221,7 +229,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-10-01"
+      "added": "2026-10-01",
+      "source": null
     },
     {
       "id": "movies/knives-out-2019",
@@ -238,7 +247,8 @@
       "note": "Fell asleep twice. Not the film's fault.",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-02-14"
+      "added": "2026-02-14",
+      "source": null
     },
     {
       "id": "movies/amelie-2001",
@@ -256,7 +266,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-05-03"
+      "added": "2026-05-03",
+      "source": null
     },
     {
       "id": "shows/severance-2022",
@@ -274,7 +285,8 @@
       "note": "Season 2, episode 4.",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-09-20"
+      "added": "2026-09-20",
+      "source": null
     },
     {
       "id": "shows/the-haunting-of-hill-house-2018",
@@ -292,7 +304,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-10-12"
+      "added": "2025-10-12",
+      "source": null
     },
     {
       "id": "shows/twin-peaks-1990",
@@ -312,7 +325,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-06-07"
+      "added": "2025-06-07",
+      "source": null
     },
     {
       "id": "shows/over-the-garden-wall-2014",
@@ -331,7 +345,8 @@
       "note": "",
       "description": "",
       "seasonal_only": true,
-      "added": "2025-10-24"
+      "added": "2025-10-24",
+      "source": null
     },
     {
       "id": "shows/the-bear-2022",
@@ -348,7 +363,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-07-18"
+      "added": "2026-07-18",
+      "source": null
     },
     {
       "id": "shows/stranger-things-2016",
@@ -365,7 +381,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-11-02"
+      "added": "2025-11-02",
+      "source": null
     },
     {
       "id": "shows/what-we-do-in-the-shadows-2019",
@@ -384,7 +401,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-10-15"
+      "added": "2025-10-15",
+      "source": null
     },
     {
       "id": "shows/the-expanse-2015",
@@ -401,7 +419,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-01-09"
+      "added": "2026-01-09",
+      "source": null
     },
     {
       "id": "books/dracula-1897",
@@ -420,6 +439,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-10-01",
+      "source": null,
       "formats": [
         "audiobook",
         "physical"
@@ -442,6 +462,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-09-02",
+      "source": null,
       "formats": [
         "physical"
       ]
@@ -462,6 +483,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-12-10",
+      "source": null,
       "formats": [
         "audiobook"
       ]
@@ -483,6 +505,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-04-05",
+      "source": null,
       "formats": [
         "audiobook"
       ]
@@ -503,6 +526,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-08-30",
+      "source": null,
       "formats": [
         "physical"
       ]
@@ -524,6 +548,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-06-21",
+      "source": null,
       "formats": [
         "physical"
       ]
@@ -544,6 +569,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-03-28",
+      "source": null,
       "formats": [
         "audiobook"
       ]
@@ -564,6 +590,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-02-02",
+      "source": null,
       "formats": [
         "audiobook"
       ]
@@ -586,6 +613,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-05-14",
+      "source": null,
       "platform": "PC"
     },
     {
@@ -604,6 +632,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-08-19",
+      "source": null,
       "platform": "Switch"
     },
     {
@@ -622,6 +651,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-09-25",
+      "source": null,
       "platform": "PC"
     },
     {
@@ -640,6 +670,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-09-05",
+      "source": null,
       "platform": "PC"
     },
     {
@@ -657,6 +688,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-01-20",
+      "source": null,
       "platform": "PC"
     },
     {
@@ -674,6 +706,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-07-01",
+      "source": null,
       "platform": "PlayStation 5"
     },
     {
@@ -692,6 +725,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-09-09",
+      "source": null,
       "platform": "Switch"
     },
     {
@@ -710,6 +744,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-02-27",
+      "source": null,
       "platform": "PC"
     },
     {
@@ -729,6 +764,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-10-03",
+      "source": null,
       "platform": "PlayStation 5"
     },
     {
@@ -749,7 +785,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-04-11"
+      "added": "2025-04-11",
+      "source": null
     },
     {
       "id": "anime/princess-mononoke-1997",
@@ -768,7 +805,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-04-18"
+      "added": "2025-04-18",
+      "source": null
     },
     {
       "id": "anime/frieren-beyond-journeys-end-2023",
@@ -786,7 +824,8 @@
       "note": "Episode 17.",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-09-12"
+      "added": "2026-09-12",
+      "source": null
     },
     {
       "id": "anime/chainsaw-man-2022",
@@ -804,7 +843,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-08-08"
+      "added": "2026-08-08",
+      "source": null
     },
     {
       "id": "anime/tokyo-godfathers-2003",
@@ -823,7 +863,8 @@
       "note": "",
       "description": "",
       "seasonal_only": true,
-      "added": "2025-12-20"
+      "added": "2025-12-20",
+      "source": null
     },
     {
       "id": "anime/land-of-the-lustrous-2017",
@@ -841,7 +882,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-05-30"
+      "added": "2026-05-30",
+      "source": null
     },
     {
       "id": "anime/mononoke-2007",
@@ -860,7 +902,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-09-28"
+      "added": "2026-09-28",
+      "source": null
     },
     {
       "id": "anime/cowboy-bebop-1998",
@@ -878,7 +921,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2025-03-03"
+      "added": "2025-03-03",
+      "source": null
     },
     {
       "id": "anime/dandadan-2024",
@@ -896,7 +940,8 @@
       "note": "",
       "description": "",
       "seasonal_only": false,
-      "added": "2026-06-15"
+      "added": "2026-06-15",
+      "source": null
     },
     {
       "id": "music/dirt-alice-in-chains",
@@ -916,6 +961,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-01-15",
+      "source": null,
       "kind": "album",
       "tracks": [
         {
@@ -951,6 +997,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-01-15",
+      "source": null,
       "kind": "album",
       "tracks": [
         {
@@ -977,6 +1024,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-01-16",
+      "source": null,
       "kind": "album",
       "tracks": [
         {
@@ -1007,6 +1055,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-01-16",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1025,6 +1074,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-02-01",
+      "source": null,
       "kind": "album",
       "tracks": [
         {
@@ -1049,6 +1099,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-08-14",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1067,6 +1118,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-02-01",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1086,6 +1138,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-09-29",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1105,6 +1158,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-12-01",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1124,6 +1178,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-10-01",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1142,6 +1197,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-12-05",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1161,6 +1217,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-03-20",
+      "source": null,
       "kind": "album",
       "tracks": [
         {
@@ -1190,6 +1247,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2026-04-20",
+      "source": null,
       "kind": "album"
     },
     {
@@ -1209,6 +1267,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-10-03",
+      "source": null,
       "kind": "song",
       "album": "Green River"
     },
@@ -1228,6 +1287,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-10-03",
+      "source": null,
       "kind": "song",
       "album": "At Home with Screamin' Jay Hawkins"
     },
@@ -1248,6 +1308,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-12-01",
+      "source": null,
       "kind": "song",
       "album": "If I Should Fall from Grace with God"
     },
@@ -1267,6 +1328,7 @@
       "description": "",
       "seasonal_only": true,
       "added": "2025-12-05",
+      "source": null,
       "kind": "song"
     },
     {
@@ -1286,6 +1348,7 @@
       "description": "",
       "seasonal_only": false,
       "added": "2025-10-04",
+      "source": null,
       "kind": "song",
       "album": "Bad Music for Bad People"
     }
