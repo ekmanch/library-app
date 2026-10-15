@@ -1,52 +1,122 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 
-import '../../data/models/entry.dart';
-import '../../data/models/media_type.dart';
-import '../../data/models/released.dart';
+import '../data/lookup/lookup_failure.dart';
+import '../data/lookup/lookup_match.dart';
+import '../data/lookup/lookup_source.dart';
+import '../data/lookup/track_info.dart';
+import '../data/models/entry.dart';
+import '../data/models/entry_id.dart';
+import '../data/models/media_type.dart';
+import '../data/models/released.dart';
 
-/// One candidate from a title lookup (A13). Phase 5 fills these from TMDB,
-/// AniList and the rest; until then [fakeLookup] serves a fixed list.
-@immutable
-class LookupMatch {
-  const LookupMatch({
-    required this.type,
-    required this.title,
-    this.released,
-    this.creator,
-    this.description = '',
-    this.album,
-    this.platforms = const [],
-    this.tags = const [],
-    this.source,
+/// A lookup with a fixed catalog, for the widget tests, the screenshot
+/// walks, the accessibility audit and the FIRST_RUN dev switch. [search]
+/// answers from [fakeCatalog]; [match] answers any title, so every fixture
+/// entry gets a (fake) cover in a photo view. [latency] shows the loading
+/// state, [failure] makes every call fail that way, and `configured:
+/// false` is a provider without its key.
+class FakeLookupSource extends LookupSource {
+  FakeLookupSource({
+    this.latency = Duration.zero,
+    this.failure,
+    this.configured = true,
   });
 
-  final MediaType type;
-  final String title;
-  final Released? released;
-  final String? creator;
-  final String description;
+  /// Long enough to see the spinner in a demo, short enough not to wait.
+  static const demoLatency = Duration(milliseconds: 700);
 
-  /// For a song: the album it is on.
-  final String? album;
+  final Duration latency;
+  final LookupFailure? failure;
+  final bool configured;
 
-  /// For a game: the platforms it is out on, as the lookup lists them.
-  final List<String> platforms;
+  /// Every call made, for the tests: "search:carrie:movies",
+  /// "match:Dirt:music", "details:deezer:album:91627", "cover:igdb:1009".
+  final calls = <String>[];
 
-  /// Tag names the lookup suggests (genres, themes). The form matches them
-  /// to the library's tags and offers the rest as new ones.
-  final List<String> tags;
+  @override
+  String get id => 'fake';
 
-  /// Where the details came from: "TMDB", "IGDB" and so on.
-  final String? source;
+  @override
+  Set<MediaType> get types => MediaType.values.toSet();
+
+  @override
+  bool get isConfigured => configured;
+
+  Future<void> _call(String call) async {
+    calls.add(call);
+    if (latency > Duration.zero) await Future<void>.delayed(latency);
+    if (failure case final failure?) throw LookupException(failure);
+  }
+
+  @override
+  Future<List<LookupMatch>> search(
+    String query, {
+    required MediaType type,
+    int limit = 10,
+  }) async {
+    await _call('search:${query.trim().toLowerCase()}:${type.name}');
+    return catalogSearch(query, type: type).take(limit).toList();
+  }
+
+  @override
+  Future<LookupMatch?> match(
+    String title, {
+    required MediaType type,
+    int? year,
+    String? creator,
+  }) async {
+    await _call('match:$title:${type.name}');
+    final wanted = title.trim().toLowerCase();
+    for (final match in fakeCatalog) {
+      if (match.type == type &&
+          match.title.toLowerCase() == wanted &&
+          (year == null || match.released?.year == year)) {
+        return match;
+      }
+    }
+    final slug = slugify(title);
+    if (slug.isEmpty) return null;
+    final shape = type == MediaType.music ? 'square' : 'poster';
+    return LookupMatch(
+      type: type,
+      title: title,
+      source: 'fake:$slug',
+      released: year == null ? null : Released(year),
+      creator: creator,
+      coverUrl: 'fake://cover/$shape/fake:$slug',
+    );
+  }
+
+  @override
+  Future<LookupMatch> details(LookupMatch match) async {
+    await _call('details:${match.source}');
+    return match;
+  }
+
+  @override
+  Future<String?> coverUrl(String source, {required MediaType type}) async {
+    await _call('cover:$source');
+    final shape = type == MediaType.music ? 'square' : 'poster';
+    return 'fake://cover/$shape/$source';
+  }
+
+  /// The catalog, synchronously: a case-insensitive substring match on the
+  /// title, titles that start with the query first.
+  static List<LookupMatch> catalogSearch(String query, {MediaType? type}) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final hits = fakeCatalog.where(
+      (m) =>
+          (type == null || m.type == type) && m.title.toLowerCase().contains(q),
+    );
+    final starts = hits.where((m) => m.title.toLowerCase().startsWith(q));
+    final rest = hits.where((m) => !m.title.toLowerCase().startsWith(q));
+    return [...starts, ...rest];
+  }
+
+  /// The track list of [album] (A22) for two fixture albums, or null.
+  static List<TrackInfo>? fakeTrackList(Entry album) => _trackLists[album.id];
 }
-
-/// One track of an album's track list, as the lookup would return it.
-typedef TrackInfo = ({String id, String title});
-
-/// The cached track list of [album] (A22), or null when none is cached.
-/// Phase 5 fetches and caches these; until then two fixture albums have
-/// one, and the rest show only their rated tracks.
-List<TrackInfo>? fakeTrackList(Entry album) => _trackLists[album.id];
 
 const _trackLists = <String, List<TrackInfo>>{
   'music/dirt-alice-in-chains': [
@@ -78,22 +148,10 @@ const _trackLists = <String, List<TrackInfo>>{
   ],
 };
 
-/// Static matches for trying the new-entry flow without a network. Case
-/// does not matter; a query matches when the title contains it.
-List<LookupMatch> fakeLookup(String query, {MediaType? type}) {
-  final q = query.trim().toLowerCase();
-  if (q.isEmpty) return const [];
-  final hits = _catalog.where(
-    (m) =>
-        (type == null || m.type == type) && m.title.toLowerCase().contains(q),
-  );
-  final starts = hits.where((m) => m.title.toLowerCase().startsWith(q));
-  final rest = hits.where((m) => !m.title.toLowerCase().startsWith(q));
-  return [...starts, ...rest];
-}
-
-const _catalog = <LookupMatch>[
+const fakeCatalog = <LookupMatch>[
   LookupMatch(
+    source: 'igdb:1009',
+    coverUrl: 'fake://cover/poster/igdb:1009',
     type: MediaType.games,
     title: 'The Last of Us',
     released: Released(2013, 6, 14),
@@ -108,9 +166,10 @@ const _catalog = <LookupMatch>[
       'survival',
       'zombies',
     ],
-    source: 'IGDB',
   ),
   LookupMatch(
+    source: 'igdb:112875',
+    coverUrl: 'fake://cover/poster/igdb:112875',
     type: MediaType.games,
     title: 'The Last of Us Part II',
     released: Released(2020, 6, 19),
@@ -118,18 +177,20 @@ const _catalog = <LookupMatch>[
     description: 'Five years on, Ellie sets out for Seattle.',
     platforms: ['PlayStation 4', 'PlayStation 5', 'PC'],
     tags: ['adventure', 'post-apocalyptic', 'stealth', 'survival'],
-    source: 'IGDB',
   ),
   LookupMatch(
+    source: 'tmdb:tv:100088',
+    coverUrl: 'fake://cover/poster/tmdb:tv:100088',
     type: MediaType.shows,
     title: 'The Last of Us',
     released: Released(2023),
     creator: 'Craig Mazin, Neil Druckmann',
     description: 'The HBO adaptation of the game.',
     tags: ['drama', 'horror', 'post-apocalyptic'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'igdb:7340',
+    coverUrl: 'fake://cover/poster/igdb:7340',
     type: MediaType.games,
     title: 'The Last of Us: Left Behind',
     released: Released(2014, 2, 14),
@@ -137,18 +198,20 @@ const _catalog = <LookupMatch>[
     description: 'A standalone chapter about Ellie and Riley.',
     platforms: ['PlayStation 3', 'PlayStation 4'],
     tags: ['adventure', 'post-apocalyptic'],
-    source: 'IGDB',
   ),
   LookupMatch(
+    source: 'tmdb:tv:243005',
+    coverUrl: 'fake://cover/poster/tmdb:tv:243005',
     type: MediaType.shows,
     title: 'Carrie',
     released: Released(2026),
     creator: 'Mike Flanagan',
     description: 'A limited series take on the Stephen King novel.',
     tags: ['horror', 'drama'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'tmdb:movie:133805',
+    coverUrl: 'fake://cover/poster/tmdb:movie:133805',
     type: MediaType.movies,
     title: 'Carrie',
     released: Released(2013),
@@ -156,9 +219,10 @@ const _catalog = <LookupMatch>[
     description:
         'A shy teenager with telekinetic powers is pushed too far at prom.',
     tags: ['horror', 'drama'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'tmdb:movie:7340',
+    coverUrl: 'fake://cover/poster/tmdb:movie:7340',
     type: MediaType.movies,
     title: 'Carrie',
     released: Released(1976),
@@ -166,9 +230,10 @@ const _catalog = <LookupMatch>[
     description:
         'A sheltered girl discovers her powers after a cruel prank at prom.',
     tags: ['horror', 'classic'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'openlibrary:OL81613W',
+    coverUrl: 'fake://cover/poster/openlibrary:OL81613W',
     type: MediaType.books,
     title: 'Carrie',
     released: Released(1974),
@@ -177,27 +242,30 @@ const _catalog = <LookupMatch>[
         "Stephen King's first novel, told through clippings and "
         'testimony.',
     tags: ['horror', 'stephen-king'],
-    source: 'Open Library',
   ),
   LookupMatch(
+    source: 'openlibrary:OL893415W',
+    coverUrl: 'fake://cover/poster/openlibrary:OL893415W',
     type: MediaType.books,
     title: 'Dune',
     released: Released(1965),
     creator: 'Frank Herbert',
     description: 'Paul Atreides and the desert planet Arrakis.',
     tags: ['sci-fi', 'epic', 'classic'],
-    source: 'Open Library',
   ),
   LookupMatch(
+    source: 'tmdb:movie:841',
+    coverUrl: 'fake://cover/poster/tmdb:movie:841',
     type: MediaType.movies,
     title: 'Dune',
     released: Released(1984),
     creator: 'David Lynch',
     description: "David Lynch's adaptation of the Frank Herbert novel.",
     tags: ['sci-fi', 'epic', 'cult'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'tmdb:movie:438631',
+    coverUrl: 'fake://cover/poster/tmdb:movie:438631',
     type: MediaType.movies,
     title: 'Dune',
     released: Released(2021),
@@ -206,9 +274,10 @@ const _catalog = <LookupMatch>[
         'The first half of the novel, from Caladan to the deep '
         'desert.',
     tags: ['sci-fi', 'epic', 'adventure'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'igdb:144213',
+    coverUrl: 'fake://cover/poster/igdb:144213',
     type: MediaType.games,
     title: 'Dune: Awakening',
     released: Released(2025, 6, 10),
@@ -216,36 +285,40 @@ const _catalog = <LookupMatch>[
     description: 'An open-world survival game set on Arrakis.',
     platforms: ['PC'],
     tags: ['survival', 'sci-fi', 'open-world'],
-    source: 'IGDB',
   ),
   LookupMatch(
+    source: 'anilist:47',
+    coverUrl: 'fake://cover/poster/anilist:47',
     type: MediaType.anime,
     title: 'Akira',
     released: Released(1988),
     creator: 'Katsuhiro Otomo',
     description: 'A biker gang, a secret military project and Neo-Tokyo.',
     tags: ['2d', 'scifi', 'cyberpunk', 'classic'],
-    source: 'AniList',
   ),
   LookupMatch(
+    source: 'openlibrary:OL15366647W',
+    coverUrl: 'fake://cover/poster/openlibrary:OL15366647W',
     type: MediaType.books,
     title: 'Akira',
     released: Released(1982),
     creator: 'Katsuhiro Otomo',
     description: 'The manga the film was drawn from.',
     tags: ['manga', 'scifi', 'cyberpunk'],
-    source: 'Open Library',
   ),
   LookupMatch(
+    source: 'tmdb:movie:78',
+    coverUrl: 'fake://cover/poster/tmdb:movie:78',
     type: MediaType.movies,
     title: 'Blade Runner',
     released: Released(1982),
     creator: 'Ridley Scott',
     description: 'A blade runner hunts four replicants in 2019 Los Angeles.',
     tags: ['sci-fi', 'neo-noir', 'classic', 'dark'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'tmdb:movie:335984',
+    coverUrl: 'fake://cover/poster/tmdb:movie:335984',
     type: MediaType.movies,
     title: 'Blade Runner 2049',
     released: Released(2017),
@@ -254,36 +327,41 @@ const _catalog = <LookupMatch>[
         'A new blade runner unearths a secret that could end '
         'everything.',
     tags: ['sci-fi', 'neo-noir', 'melancholic'],
-    source: 'TMDB',
   ),
   LookupMatch(
+    source: 'anilist:437',
+    coverUrl: 'fake://cover/poster/anilist:437',
     type: MediaType.anime,
     title: 'Perfect Blue',
     released: Released(1997),
     creator: 'Satoshi Kon',
     description: 'A pop idol turned actress loses her grip on what is real.',
     tags: ['2d', 'thriller', 'psychological', 'dark'],
-    source: 'AniList',
   ),
   LookupMatch(
+    source: 'deezer:album:91627',
+    coverUrl: 'fake://cover/square/deezer:album:91627',
     type: MediaType.music,
     title: 'Hounds of Love',
     released: Released(1985),
     creator: 'Kate Bush',
     description: "Kate Bush's fifth studio album.",
     tags: ['art-pop', 'pop', 'classic'],
-    source: 'MusicBrainz',
   ),
   LookupMatch(
+    source: 'deezer:track:1016551',
+    coverUrl: 'fake://cover/square/deezer:track:1016551',
+    albumSource: 'deezer:album:91627',
     type: MediaType.music,
     title: 'Running Up That Hill',
     released: Released(1985),
     creator: 'Kate Bush',
     album: 'Hounds of Love',
     tags: ['art-pop', 'pop', 'synth'],
-    source: 'MusicBrainz',
   ),
   LookupMatch(
+    source: 'igdb:267306',
+    coverUrl: 'fake://cover/poster/igdb:267306',
     type: MediaType.games,
     title: 'Silent Hill 2',
     released: Released(2024, 10, 8),
@@ -291,6 +369,5 @@ const _catalog = <LookupMatch>[
     description: 'The remake of the 2001 survival horror game.',
     platforms: ['PlayStation 5', 'PC'],
     tags: ['survival-horror', 'horror', 'psychological'],
-    source: 'IGDB',
   ),
 ];

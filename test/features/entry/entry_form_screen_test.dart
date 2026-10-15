@@ -12,7 +12,7 @@ import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/features/entry/tag_picker_sheet.dart';
 import 'package:library_app/features/entry/entry_form_screen.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
-import 'package:library_app/features/entry/lookup_matches.dart';
+import 'package:library_app/dev/fake_lookup.dart';
 import 'package:library_app/widgets/chips.dart';
 import 'package:library_app/widgets/segmented_control.dart';
 
@@ -137,7 +137,9 @@ void main() {
   ) async {
     final container = await pumpApp(
       tester,
-      EntryFormScreen.create(match: fakeLookup('hounds').single),
+      EntryFormScreen.create(
+        match: FakeLookupSource.catalogSearch('hounds').single,
+      ),
     );
     expect(find.widgetWithText(TextField, 'Hounds of Love'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Kate Bush'), findsOneWidget);
@@ -153,7 +155,9 @@ void main() {
   testWidgets('a song match gets the album field', (tester) async {
     final container = await pumpApp(
       tester,
-      EntryFormScreen.create(match: fakeLookup('running up').single),
+      EntryFormScreen.create(
+        match: FakeLookupSource.catalogSearch('running up').single,
+      ),
     );
     expect(find.text('Album'), findsNWidgets(2)); // Segment and field label.
     expect(find.widgetWithText(TextField, 'Hounds of Love'), findsOneWidget);
@@ -214,7 +218,10 @@ void main() {
     testWidgets('shows the fetched banner, platform chips and suggestions', (
       tester,
     ) async {
-      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final match = FakeLookupSource.catalogSearch(
+        'the last of us',
+        type: MediaType.games,
+      ).first;
       await pumpApp(tester, EntryFormScreen.create(match: match));
       expect(
         find.text('Details fetched online. You can change anything.'),
@@ -238,7 +245,10 @@ void main() {
     });
 
     testWidgets('a near miss counts as the existing tag', (tester) async {
-      final match = fakeLookup('dune', type: MediaType.books).single;
+      final match = FakeLookupSource.catalogSearch(
+        'dune',
+        type: MediaType.books,
+      ).single;
       await pumpApp(tester, EntryFormScreen.create(match: match));
       await scrollTo(tester, find.text('Tags'));
       // "sci-fi" from the lookup is the library's "scifi".
@@ -248,7 +258,7 @@ void main() {
     });
 
     testWidgets('an album match gets suggestions too', (tester) async {
-      final match = fakeLookup('hounds').single;
+      final match = FakeLookupSource.catalogSearch('hounds').single;
       await pumpApp(tester, EntryFormScreen.create(match: match));
       await scrollTo(tester, find.text('Suggested · tap to add'));
       expect(find.widgetWithText(TagChip, '#pop'), findsOneWidget);
@@ -260,7 +270,10 @@ void main() {
     testWidgets('a new suggestion is confirmed in D10 and saved as new', (
       tester,
     ) async {
-      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final match = FakeLookupSource.catalogSearch(
+        'the last of us',
+        type: MediaType.games,
+      ).first;
       final container = await pumpApp(
         tester,
         EntryFormScreen.create(match: match),
@@ -295,7 +308,10 @@ void main() {
       tester,
     ) async {
       // The Last of Us came out on PC; Uncharted did not.
-      final onPc = fakeLookup('the last of us', type: MediaType.games).first;
+      final onPc = FakeLookupSource.catalogSearch(
+        'the last of us',
+        type: MediaType.games,
+      ).first;
       await pumpApp(tester, EntryFormScreen.create(match: onPc));
       expect(isSelected(tester, find.widgetWithText(PillChip, 'PC')), isTrue);
       expect(
@@ -305,7 +321,10 @@ void main() {
     });
 
     testWidgets('no default platform means nothing is picked', (tester) async {
-      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final match = FakeLookupSource.catalogSearch(
+        'the last of us',
+        type: MediaType.games,
+      ).first;
       final container = await pumpApp(
         tester,
         EntryFormScreen.create(match: match),
@@ -316,7 +335,10 @@ void main() {
     });
 
     testWidgets('a removed match comes back as a suggestion', (tester) async {
-      final match = fakeLookup('the last of us', type: MediaType.games).first;
+      final match = FakeLookupSource.catalogSearch(
+        'the last of us',
+        type: MediaType.games,
+      ).first;
       await pumpApp(tester, EntryFormScreen.create(match: match));
       await scrollTo(tester, find.widgetWithText(TagChip, '#horror'));
       await tester.tap(find.widgetWithText(TagChip, '#horror'));

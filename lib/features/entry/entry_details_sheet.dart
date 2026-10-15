@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
+import '../../data/lookup/track_info.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/music_kind.dart';
 import '../../data/models/track.dart';
 import '../../data/operations/operations.dart';
+import '../../dev/fake_lookup.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/chips.dart';
@@ -21,7 +23,6 @@ import 'add_to_plan_sheet.dart';
 import 'entry_header.dart';
 import 'delete_entry_dialog.dart';
 import 'entry_form_screen.dart';
-import 'lookup_matches.dart';
 import 'rating_sheet.dart';
 
 /// Opens the entry details sheet (A6) for the entry with [entryId].
@@ -158,7 +159,7 @@ class EntryDetailsSheet extends ConsumerWidget {
             const SizedBox(height: 13),
             _TrackList(
               album: entry,
-              trackList: fakeTrackList(entry),
+              trackList: FakeLookupSource.fakeTrackList(entry),
               onRate: rateTrack,
             ),
           ],

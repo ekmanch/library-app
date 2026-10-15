@@ -9,6 +9,7 @@ import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/models/library.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/data/repository/library_repository.dart';
+import 'package:library_app/dev/fake_lookup_overrides.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/theme/app_theme.dart';
 
@@ -37,6 +38,7 @@ Future<ProviderContainer> pumpApp(
         repository ??
             FixtureLibraryRepository(loadJson: () async => encodeLibrary(lib)),
       ),
+      ...fakeLookupOverrides(),
       ...overrides,
     ],
   );

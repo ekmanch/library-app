@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../data/lookup/lookup_match.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/media_type.dart';
+import '../../dev/fake_lookup.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_icons.dart';
@@ -11,7 +13,6 @@ import '../../widgets/page_header.dart';
 import '../../widgets/search_field.dart';
 import '../../widgets/section_heading.dart';
 import 'entry_form_screen.dart';
-import 'lookup_matches.dart';
 
 /// Starts a new entry (A13 then A8), full screen above the floating
 /// navigation. Resolves with the saved entry, or null.
@@ -77,7 +78,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
     final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final query = _query.text.trim();
-    final matches = fakeLookup(query, type: _type);
+    final matches = FakeLookupSource.catalogSearch(query, type: _type);
 
     return Scaffold(
       body: SafeArea(

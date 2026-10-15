@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/library_providers.dart';
 import '../../data/models/book_format.dart';
+import '../../data/lookup/lookup_match.dart';
 import '../../data/models/entry.dart';
 import '../../data/models/entry_id.dart';
 import '../../data/models/entry_status.dart';
@@ -25,7 +26,6 @@ import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segmented_control.dart';
 import '../settings/display_preferences.dart';
-import 'lookup_matches.dart';
 import 'released_sheet.dart';
 import 'rating_sheet.dart';
 import 'replace_dialogs.dart';

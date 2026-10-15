@@ -36,3 +36,6 @@ doc/api/
 
 # Screenshots from flutter drive
 screenshots/
+
+# API keys for the lookups (copy secrets.example.json; see CLAUDE.md)
+secrets.json
