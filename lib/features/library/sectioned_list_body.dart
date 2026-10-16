@@ -50,6 +50,10 @@ class ListSection<T> {
 /// and a jump rail on the right (L1 to L3), or, in the grid, a draggable
 /// thumb with a label bubble (L4). Rows have a fixed height so section
 /// offsets can be computed without measuring.
+///
+/// [leadingSlivers] scroll away above the list, like the home's header
+/// (A1): the rail starts under them and its offsets are measured from
+/// where the list itself begins.
 class SectionedListBody<T> extends StatefulWidget {
   const SectionedListBody({
     super.key,
@@ -66,9 +70,18 @@ class SectionedListBody<T> extends StatefulWidget {
     required this.color,
     this.bottomPadding = AppShell.contentBottomPadding,
     this.layoutKey,
+    this.controller,
+    this.leadingSlivers = const [],
   });
 
   final int itemCount;
+
+  /// The scroll controller to drive, so a caller can scroll back to the
+  /// top; the list keeps its own when none is given.
+  final ScrollController? controller;
+
+  /// Slivers above the list that scroll with it.
+  final List<Widget> leadingSlivers;
 
   /// The sections behind the rail, in list order.
   final List<ListSection<T>> sections;
@@ -115,7 +128,12 @@ class SectionedListBody<T> extends StatefulWidget {
 }
 
 class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
-  final _controller = ScrollController();
+  ScrollController? _own;
+  late ScrollController _controller = _resolveController();
+
+  /// The scroll extent of [SectionedListBody.leadingSlivers], measured as
+  /// the list is laid out: the offset where the list's own rows begin.
+  double _headerExtent = 0;
 
   /// Index of the section the rail highlights or the bubble names.
   int _current = 0;
@@ -127,6 +145,9 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
   Timer? _hideThumb;
   List<double> _sectionTops = const [];
 
+  ScrollController _resolveController() =>
+      widget.controller ?? (_own ??= ScrollController());
+
   @override
   void initState() {
     super.initState();
@@ -136,21 +157,45 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
   @override
   void dispose() {
     _hideThumb?.cancel();
-    _controller.dispose();
+    _controller.removeListener(_onScroll);
+    _own?.dispose();
     super.dispose();
   }
 
+  /// The one position attached, or null while a caller's controller is
+  /// moving between two lists (the old one is disposed a moment after the
+  /// new one attaches).
+  ScrollPosition? get _position =>
+      _controller.positions.length == 1 ? _controller.position : null;
+
+  /// How far the list's own rows are scrolled: the offset past the header.
+  double get _listOffset => (_position?.pixels ?? 0) - _headerExtent;
+
+  /// How far the rows can scroll, from their start.
+  double get _listMaxExtent =>
+      math.max(0.0, (_position?.maxScrollExtent ?? 0) - _headerExtent);
+
   void _onScroll() {
-    if (!_controller.hasClients) return;
+    if (_position == null) return;
     var next = _current;
     if (!_pinned) {
-      final offset = _controller.offset + 1;
+      final offset = _listOffset + 1;
       for (var i = 0; i < _sectionTops.length; i++) {
         if (_sectionTops[i] <= offset) next = i;
       }
     }
     final thumbMoves = _thumbShown || _dragging;
     if (next != _current || thumbMoves) setState(() => _current = next);
+  }
+
+  /// Called from the list's layout with the header's extent. A change
+  /// moves the rail's top, so the next frame rebuilds.
+  void _noteHeaderExtent(double extent) {
+    if (extent == _headerExtent) return;
+    _headerExtent = extent;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   bool _onNotification(ScrollNotification n) {
@@ -174,28 +219,35 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
   }
 
   void _jumpToSection(int i) {
-    if (!_controller.hasClients) return;
-    final max = _controller.position.maxScrollExtent;
+    final position = _position;
+    if (position == null) return;
     _pinned = true;
     setState(() => _current = i);
-    _controller.jumpTo(math.min(_sectionTops[i], max));
+    position.jumpTo(
+      math.min(_headerExtent + _sectionTops[i], position.maxScrollExtent),
+    );
   }
 
   @override
   void didUpdateWidget(SectionedListBody<T> old) {
     super.didUpdateWidget(old);
     if (old.layoutKey != widget.layoutKey) _pinned = false;
+    if (old.controller != widget.controller) {
+      _controller.removeListener(_onScroll);
+      _controller = _resolveController()..addListener(_onScroll);
+    }
   }
 
   void _dragThumbTo(double localY, double trackHeight) {
-    if (!_controller.hasClients) return;
+    final position = _position;
+    if (position == null) return;
     _pinned = false;
     final travel = trackHeight - SectionedListBody.thumbHeight;
     final ratio = ((localY - SectionedListBody.thumbHeight / 2) / travel).clamp(
       0.0,
       1.0,
     );
-    _controller.jumpTo(ratio * _controller.position.maxScrollExtent);
+    position.jumpTo(_headerExtent + ratio * _listMaxExtent);
   }
 
   @override
@@ -237,10 +289,8 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
           return Stack(
             children: [
               _scrollView(rightPadding: 20, slivers: widget.flatSlivers),
-              Positioned(
-                top: 0,
+              _belowHeader(
                 right: 0,
-                bottom: widget.bottomPadding,
                 width: 44,
                 child: _thumbZone(current.bubbleLabel),
               ),
@@ -253,16 +303,31 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
               rightPadding: 48,
               slivers: _sectionedSlivers(sections, rowExtent),
             ),
-            Positioned(
-              top: 0,
-              right: 2,
-              bottom: widget.bottomPadding,
-              width: 36,
-              child: _rail(sections),
-            ),
+            _belowHeader(right: 2, width: 36, child: _rail(sections)),
           ],
         );
       },
+    );
+  }
+
+  /// The rail or the thumb zone, pinned to the right from under the
+  /// header (while it is in view) down to the floating navigation. It
+  /// follows the scroll, so it grows as the header leaves the screen.
+  Widget _belowHeader({
+    required double right,
+    required double width,
+    required Widget child,
+  }) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => Positioned(
+        top: math.max(0.0, _headerExtent - (_position?.pixels ?? 0)),
+        right: right,
+        bottom: widget.bottomPadding,
+        width: width,
+        child: child!,
+      ),
+      child: child,
     );
   }
 
@@ -323,14 +388,22 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
         child: CustomScrollView(
           controller: _controller,
           slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                0,
-                rightPadding,
-                widget.bottomPadding,
-              ),
-              sliver: SliverMainAxisGroup(slivers: slivers),
+            ...widget.leadingSlivers,
+            // The list's rows start where the header ends; the rail's
+            // offsets are measured from there.
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                _noteHeaderExtent(constraints.precedingScrollExtent);
+                return SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    0,
+                    rightPadding,
+                    widget.bottomPadding,
+                  ),
+                  sliver: SliverMainAxisGroup(slivers: slivers),
+                );
+              },
             ),
           ],
         ),
@@ -422,12 +495,8 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final trackHeight = constraints.maxHeight;
-        final max = _controller.hasClients
-            ? _controller.position.maxScrollExtent
-            : 0.0;
-        final ratio = max > 0
-            ? (_controller.offset / max).clamp(0.0, 1.0)
-            : 0.0;
+        final max = _listMaxExtent;
+        final ratio = max > 0 ? (_listOffset / max).clamp(0.0, 1.0) : 0.0;
         final thumbTop = ratio * (trackHeight - SectionedListBody.thumbHeight);
         final visible = _dragging || _thumbShown;
         return GestureDetector(

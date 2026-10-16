@@ -89,12 +89,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.dispose();
   }
 
-  /// The current tab's item returns to its overview: Plans to S5, Library
-  /// to the home on All, scrolled to the top (A1).
+  /// The current tab's item returns to its overview one step at a time:
+  /// a screen above it is popped (Plans to S5, Library to the home); on
+  /// the Library home, the next tap scrolls to the top and the one after
+  /// returns to All (A1, DESIGN.md section 3).
   void _select(ShellTab tab) {
     if (tab == _tab) {
-      _current?.popUntil((route) => route.isFirst);
-      if (tab == ShellTab.library) {
+      final navigator = _current;
+      if (navigator != null && navigator.canPop()) {
+        navigator.popUntil((route) => route.isFirst);
+      } else if (tab == ShellTab.library) {
         ref.read(homeReturnProvider.notifier).goHome();
       }
       return;

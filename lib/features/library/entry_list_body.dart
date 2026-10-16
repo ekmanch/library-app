@@ -26,6 +26,8 @@ class EntryListBody extends StatelessWidget {
     this.railSections,
     this.plainSections,
     this.caption,
+    this.controller,
+    this.leadingSlivers = const [],
   });
 
   /// Already sorted by [sort].
@@ -52,6 +54,10 @@ class EntryListBody extends StatelessWidget {
   /// The line under a grid tile's title; the status by default.
   final String Function(Entry entry)? caption;
 
+  /// See [SectionedListBody.controller] and [SectionedListBody.leadingSlivers].
+  final ScrollController? controller;
+  final List<Widget> leadingSlivers;
+
   static const thumbKey = SectionedListBody.thumbKey;
   static const railKey = SectionedListBody.railKey;
   static const thumbHeight = SectionedListBody.thumbHeight;
@@ -74,6 +80,8 @@ class EntryListBody extends StatelessWidget {
       gridColumns: EntryListMetrics.gridColumns,
       color: color,
       bottomPadding: bottomPadding,
+      controller: controller,
+      leadingSlivers: leadingSlivers,
       layoutKey: (sort, view, entries),
       rowBuilder: (context, entry) => EntryRow.forEntry(
         entry,

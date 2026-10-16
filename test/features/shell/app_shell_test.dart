@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/features/library/home_return_provider.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
 import 'package:library_app/features/library/library_home_screen.dart';
 import 'package:library_app/features/plans/plan_screen.dart';
@@ -221,6 +222,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Library detail'), findsNothing);
     expect(find.text('Library home'), findsOneWidget);
+  });
+
+  testWidgets('tapping Library pops a pushed screen before anything else', (
+    tester,
+  ) async {
+    await pumpShell(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AppShell)),
+    );
+    container.read(homeTypeProvider.notifier).set(MediaType.movies);
+    await tester.tap(find.text('Library home'));
+    await tester.pumpAndSettle();
+    final returns = container.read(homeReturnProvider);
+    await tester.tap(find.text('Library'));
+    await tester.pumpAndSettle();
+    expect(find.text('Library detail'), findsNothing);
+    // The home was not asked to return yet: the type stays picked.
+    expect(container.read(homeReturnProvider), returns);
+    expect(container.read(homeTypeProvider), MediaType.movies);
+    await tester.tap(find.text('Library'));
+    await tester.pumpAndSettle();
+    expect(container.read(homeReturnProvider), returns + 1);
   });
 
   testWidgets('tapping Library again returns the home to All', (tester) async {

@@ -46,6 +46,11 @@ import 'view_menu.dart';
 /// becomes that type's list in place (A4, A20, A21): status segments, count,
 /// sort and view; Music gets its artist, album and song tabs instead (A14).
 /// Also shows filtered results (L5, L6) and the empty states of A10.
+///
+/// The whole top (title, banner, search box, chips, segments and count
+/// row) is part of the one scroll view, so it scrolls away with the list
+/// and the entries get the screen; only the pill and the "+" button stay.
+/// Library in the pill brings it back (see [_onReturn]).
 class LibraryHomeScreen extends ConsumerStatefulWidget {
   const LibraryHomeScreen({
     super.key,
@@ -71,8 +76,9 @@ class LibraryHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
-  /// The All list's position, so a return to the home can scroll it up.
-  final _allScroll = ScrollController();
+  /// The one scroll position, shared by every body the home shows (All, a
+  /// type, results), so a return can scroll back to the top.
+  final _scroll = ScrollController();
 
   /// The chip row's position, so the picked All chip is in view after a
   /// return, even when the row was scrolled to Music or Anime.
@@ -80,18 +86,25 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
 
   @override
   void dispose() {
-    _allScroll.dispose();
+    _scroll.dispose();
     _chipScroll.dispose();
     super.dispose();
   }
 
-  /// Library tapped in the pill while on the Library tab: the providers are
-  /// already back on All, so only the scroll positions are left. The list
-  /// or the chip row may be rebuilt this frame (a type view or a filter
-  /// giving way to All), so wait for the frame.
-  void _scrollToTop() {
+  /// Library tapped in the pill while this screen is on top. Scrolled
+  /// down: back to the top, so the header is in view again. At the top:
+  /// back to All, with the filter and the type cleared (the status segment
+  /// resets with the type) and the chip row slid back to All.
+  void _onReturn() {
+    if (_scroll.hasClients && _scroll.offset > 0) {
+      _scroll.animateTo(0, duration: AppMotion.slide, curve: Curves.easeOut);
+      return;
+    }
+    ref.read(libraryFilterProvider.notifier).clear();
+    ref.read(homeTypeProvider.notifier).set(null);
+    // The chip row may be rebuilt this frame (a filter giving way to All),
+    // so wait for the frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_allScroll.hasClients) _allScroll.jumpTo(0);
       if (_chipScroll.hasClients) {
         _chipScroll.animateTo(
           0,
@@ -157,16 +170,14 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final colors = LibraryColors.of(context);
     final filter = ref.watch(libraryFilterProvider);
     final prefs = ref.watch(displayPreferencesProvider);
     final type = ref.watch(homeTypeProvider);
     final libraryAsync = ref.watch(libraryProvider);
     final library = libraryAsync.value;
-    ref.listen(homeReturnProvider, (_, _) => _scrollToTop());
+    ref.listen(homeReturnProvider, (_, _) => _onReturn());
 
-    final Widget body;
     if (library == null && !libraryAsync.hasError) {
       // D7: the first load.
       return Scaffold(
@@ -185,85 +196,77 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
           ),
         ),
       );
-    } else if (library == null) {
-      // The first download failed (offline, a bad token): say so, and let
-      // a pull or the button try again.
-      body = ListView(
-        padding: const EdgeInsets.all(20),
+    }
+
+    // The top of the screen, as the first sliver of whichever body shows.
+    final header = SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Could not load the library: ${libraryAsync.error}',
-            style: theme.textTheme.bodyMedium,
+          PageHeader(
+            title: 'Library',
+            actions: [SettingsButton(onPressed: _openSettings)],
           ),
-          const SizedBox(height: 16),
-          AppButton(
-            label: 'Try again',
-            kind: AppButtonKind.outline,
-            onPressed: _refresh,
+          const SyncBannerCard(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            child: _SearchRow(
+              hint: searchHint(filter.isActive ? null : type),
+              filterCount: filter.count,
+              onSearch: _openSearch,
+              onFilters: library == null ? null : () => _openFilters(library),
+            ),
           ),
+          if (library != null && !filter.isActive)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                height: 44,
+                child: ListView(
+                  // The row is built afresh when the body changes (All to a
+                  // type); the key keeps its scroll position across that.
+                  key: const PageStorageKey('type-chips'),
+                  controller: _chipScroll,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  children: [
+                    PillChip(
+                      label: 'All',
+                      selected: type == null,
+                      onTap: () => _pickType(null),
+                    ),
+                    for (final t in MediaType.values) ...[
+                      const SizedBox(width: 8),
+                      PillChip(
+                        label: t.label,
+                        selected: type == t,
+                        dotColor: colors.forType(t),
+                        onTap: () => _pickType(t),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
         ],
-      );
+      ),
+    );
+
+    final Widget body;
+    if (library == null) {
+      body = _loadFailed(header, libraryAsync.error);
     } else if (filter.isActive) {
-      body = _filtered(library, filter, prefs, colors);
+      body = _filtered(header, library, filter, prefs, colors);
     } else if (type == null) {
-      body = _allTypes(library, filter, colors);
+      body = _allTypes(header, library, filter, colors);
     } else {
-      body = _oneType(library, type, filter, prefs);
+      body = _oneType(header, library, type, filter, prefs);
     }
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            PageHeader(
-              title: 'Library',
-              actions: [SettingsButton(onPressed: _openSettings)],
-            ),
-            const SyncBannerCard(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              child: _SearchRow(
-                hint: searchHint(filter.isActive ? null : type),
-                filterCount: filter.count,
-                onSearch: _openSearch,
-                onFilters: library == null ? null : () => _openFilters(library),
-              ),
-            ),
-            if (library != null && !filter.isActive)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: SizedBox(
-                  height: 44,
-                  child: ListView(
-                    controller: _chipScroll,
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                    children: [
-                      PillChip(
-                        label: 'All',
-                        selected: type == null,
-                        onTap: () => _pickType(null),
-                      ),
-                      for (final t in MediaType.values) ...[
-                        const SizedBox(width: 8),
-                        PillChip(
-                          label: t.label,
-                          selected: type == t,
-                          dotColor: colors.forType(t),
-                          onTap: () => _pickType(t),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            Expanded(
-              child: RefreshIndicator(onRefresh: _refresh, child: body),
-            ),
-          ],
-        ),
+        child: RefreshIndicator(onRefresh: _refresh, child: body),
       ),
     );
   }
@@ -275,9 +278,39 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     await ref.read(librarySyncProvider)?.checkForChanges();
   }
 
+  /// A scroll view of the header and [slivers], on the shared position.
+  Widget _scrollView(Widget header, List<Widget> slivers) =>
+      CustomScrollView(controller: _scroll, slivers: [header, ...slivers]);
+
+  /// The first download failed (offline, a bad token): say so, and let a
+  /// pull or the button try again.
+  Widget _loadFailed(Widget header, Object? error) {
+    final theme = Theme.of(context);
+    return _scrollView(header, [
+      SliverPadding(
+        padding: const EdgeInsets.all(20),
+        sliver: SliverList.list(
+          children: [
+            Text(
+              'Could not load the library: $error',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: 'Try again',
+              kind: AppButtonKind.outline,
+              onPressed: _refresh,
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+
   /// All: the active plan, then two rows per type under a heading that
   /// opens the type.
   Widget _allTypes(
+    Widget header,
     Library library,
     LibraryFilter filter,
     LibraryColors colors,
@@ -307,12 +340,10 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       }
     }
 
-    return ListView(
-      controller: _allScroll,
-      padding: const EdgeInsets.only(bottom: AppShell.contentBottomPadding),
-      children: [
-        if (plan != null)
-          Padding(
+    return _scrollView(header, [
+      if (plan != null)
+        SliverToBoxAdapter(
+          child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: ActivePlanCard(
               plan: plan,
@@ -321,27 +352,33 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
                   : openPlanScreen(context, plan.id, tab: ShellTab.library),
             ),
           ),
-        if (sections.isEmpty)
-          const EmptyState(
+        ),
+      if (sections.isEmpty)
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
             icon: AppIcons.library,
             title: 'Your library is empty',
             body: 'Entries you add will show up here.',
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: sections,
-            ),
           ),
-      ],
-    );
+        )
+      else
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            4,
+            20,
+            AppShell.contentBottomPadding,
+          ),
+          sliver: SliverList.list(children: sections),
+        ),
+    ]);
   }
 
   /// One type picked: status segments, count, sort, view and the list in
-  /// the remembered view. The segments stay put while the list scrolls.
+  /// the remembered view, all in one scroll.
   Widget _oneType(
+    Widget header,
     Library library,
     MediaType type,
     LibraryFilter filter,
@@ -350,19 +387,26 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     final theme = Theme.of(context);
     final visible = filter.apply(library.entriesOfType(type));
     if (visible.isEmpty) {
-      return EmptyState(
-        icon: AppIcons.library,
-        title: 'No ${type.label.toLowerCase()} yet',
-        body: type == MediaType.music
-            ? 'Albums and songs you add will show up here.'
-            : '${type.label} you add will show up here.',
-        actionLabel: 'Add ${type.singular.toLowerCase()}',
-        onAction: () => widget.onAddEntry?.call(type: type),
-      );
+      return _scrollView(header, [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: AppIcons.library,
+            title: 'No ${type.label.toLowerCase()} yet',
+            body: type == MediaType.music
+                ? 'Albums and songs you add will show up here.'
+                : '${type.label} you add will show up here.',
+            actionLabel: 'Add ${type.singular.toLowerCase()}',
+            onAction: () => widget.onAddEntry?.call(type: type),
+          ),
+        ),
+      ]);
     }
     if (type == MediaType.music) {
       return MusicTypeBody(
         entries: visible,
+        controller: _scroll,
+        leadingSlivers: [header],
         onOpenEntry: (entry) => widget.onOpenEntry?.call(entry),
         onOpenArtist: (artist) =>
             openArtistScreen(context, artist, onOpenEntry: widget.onOpenEntry),
@@ -375,72 +419,82 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     );
     final view = prefs.viewFor(type);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-          child: StatusSegmentedControl(
-            selected: status,
-            type: type,
-            includeAll: true,
-            onChanged: ref.read(homeStatusProvider.notifier).set,
+    final controls = SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: StatusSegmentedControl(
+              selected: status,
+              type: type,
+              includeAll: true,
+              onChanged: ref.read(homeStatusProvider.notifier).set,
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  countLabel(type, shown.length),
-                  style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
-                ),
-              ),
-              SortButton(
-                current: prefs.sortFor(type),
-                onChanged: (sort) => ref
-                    .read(displayPreferencesProvider.notifier)
-                    .setSort(type, sort),
-              ),
-              ViewMenuButton(
-                current: view,
-                onChanged: (v) => ref
-                    .read(displayPreferencesProvider.notifier)
-                    .setView(type, v),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: shown.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
+            child: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    'Nothing marked ${status!.lowerLabel} yet.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      color: LibraryColors.of(context).muted,
-                    ),
+                    countLabel(type, shown.length),
+                    style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
                   ),
-                )
-              : EntryListBody(
-                  // A new type starts at the top.
-                  key: ValueKey(type),
-                  entries: shown,
-                  sort: prefs.sortFor(type),
-                  view: view,
-                  color: LibraryColors.of(context).forType(type),
-                  onTap: (entry) => widget.onOpenEntry?.call(entry),
                 ),
+                SortButton(
+                  current: prefs.sortFor(type),
+                  onChanged: (sort) => ref
+                      .read(displayPreferencesProvider.notifier)
+                      .setSort(type, sort),
+                ),
+                ViewMenuButton(
+                  current: view,
+                  onChanged: (v) => ref
+                      .read(displayPreferencesProvider.notifier)
+                      .setView(type, v),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shown.isEmpty) {
+      return _scrollView(header, [
+        controls,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+            child: Text(
+              'Nothing marked ${status!.lowerLabel} yet.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium!.copyWith(
+                color: LibraryColors.of(context).muted,
+              ),
+            ),
+          ),
         ),
-      ],
+      ]);
+    }
+    return EntryListBody(
+      // A new type starts at the top.
+      key: ValueKey(type),
+      entries: shown,
+      sort: prefs.sortFor(type),
+      view: view,
+      color: LibraryColors.of(context).forType(type),
+      controller: _scroll,
+      leadingSlivers: [header, controls],
+      onTap: (entry) => widget.onOpenEntry?.call(entry),
     );
   }
 
-  /// Filtered results (L5, L6): removable chips and the count stay put, the
-  /// rows scroll. Grouped by type; a long list gets a rail (L5, L6).
+  /// Filtered results (L5, L6): removable chips and the count, then the
+  /// rows grouped by type; a long list gets a rail (L5, L6).
   Widget _filtered(
+    Widget header,
     Library library,
     LibraryFilter filter,
     DisplayPreferences prefs,
@@ -454,84 +508,88 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     final types = matching.map((e) => e.type).toSet();
     final byType = sectionEntriesByType(matching, colors.forType);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              for (final chip in filter.chips)
-                RemovableChip(
-                  label: chip.label,
-                  onRemove: () =>
-                      ref.read(libraryFilterProvider.notifier).remove(chip),
+    final chips = SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final chip in filter.chips)
+              RemovableChip(
+                label: chip.label,
+                onRemove: () =>
+                    ref.read(libraryFilterProvider.notifier).remove(chip),
+              ),
+            // With no results the empty state's button clears the
+            // filters, so the chip row has no link of its own (A10).
+            if (matching.isNotEmpty)
+              TextButton(
+                onPressed: () =>
+                    ref.read(libraryFilterProvider.notifier).clear(),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  textStyle: theme.textTheme.labelMedium,
                 ),
-              // With no results the empty state's button clears the
-              // filters, so the chip row has no link of its own (A10).
-              if (matching.isNotEmpty)
-                TextButton(
-                  onPressed: () =>
-                      ref.read(libraryFilterProvider.notifier).clear(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    textStyle: theme.textTheme.labelMedium,
-                  ),
-                  child: const Text('Clear all'),
-                ),
-            ],
-          ),
+                child: const Text('Clear all'),
+              ),
+          ],
         ),
-        if (matching.isEmpty)
-          EmptyState(
+      ),
+    );
+
+    if (matching.isEmpty) {
+      return _scrollView(header, [
+        chips,
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
             icon: AppIcons.filters,
             title: 'Nothing matches these filters',
             body: filter.noMatchesText,
             actionLabel: 'Clear filters',
             onAction: () => ref.read(libraryFilterProvider.notifier).clear(),
-          )
-        else ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${matching.length} ${matching.length == 1 ? 'entry' : 'entries'}',
-                    style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
-                  ),
-                ),
-                SortButton(
-                  current: prefs.filteredSort,
-                  onChanged: (sort) => ref
-                      .read(displayPreferencesProvider.notifier)
-                      .setFilteredSort(sort),
-                ),
-              ],
-            ),
           ),
-          Expanded(
-            child: EntryListBody(
-              key: ValueKey(filter),
-              entries: matching,
-              sort: prefs.filteredSort,
-              view: EntryView.text,
-              // One type: sections follow the sort in that type's color
-              // (L5). Several: one section per type with a dot rail (L6).
-              color: types.length == 1
-                  ? colors.forType(types.single)
-                  : colors.muted,
-              railSections: types.length == 1 ? null : byType,
-              plainSections: byType,
-              onTap: (entry) => widget.onOpenEntry?.call(entry),
+        ),
+      ]);
+    }
+
+    final count = SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${matching.length} ${matching.length == 1 ? 'entry' : 'entries'}',
+                style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
+              ),
             ),
-          ),
-        ],
-      ],
+            SortButton(
+              current: prefs.filteredSort,
+              onChanged: (sort) => ref
+                  .read(displayPreferencesProvider.notifier)
+                  .setFilteredSort(sort),
+            ),
+          ],
+        ),
+      ),
+    );
+    return EntryListBody(
+      key: ValueKey(filter),
+      entries: matching,
+      sort: prefs.filteredSort,
+      view: EntryView.text,
+      // One type: sections follow the sort in that type's color
+      // (L5). Several: one section per type with a dot rail (L6).
+      color: types.length == 1 ? colors.forType(types.single) : colors.muted,
+      railSections: types.length == 1 ? null : byType,
+      plainSections: byType,
+      controller: _scroll,
+      leadingSlivers: [header, chips, count],
+      onTap: (entry) => widget.onOpenEntry?.call(entry),
     );
   }
 }

@@ -34,12 +34,19 @@ class MusicTypeBody extends ConsumerStatefulWidget {
     required this.entries,
     required this.onOpenEntry,
     required this.onOpenArtist,
+    this.controller,
+    this.leadingSlivers = const [],
   });
 
   /// The visible music entries.
   final List<Entry> entries;
   final void Function(Entry entry) onOpenEntry;
   final void Function(ArtistSummary artist) onOpenArtist;
+
+  /// The home's scroll controller and header: the tabs and the count line
+  /// go under the header and scroll away with it (A1).
+  final ScrollController? controller;
+  final List<Widget> leadingSlivers;
 
   @override
   ConsumerState<MusicTypeBody> createState() => _MusicTypeBodyState();
@@ -61,72 +68,80 @@ class _MusicTypeBodyState extends ConsumerState<MusicTypeBody> {
         .where((e) => e.kind == MusicKind.song)
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-          child: SegmentedControl<MusicTab>(
-            segments: [
-              for (final t in MusicTab.values) SegmentOption(t, t.label),
-            ],
-            selected: tab,
-            onChanged: ref.read(homeMusicTabProvider.notifier).set,
+    final controls = SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: SegmentedControl<MusicTab>(
+              segments: [
+                for (final t in MusicTab.values) SegmentOption(t, t.label),
+              ],
+              selected: tab,
+              onChanged: ref.read(homeMusicTabProvider.notifier).set,
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  musicCountLabel(
-                    artists: artists.length,
-                    albums: albums.length,
-                    songs: songs.length,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    musicCountLabel(
+                      artists: artists.length,
+                      albums: albums.length,
+                      songs: songs.length,
+                    ),
+                    style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
                   ),
-                  style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
                 ),
-              ),
-              ViewMenuButton(
-                current: view,
-                photos: tab != MusicTab.albums,
-                onChanged: (v) => ref
-                    .read(displayPreferencesProvider.notifier)
-                    .setMusicView(tab, v),
-              ),
-            ],
+                ViewMenuButton(
+                  current: view,
+                  photos: tab != MusicTab.albums,
+                  onChanged: (v) => ref
+                      .read(displayPreferencesProvider.notifier)
+                      .setMusicView(tab, v),
+                ),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: switch (tab) {
-            MusicTab.artists => ArtistList(
-              key: const ValueKey(MusicTab.artists),
-              artists: artists,
-              view: view,
-              color: color,
-              onTap: widget.onOpenArtist,
-            ),
-            MusicTab.albums => EntryListBody(
-              key: const ValueKey(MusicTab.albums),
-              entries: sortEntries(albums, LibrarySort.titleAz),
-              sort: LibrarySort.titleAz,
-              view: view,
-              color: color,
-              caption: (e) => e.creator ?? '',
-              onTap: widget.onOpenEntry,
-            ),
-            MusicTab.songs => SongList(
-              key: const ValueKey(MusicTab.songs),
-              items: songItems(songs, albums),
-              view: view,
-              color: color,
-              onTap: widget.onOpenEntry,
-            ),
-          },
-        ),
-      ],
+        ],
+      ),
     );
+    final leading = [...widget.leadingSlivers, controls];
+
+    return switch (tab) {
+      MusicTab.artists => ArtistList(
+        key: const ValueKey(MusicTab.artists),
+        artists: artists,
+        view: view,
+        color: color,
+        onTap: widget.onOpenArtist,
+        controller: widget.controller,
+        leadingSlivers: leading,
+      ),
+      MusicTab.albums => EntryListBody(
+        key: const ValueKey(MusicTab.albums),
+        entries: sortEntries(albums, LibrarySort.titleAz),
+        sort: LibrarySort.titleAz,
+        view: view,
+        color: color,
+        caption: (e) => e.creator ?? '',
+        onTap: widget.onOpenEntry,
+        controller: widget.controller,
+        leadingSlivers: leading,
+      ),
+      MusicTab.songs => SongList(
+        key: const ValueKey(MusicTab.songs),
+        items: songItems(songs, albums),
+        view: view,
+        color: color,
+        onTap: widget.onOpenEntry,
+        controller: widget.controller,
+        leadingSlivers: leading,
+      ),
+    };
   }
 }
 
@@ -139,12 +154,16 @@ class ArtistList extends StatelessWidget {
     required this.view,
     required this.color,
     required this.onTap,
+    this.controller,
+    this.leadingSlivers = const [],
   });
 
   final List<ArtistSummary> artists;
   final EntryView view;
   final Color color;
   final void Function(ArtistSummary artist) onTap;
+  final ScrollController? controller;
+  final List<Widget> leadingSlivers;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +185,8 @@ class ArtistList extends StatelessWidget {
       gridTopPadding: EntryListMetrics.gridTopPadding,
       gridColumns: EntryListMetrics.gridColumns,
       color: color,
+      controller: controller,
+      leadingSlivers: leadingSlivers,
       layoutKey: (view, artists.length),
       rowBuilder: (context, artist) => row(artist),
       flatSlivers: grid
@@ -239,12 +260,16 @@ class SongList extends StatelessWidget {
     required this.view,
     required this.color,
     required this.onTap,
+    this.controller,
+    this.leadingSlivers = const [],
   });
 
   final List<SongItem> items;
   final EntryView view;
   final Color color;
   final void Function(Entry entry) onTap;
+  final ScrollController? controller;
+  final List<Widget> leadingSlivers;
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +309,8 @@ class SongList extends StatelessWidget {
       gridTopPadding: EntryListMetrics.gridTopPadding,
       gridColumns: EntryListMetrics.gridColumns,
       color: color,
+      controller: controller,
+      leadingSlivers: leadingSlivers,
       layoutKey: (view, items.length),
       rowBuilder: (context, item) => row(item),
       flatSlivers: grid
