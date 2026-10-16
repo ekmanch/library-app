@@ -361,20 +361,23 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
   });
 }
 
-/// The chip row is part of the home's scroll (A1), so after a list has been
-/// scrolled it may not be built: jump the home back to the top first.
+/// The home's header is part of its scroll (A1), so after a list has been
+/// scrolled the search box or the chips may be off screen and not built:
+/// jump every vertical list back to the top first.
 Future<void> revealHeader(WidgetTester tester) async {
-  final row = find.byWidgetPredicate(
-    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
-  );
-  if (row.evaluate().isNotEmpty) return;
   final vertical = find.byWidgetPredicate(
     (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
   );
+  var moved = false;
   for (final element in vertical.evaluate()) {
-    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+    final position =
+        ((element as StatefulElement).state as ScrollableState).position;
+    if (position.pixels > 0) {
+      position.jumpTo(0);
+      moved = true;
+    }
   }
-  await tester.pumpAndSettle();
+  if (moved) await tester.pumpAndSettle();
 }
 
 void main() {

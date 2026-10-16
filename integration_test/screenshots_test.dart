@@ -80,20 +80,23 @@ Future<void> capture(WidgetTester tester, String name) async {
   debugPrint('Wrote ${file.absolute.path}');
 }
 
-/// The chip row is part of the home's scroll (A1), so after a list has been
-/// scrolled it may not be built: jump the home back to the top first.
+/// The home's header is part of its scroll (A1), so after a list has been
+/// scrolled the search box or the chips may be off screen and not built:
+/// jump every vertical list back to the top first.
 Future<void> revealHeader(WidgetTester tester) async {
-  final row = find.byWidgetPredicate(
-    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
-  );
-  if (row.evaluate().isNotEmpty) return;
   final vertical = find.byWidgetPredicate(
     (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
   );
+  var moved = false;
   for (final element in vertical.evaluate()) {
-    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+    final position =
+        ((element as StatefulElement).state as ScrollableState).position;
+    if (position.pixels > 0) {
+      position.jumpTo(0);
+      moved = true;
+    }
   }
-  await tester.pumpAndSettle();
+  if (moved) await tester.pumpAndSettle();
 }
 
 /// The home's vertical list (the header scrolls with it), for scrolling to
@@ -648,6 +651,18 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'large-text-a25-released-picker');
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    // D10 with its ten category chips: a new suggested tag opens it.
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Add #stealth'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Add #stealth'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-d10-new-tag');
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();

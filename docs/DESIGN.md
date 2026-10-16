@@ -293,7 +293,7 @@ No scraping. Goodreads has no public API any more. Spotify was ruled out (Premiu
 - Segmented controls that do not fit at a large text size keep their full labels and scroll sideways; the filter sheet's status chips share the row by label length and wrap when they do not fit.
 - A filter that is only one type, with at most one status (for music, at most one kind), is not a results screen: the home picks that type and its status segment or music tab instead (the L6 note; see A2, A11, A23).
 - A filter that matches nothing spells itself out: "No books are both in progress and tagged #christmas. Remove a filter to see more." The empty state's button clears the filters, so the chip row has no "Clear all" then.
-- The active plan card's name shrinks a step (20, 18, 16 px) before cutting off, like the plan header.
+- The active plan card's name shrinks a step (20, 18, 16 px) before cutting off, like the plan header. A button label never wraps either: at a large text size "Create tag" beside Cancel shrinks to fit (D10, checked 2026-10-17).
 - At a large text size on a small phone, a timeline card puts its type label above the title so the title gets the full width, and the entry form stacks the creator and Released fields so neither is cut.
 - D6: "Check for changes" is a two-line row: the label, then "When you open Libri, then every 5 minutes" in the secondary color, left-aligned.
 - D2: the range band is drawn per week row from the center of the start day to the center of the end day (to the row edge where the range carries on), 40 px tall, square ends hidden under the dots; no band for a single day.

@@ -58,8 +58,13 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = LibraryColors.of(context);
     final scheme = Theme.of(context).colorScheme;
+    // A label never wraps: "Create tag" beside Cancel at a large text size
+    // shrinks a step instead, like a page title.
     final child = icon == null
-        ? Text(label)
+        ? FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, maxLines: 1, softWrap: false),
+          )
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [

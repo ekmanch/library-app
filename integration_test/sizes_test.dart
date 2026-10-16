@@ -58,10 +58,19 @@ class _Walk {
   Future<void> step(String name, Future<void> Function() body) async {
     try {
       await body();
-    } catch (e) {
+    } catch (e, stack) {
       final line = e.toString().split('\n').first;
-      failures.add('$dir: $name: $line');
-      debugPrint('SIZES FAIL $dir: $name: $line');
+      // The walk's own frame, so the failing line can be found.
+      final frame = stack
+          .toString()
+          .split('\n')
+          .where((f) => f.contains('sizes_test.dart'))
+          .map((f) => f.replaceAll(RegExp(r'\s+'), ' '))
+          .join(' <- ');
+      failures.add('$dir: $name: $line $frame');
+      debugPrint('SIZES FAIL $dir: $name: $line $frame');
+      // What the screen looked like when the step failed.
+      await shot('FAIL-${name.replaceAll(' ', '-')}');
       await recover();
     }
   }
@@ -76,7 +85,17 @@ class _Walk {
       rootNavigator: true,
     ).popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
+    // Back only while a navigator has something to pop: on the Library
+    // root, back leaves the app (the shell calls SystemNavigator.pop), which
+    // on Linux ends the whole run.
     for (var i = 0; i < 4; i++) {
+      final canPop = find
+          .byType(Navigator)
+          .evaluate()
+          .any(
+            (e) => ((e as StatefulElement).state as NavigatorState).canPop(),
+          );
+      if (!canPop) break;
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
     }
@@ -166,6 +185,7 @@ Future<void> _walk(_Walk w) async {
     await w.pickView('Text');
   });
   await w.step('a2 and a3', () async {
+    await revealHeader(tester);
     await w.tap(find.byTooltip('Filters'));
     final horror = find.widgetWithText(PillChip, '#horror');
     await tester.scrollUntilVisible(
@@ -187,6 +207,7 @@ Future<void> _walk(_Walk w) async {
   });
   await w.step('a5 search', () async {
     await w.pickChip('All');
+    await revealHeader(tester);
     await w.tapText('Search titles and tags');
     await tester.enterText(find.byType(TextField), 'hal');
     await tester.pumpAndSettle();
@@ -215,6 +236,7 @@ Future<void> _walk(_Walk w) async {
     await w.pickChip('All');
   });
   await w.step('a13 and a8-new', () async {
+    await revealHeader(tester);
     await w.tap(find.byType(AddButton));
     await tester.enterText(find.byType(TextField), 'The Last of Us');
     await tester.pump(NewEntryScreen.debounce);
@@ -263,11 +285,13 @@ Future<void> _walk(_Walk w) async {
     await w.tapText('Christmas 2026');
     await w.shot('s1-s12-christmas-checklist');
     await w.navTab('Plans');
+    await revealHeader(tester);
     await w.tap(find.byType(AddButton));
     await w.shot('s10-new-plan');
     await w.back();
   });
   await w.step('settings and connection', () async {
+    await revealHeader(tester);
     await w.tap(find.byTooltip('Settings'));
     await w.shot('s6-settings');
     await tester.scrollUntilVisible(find.text('Version 0.1.0'), 300);
@@ -315,20 +339,23 @@ Future<void> _walk(_Walk w) async {
   });
 }
 
-/// The chip row is part of the home's scroll (A1), so after a list has been
-/// scrolled it may not be built: jump the home back to the top first.
+/// The home's header is part of its scroll (A1), so after a list has been
+/// scrolled the search box or the chips may be off screen and not built:
+/// jump every vertical list back to the top first.
 Future<void> revealHeader(WidgetTester tester) async {
-  final row = find.byWidgetPredicate(
-    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
-  );
-  if (row.evaluate().isNotEmpty) return;
   final vertical = find.byWidgetPredicate(
     (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
   );
+  var moved = false;
   for (final element in vertical.evaluate()) {
-    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+    final position =
+        ((element as StatefulElement).state as ScrollableState).position;
+    if (position.pixels > 0) {
+      position.jumpTo(0);
+      moved = true;
+    }
   }
-  await tester.pumpAndSettle();
+  if (moved) await tester.pumpAndSettle();
 }
 
 void main() {
