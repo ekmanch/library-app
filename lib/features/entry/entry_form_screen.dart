@@ -34,6 +34,7 @@ import 'replace_dialogs.dart';
 import 'similar_tags.dart';
 import 'tag_dialogs.dart';
 import 'tag_picker_sheet.dart';
+import 'creator_tags.dart';
 
 /// Opens the form (A8) for a new entry, prefilled from a lookup [match] or
 /// just a [type] and [title]. Resolves with the saved entry, or null.
@@ -101,6 +102,10 @@ class EntryFormScreen extends ConsumerStatefulWidget {
 class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _creator;
+
+  /// The creator's tag is suggested once the field is left, not while a
+  /// name is half typed.
+  final _creatorFocus = FocusNode();
   late final TextEditingController _note;
   late final TextEditingController _otherPlatform;
   late final TextEditingController _album;
@@ -185,12 +190,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     _seasonalOnly = entry?.seasonalOnly ?? false;
     _description = entry?.description ?? match?.description ?? '';
     _source = entry?.source ?? match?.source;
+    _creatorFocus.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _title.dispose();
     _creator.dispose();
+    _creatorFocus.dispose();
     _note.dispose();
     _otherPlatform.dispose();
     _album.dispose();
@@ -276,11 +283,57 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       }
       if (matched.length + fresh.length == 6) break;
     }
+    // The creator's tag, when the library has it, goes on like a matched
+    // genre; a new one is offered under the field (see _creatorSuggestions).
+    for (final t in _creatorTags) {
+      if (existing.contains(t.tag) && !matched.contains(t.tag)) {
+        matched.add(t.tag);
+      }
+    }
     _suggestedExisting = matched;
     _suggestedNew = fresh;
     for (final tag in matched) {
       if (!_tags.contains(tag)) _tags.add(tag);
     }
+  }
+
+  /// The tags for the creator field as it reads now: #stephen-king for an
+  /// author, #naughty-dog for a studio, #pixar for a Pixar film whoever
+  /// directed it (A8, DESIGN.md section 7).
+  List<CreatorTag> get _creatorTags => creatorTags(
+    type: _type,
+    creator: _creator.text,
+    companies: _match?.companies ?? const [],
+  );
+
+  /// The creator tags not on the entry, offered under the field once the
+  /// field is left. Ones the lookup already matched come back through
+  /// [_suggestions] when removed.
+  List<CreatorTag> _creatorSuggestions() => _creatorFocus.hasFocus
+      ? const []
+      : [
+          for (final t in _creatorTags)
+            if (!_tags.contains(t.tag) &&
+                !_suggestedExisting.contains(t.tag) &&
+                !_suggestedNew.contains(t.tag))
+              t,
+        ];
+
+  Future<void> _addCreatorSuggestion(CreatorTag t, Library library) async {
+    if (library.allTags.contains(t.tag) || _newTags.containsKey(t.tag)) {
+      setState(() => _tags.add(t.tag));
+      return;
+    }
+    final category = await showNewTagDialog(
+      context,
+      name: t.tag,
+      initial: t.category,
+    );
+    if (category == null || !mounted) return;
+    setState(() {
+      _newTags[t.tag] = category;
+      _tags.add(t.tag);
+    });
   }
 
   /// The suggestions not on the entry right now.
@@ -505,6 +558,9 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       _prepareSuggestions(library);
     }
     final suggestions = _suggestions;
+    final creatorSuggestions = library == null
+        ? const <CreatorTag>[]
+        : _creatorSuggestions();
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -615,6 +671,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                           FieldLabel(creatorLabel(_type)),
                           AppTextField(
                             controller: _creator,
+                            focusNode: _creatorFocus,
                             hintText: 'Optional',
                             textCapitalization: TextCapitalization.words,
                           ),
@@ -789,7 +846,8 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                             ],
                           ),
                   ),
-                  if (suggestions.isNotEmpty) ...[
+                  if (suggestions.isNotEmpty ||
+                      creatorSuggestions.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Suggested · tap to add',
@@ -803,6 +861,17 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
+                        for (final t in creatorSuggestions)
+                          DashedChip(
+                            label: '#${t.tag}',
+                            badge:
+                                library!.allTags.contains(t.tag) ||
+                                    _newTags.containsKey(t.tag)
+                                ? null
+                                : 'new',
+                            semanticsLabel: 'Add #${t.tag}',
+                            onTap: () => _addCreatorSuggestion(t, library),
+                          ),
                         for (final tag in suggestions)
                           DashedChip(
                             label: '#$tag',

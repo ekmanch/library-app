@@ -1,0 +1,116 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:library_app/data/models/media_type.dart';
+import 'package:library_app/data/models/tag_category.dart';
+import 'package:library_app/features/entry/creator_tags.dart';
+
+void main() {
+  test('a book suggests its author, in Authors', () {
+    expect(creatorTags(type: MediaType.books, creator: 'Ursula K. Le Guin'), [
+      (tag: 'ursula-k-le-guin', category: TagCategory.authors),
+    ]);
+  });
+
+  test('a movie or show suggests its director, in Directors', () {
+    expect(creatorTags(type: MediaType.movies, creator: 'Robert Eggers'), [
+      (tag: 'robert-eggers', category: TagCategory.directors),
+    ]);
+    expect(creatorTags(type: MediaType.shows, creator: 'Mike Flanagan'), [
+      (tag: 'mike-flanagan', category: TagCategory.directors),
+    ]);
+  });
+
+  test('a game or anime suggests its studio, in Studios', () {
+    expect(creatorTags(type: MediaType.games, creator: 'Naughty Dog'), [
+      (tag: 'naughty-dog', category: TagCategory.studios),
+    ]);
+    expect(creatorTags(type: MediaType.anime, creator: 'Madhouse'), [
+      (tag: 'madhouse', category: TagCategory.studios),
+    ]);
+  });
+
+  test('music suggests nothing: an artist is not a tag', () {
+    expect(
+      creatorTags(type: MediaType.music, creator: 'Alice in Chains'),
+      isEmpty,
+    );
+  });
+
+  test('several names give several tags; accents fold', () {
+    expect(
+      creatorTags(
+        type: MediaType.books,
+        creator: 'Stephen King & Peter Straub',
+      ).map((t) => t.tag),
+      ['stephen-king', 'peter-straub'],
+    );
+    expect(
+      creatorTags(
+        type: MediaType.shows,
+        creator: 'Craig Mazin, Neil Druckmann',
+      ).map((t) => t.tag),
+      ['craig-mazin', 'neil-druckmann'],
+    );
+    expect(
+      creatorTags(type: MediaType.books, creator: 'Jo Nesbø').single.tag,
+      'jo-nesbo',
+    );
+    expect(creatorTags(type: MediaType.books, creator: '  '), isEmpty);
+    expect(creatorTags(type: MediaType.books, creator: null), isEmpty);
+  });
+
+  test('a Pixar, Disney, DreamWorks or Ghibli film suggests the studio', () {
+    expect(
+      creatorTags(
+        type: MediaType.movies,
+        creator: 'Pete Docter',
+        companies: ['Pixar', 'Walt Disney Pictures'],
+      ),
+      [(tag: 'pixar', category: TagCategory.studios)],
+    );
+    expect(
+      creatorTags(
+        type: MediaType.movies,
+        creator: 'Chris Buck, Jennifer Lee',
+        companies: ['Walt Disney Animation Studios', 'Walt Disney Pictures'],
+      ).single.tag,
+      'disney',
+    );
+    expect(
+      creatorTags(
+        type: MediaType.movies,
+        creator: 'Andrew Adamson',
+        companies: ['DreamWorks Animation'],
+      ).single.tag,
+      'dreamworks',
+    );
+    expect(
+      creatorTags(
+        type: MediaType.movies,
+        creator: 'Hayao Miyazaki',
+        companies: ['Studio Ghibli'],
+      ).single.tag,
+      'studio-ghibli',
+    );
+  });
+
+  test('a live-action Disney film keeps its director', () {
+    expect(
+      creatorTags(
+        type: MediaType.movies,
+        creator: 'Gore Verbinski',
+        companies: ['Walt Disney Pictures', 'Jerry Bruckheimer Films'],
+      ).single.tag,
+      'gore-verbinski',
+    );
+  });
+
+  test('Miyazaki typed by hand still means Studio Ghibli', () {
+    expect(creatorTags(type: MediaType.movies, creator: 'Hayao Miyazaki'), [
+      (tag: 'studio-ghibli', category: TagCategory.studios),
+    ]);
+    expect(
+      creatorTags(type: MediaType.anime, creator: 'Studio Ghibli').single.tag,
+      'studio-ghibli',
+    );
+  });
+}

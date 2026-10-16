@@ -145,6 +145,11 @@ class TmdbSource extends HttpLookupSource {
       creator: creators.isEmpty ? null : creators.join(', '),
       released: date == null ? null : Released.tryParse(date),
       description: stringAt(json, 'overview'),
+      // The studio's tag comes from these (#pixar), see creator_tags.dart.
+      companies: [
+        for (final c in objectsAt(json, 'production_companies'))
+          ?stringAt(c, 'name'),
+      ],
       tags: [for (final g in objectsAt(json, 'genres')) ?stringAt(g, 'name')],
       coverUrl: poster == null ? null : '$_images$rowPosterWidth$poster',
     );

@@ -18,6 +18,7 @@ class LookupMatch {
     this.album,
     this.albumSource,
     this.platforms = const [],
+    this.companies = const [],
     this.tags = const [],
     this.coverUrl,
     this.largeCoverUrl,
@@ -40,6 +41,11 @@ class LookupMatch {
 
   /// For a game: the platforms it is out on, as the lookup lists them.
   final List<String> platforms;
+
+  /// The companies behind it, as the lookup names them: production
+  /// companies for a movie or show, studios for an anime, developers for a
+  /// game. The form reads the studio's tag from them (#pixar).
+  final List<String> companies;
 
   /// Tag names the lookup suggests (genres, themes). The form matches them
   /// to the library's tags and offers the rest as new ones.
@@ -65,6 +71,7 @@ class LookupMatch {
     String? album,
     String? albumSource,
     List<String>? platforms,
+    List<String>? companies,
     List<String>? tags,
     String? coverUrl,
     String? largeCoverUrl,
@@ -78,6 +85,7 @@ class LookupMatch {
     album: album ?? this.album,
     albumSource: albumSource ?? this.albumSource,
     platforms: platforms ?? this.platforms,
+    companies: companies ?? this.companies,
     tags: tags ?? this.tags,
     coverUrl: coverUrl ?? this.coverUrl,
     largeCoverUrl: largeCoverUrl ?? this.largeCoverUrl,
@@ -95,6 +103,7 @@ class LookupMatch {
       other.album == album &&
       other.albumSource == albumSource &&
       listEquals(other.platforms, platforms) &&
+      listEquals(other.companies, companies) &&
       listEquals(other.tags, tags) &&
       other.coverUrl == coverUrl &&
       other.largeCoverUrl == largeCoverUrl;

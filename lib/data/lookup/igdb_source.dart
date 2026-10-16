@@ -150,6 +150,7 @@ class IgdbSource extends HttpLookupSource {
       source: 'igdb:${id.toInt()}',
       released: date == null ? null : Released(date.year, date.month, date.day),
       creator: developers.isEmpty ? null : developers.join(', '),
+      companies: developers,
       description: stringAt(game, 'summary') ?? '',
       platforms: [
         for (final p in objectsAt(game, 'platforms'))

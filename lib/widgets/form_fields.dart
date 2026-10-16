@@ -40,9 +40,11 @@ class AppTextField extends StatelessWidget {
     this.maxLength,
     this.obscureText = false,
     this.keyboardType,
+    this.focusNode,
   });
 
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? hintText;
   final String? errorText;
   final int maxLines;
@@ -64,6 +66,7 @@ class AppTextField extends StatelessWidget {
     final theme = Theme.of(context);
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       autofocus: autofocus,
       maxLines: maxLines,
       maxLength: maxLength,
