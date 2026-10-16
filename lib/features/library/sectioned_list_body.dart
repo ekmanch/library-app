@@ -52,8 +52,9 @@ class ListSection<T> {
 /// offsets can be computed without measuring.
 ///
 /// [leadingSlivers] scroll away above the list, like the home's header
-/// (A1): the rail starts under them and its offsets are measured from
-/// where the list itself begins.
+/// (A1), except the [pinnedExtent] of them that stays: the rail starts
+/// under them and its offsets are measured from where the list itself
+/// begins.
 class SectionedListBody<T> extends StatefulWidget {
   const SectionedListBody({
     super.key,
@@ -72,9 +73,15 @@ class SectionedListBody<T> extends StatefulWidget {
     this.layoutKey,
     this.controller,
     this.leadingSlivers = const [],
+    this.pinnedExtent = 0,
   });
 
   final int itemCount;
+
+  /// The height of the part of [leadingSlivers] that stays pinned at the
+  /// top once scrolled (the chips and the count row of A1): the rail
+  /// starts under it, and a jump puts the section right below it.
+  final double pinnedExtent;
 
   /// The scroll controller to drive, so a caller can scroll back to the
   /// top; the list keeps its own when none is given.
@@ -179,7 +186,8 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
     if (_position == null) return;
     var next = _current;
     if (!_pinned) {
-      final offset = _listOffset + 1;
+      // The section at the top of what can be seen, under the pinned rows.
+      final offset = _listOffset + widget.pinnedExtent + 1;
       for (var i = 0; i < _sectionTops.length; i++) {
         if (_sectionTops[i] <= offset) next = i;
       }
@@ -224,7 +232,10 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
     _pinned = true;
     setState(() => _current = i);
     position.jumpTo(
-      math.min(_headerExtent + _sectionTops[i], position.maxScrollExtent),
+      (_headerExtent + _sectionTops[i] - widget.pinnedExtent).clamp(
+        0.0,
+        position.maxScrollExtent,
+      ),
     );
   }
 
@@ -321,7 +332,10 @@ class _SectionedListBodyState<T> extends State<SectionedListBody<T>> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) => Positioned(
-        top: math.max(0.0, _headerExtent - (_position?.pixels ?? 0)),
+        top: math.max(
+          widget.pinnedExtent,
+          _headerExtent - (_position?.pixels ?? 0),
+        ),
         right: right,
         bottom: widget.bottomPadding,
         width: width,

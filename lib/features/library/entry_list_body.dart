@@ -28,6 +28,7 @@ class EntryListBody extends StatelessWidget {
     this.caption,
     this.controller,
     this.leadingSlivers = const [],
+    this.pinnedExtent = 0,
   });
 
   /// Already sorted by [sort].
@@ -57,6 +58,7 @@ class EntryListBody extends StatelessWidget {
   /// See [SectionedListBody.controller] and [SectionedListBody.leadingSlivers].
   final ScrollController? controller;
   final List<Widget> leadingSlivers;
+  final double pinnedExtent;
 
   static const thumbKey = SectionedListBody.thumbKey;
   static const railKey = SectionedListBody.railKey;
@@ -82,6 +84,7 @@ class EntryListBody extends StatelessWidget {
       bottomPadding: bottomPadding,
       controller: controller,
       leadingSlivers: leadingSlivers,
+      pinnedExtent: pinnedExtent,
       layoutKey: (sort, view, entries),
       rowBuilder: (context, entry) => EntryRow.forEntry(
         entry,

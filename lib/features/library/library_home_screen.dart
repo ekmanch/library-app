@@ -14,6 +14,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/entry_row.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/pinned_sliver.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/segmented_control.dart';
 import '../music/music_tab.dart';
@@ -30,6 +31,7 @@ import '../shell/app_shell.dart';
 import '../shell/floating_nav_bar.dart';
 import 'active_plan_card.dart';
 import 'entry_list_body.dart';
+import 'entry_list_views.dart';
 import 'entry_sections.dart';
 import 'filter_sheet.dart';
 import 'home_return_provider.dart';
@@ -47,10 +49,11 @@ import 'view_menu.dart';
 /// sort and view; Music gets its artist, album and song tabs instead (A14).
 /// Also shows filtered results (L5, L6) and the empty states of A10.
 ///
-/// The whole top (title, banner, search box, chips, segments and count
-/// row) is part of the one scroll view, so it scrolls away with the list
-/// and the entries get the screen; only the pill and the "+" button stay.
-/// Library in the pill brings it back (see [_onReturn]).
+/// The whole top is part of the one scroll view: the title, the banner,
+/// the search box, the type chips and the status segments scroll away with
+/// the list, while the count row (count, sort, view) pins at the top as it
+/// gets there, so the entries get the rest of the screen. Library in
+/// the pill brings the top back (see [_onReturn]).
 class LibraryHomeScreen extends ConsumerStatefulWidget {
   const LibraryHomeScreen({
     super.key,
@@ -198,59 +201,65 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       );
     }
 
-    // The top of the screen, as the first sliver of whichever body shows.
-    final header = SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PageHeader(
-            title: 'Library',
-            actions: [SettingsButton(onPressed: _openSettings)],
-          ),
-          const SyncBannerCard(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-            child: _SearchRow(
-              hint: searchHint(filter.isActive ? null : type),
-              filterCount: filter.count,
-              onSearch: _openSearch,
-              onFilters: library == null ? null : () => _openFilters(library),
+    // The top of the screen, as the first slivers of whichever body shows;
+    // all of it scrolls away.
+    final showChips = library != null && !filter.isActive;
+    final header = <Widget>[
+      SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PageHeader(
+              title: 'Library',
+              actions: [SettingsButton(onPressed: _openSettings)],
             ),
-          ),
-          if (library != null && !filter.isActive)
+            const SyncBannerCard(),
             Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: SizedBox(
-                height: 44,
-                child: ListView(
-                  // The row is built afresh when the body changes (All to a
-                  // type); the key keeps its scroll position across that.
-                  key: const PageStorageKey('type-chips'),
-                  controller: _chipScroll,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  children: [
-                    PillChip(
-                      label: 'All',
-                      selected: type == null,
-                      onTap: () => _pickType(null),
-                    ),
-                    for (final t in MediaType.values) ...[
-                      const SizedBox(width: 8),
-                      PillChip(
-                        label: t.label,
-                        selected: type == t,
-                        dotColor: colors.forType(t),
-                        onTap: () => _pickType(t),
-                      ),
-                    ],
-                  ],
-                ),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: _SearchRow(
+                hint: searchHint(filter.isActive ? null : type),
+                filterCount: filter.count,
+                onSearch: _openSearch,
+                onFilters: library == null ? null : () => _openFilters(library),
               ),
             ),
-        ],
+          ],
+        ),
       ),
-    );
+      if (showChips)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: SizedBox(
+              height: 44,
+              child: ListView(
+                // The row is built afresh when the body changes (All to a
+                // type); the key keeps its scroll position across that.
+                key: const PageStorageKey('type-chips'),
+                controller: _chipScroll,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                children: [
+                  PillChip(
+                    label: 'All',
+                    selected: type == null,
+                    onTap: () => _pickType(null),
+                  ),
+                  for (final t in MediaType.values) ...[
+                    const SizedBox(width: 8),
+                    PillChip(
+                      label: t.label,
+                      selected: type == t,
+                      dotColor: colors.forType(t),
+                      onTap: () => _pickType(t),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+    ];
 
     final Widget body;
     if (library == null) {
@@ -279,12 +288,12 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
   }
 
   /// A scroll view of the header and [slivers], on the shared position.
-  Widget _scrollView(Widget header, List<Widget> slivers) =>
-      CustomScrollView(controller: _scroll, slivers: [header, ...slivers]);
+  Widget _scrollView(List<Widget> header, List<Widget> slivers) =>
+      CustomScrollView(controller: _scroll, slivers: [...header, ...slivers]);
 
   /// The first download failed (offline, a bad token): say so, and let a
   /// pull or the button try again.
-  Widget _loadFailed(Widget header, Object? error) {
+  Widget _loadFailed(List<Widget> header, Object? error) {
     final theme = Theme.of(context);
     return _scrollView(header, [
       SliverPadding(
@@ -310,7 +319,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
   /// All: the active plan, then two rows per type under a heading that
   /// opens the type.
   Widget _allTypes(
-    Widget header,
+    List<Widget> header,
     Library library,
     LibraryFilter filter,
     LibraryColors colors,
@@ -376,9 +385,10 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
   }
 
   /// One type picked: status segments, count, sort, view and the list in
-  /// the remembered view, all in one scroll.
+  /// the remembered view, all in one scroll; the count row pins at the top
+  /// once the rest has scrolled away.
   Widget _oneType(
-    Widget header,
+    List<Widget> header,
     Library library,
     MediaType type,
     LibraryFilter filter,
@@ -406,7 +416,7 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       return MusicTypeBody(
         entries: visible,
         controller: _scroll,
-        leadingSlivers: [header],
+        leadingSlivers: header,
         onOpenEntry: (entry) => widget.onOpenEntry?.call(entry),
         onOpenArtist: (artist) =>
             openArtistScreen(context, artist, onOpenEntry: widget.onOpenEntry),
@@ -419,51 +429,51 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
     );
     final view = prefs.viewFor(type);
 
-    final controls = SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: StatusSegmentedControl(
-              selected: status,
-              type: type,
-              includeAll: true,
-              onChanged: ref.read(homeStatusProvider.notifier).set,
+    final segments = SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+        child: StatusSegmentedControl(
+          selected: status,
+          type: type,
+          includeAll: true,
+          onChanged: ref.read(homeStatusProvider.notifier).set,
+        ),
+      ),
+    );
+    final countExtent = countRowExtent(MediaQuery.textScalerOf(context));
+    final count = PinnedSliver(
+      height: countExtent,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                countLabel(type, shown.length),
+                style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 10, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    countLabel(type, shown.length),
-                    style: theme.textTheme.bodySmall!.copyWith(fontSize: 14),
-                  ),
-                ),
-                SortButton(
-                  current: prefs.sortFor(type),
-                  onChanged: (sort) => ref
-                      .read(displayPreferencesProvider.notifier)
-                      .setSort(type, sort),
-                ),
-                ViewMenuButton(
-                  current: view,
-                  onChanged: (v) => ref
-                      .read(displayPreferencesProvider.notifier)
-                      .setView(type, v),
-                ),
-              ],
+            SortButton(
+              current: prefs.sortFor(type),
+              onChanged: (sort) => ref
+                  .read(displayPreferencesProvider.notifier)
+                  .setSort(type, sort),
             ),
-          ),
-        ],
+            ViewMenuButton(
+              current: view,
+              onChanged: (v) => ref
+                  .read(displayPreferencesProvider.notifier)
+                  .setView(type, v),
+            ),
+          ],
+        ),
       ),
     );
 
     if (shown.isEmpty) {
       return _scrollView(header, [
-        controls,
+        segments,
+        count,
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
@@ -486,15 +496,17 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       view: view,
       color: LibraryColors.of(context).forType(type),
       controller: _scroll,
-      leadingSlivers: [header, controls],
+      leadingSlivers: [...header, segments, count],
+      pinnedExtent: countExtent,
       onTap: (entry) => widget.onOpenEntry?.call(entry),
     );
   }
 
-  /// Filtered results (L5, L6): removable chips and the count, then the
-  /// rows grouped by type; a long list gets a rail (L5, L6).
+  /// Filtered results (L5, L6): removable chips, then the count and sort
+  /// row, which pins, then the rows grouped by type; a long list gets a
+  /// rail (L5, L6).
   Widget _filtered(
-    Widget header,
+    List<Widget> header,
     Library library,
     LibraryFilter filter,
     DisplayPreferences prefs,
@@ -556,9 +568,11 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       ]);
     }
 
-    final count = SliverToBoxAdapter(
+    final countExtent = countRowExtent(MediaQuery.textScalerOf(context));
+    final count = PinnedSliver(
+      height: countExtent,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
+        padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
         child: Row(
           children: [
             Expanded(
@@ -588,7 +602,8 @@ class _LibraryHomeScreenState extends ConsumerState<LibraryHomeScreen> {
       railSections: types.length == 1 ? null : byType,
       plainSections: byType,
       controller: _scroll,
-      leadingSlivers: [header, chips, count],
+      leadingSlivers: [...header, chips, count],
+      pinnedExtent: countExtent,
       onTap: (entry) => widget.onOpenEntry?.call(entry),
     );
   }

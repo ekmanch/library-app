@@ -8,6 +8,7 @@ import 'package:library_app/features/music/music_tab.dart';
 import 'package:library_app/features/library/cover_grid_tile.dart';
 import 'package:library_app/widgets/cover_placeholder.dart';
 import 'package:library_app/features/library/entry_list_body.dart';
+import 'package:library_app/features/library/entry_list_views.dart';
 import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/features/library/home_return_provider.dart';
 import 'package:library_app/features/library/home_type_provider.dart';
@@ -183,23 +184,36 @@ void main() {
       library: padForLongLists(fixture, perType: 60),
     );
 
-    testWidgets('the title, search box, chips and segments scroll away', (
-      tester,
-    ) async {
-      await pumpLong(tester);
-      await pickChip(tester, 'Movies');
-      expect(find.text('Library'), findsOneWidget);
-      expect(find.byType(StatusSegmentedControl), findsOneWidget);
-      await tester.drag(find.byType(EntryRow).first, const Offset(0, -700));
-      await tester.pumpAndSettle();
-      expect(find.text('Library'), findsNothing);
-      expect(find.text('Search movies'), findsNothing);
-      expect(find.byType(PillChip), findsNothing);
-      expect(find.byType(StatusSegmentedControl), findsNothing);
-      // The rail is there, starting at the top now that the header is gone.
-      expect(find.byKey(EntryListBody.railKey), findsOneWidget);
-      expect(tester.getTopLeft(find.byKey(EntryListBody.railKey)).dy, 0);
-    });
+    testWidgets(
+      'the title, search box, chips and segments scroll away; the count row pins',
+      (tester) async {
+        await pumpLong(tester);
+        await pickChip(tester, 'Movies');
+        expect(find.text('Library'), findsOneWidget);
+        expect(find.byType(StatusSegmentedControl), findsOneWidget);
+        await tester.drag(find.byType(EntryRow).first, const Offset(0, -700));
+        await tester.pumpAndSettle();
+        expect(find.text('Library'), findsNothing);
+        expect(find.text('Search movies'), findsNothing);
+        expect(find.byType(PillChip), findsNothing);
+        expect(find.byType(StatusSegmentedControl), findsNothing);
+        // The count row sits at the top, with the sort and view buttons.
+        final count = find.textContaining(RegExp(r'^\d+ movies$'));
+        expect(tester.getTopLeft(count).dy, lessThan(30));
+        expect(find.text('Newest added'), findsOneWidget);
+        expect(find.byTooltip('Change view'), findsOneWidget);
+        // The rail starts under the pinned row.
+        expect(find.byKey(EntryListBody.railKey), findsOneWidget);
+        expect(
+          tester.getTopLeft(find.byKey(EntryListBody.railKey)).dy,
+          countRowExtent(TextScaler.noScaling),
+        );
+        // The pinned row still works: the sort sheet opens from it.
+        await tester.tap(find.text('Newest added'));
+        await tester.pumpAndSettle();
+        expect(find.text('Title, A to Z'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'Library in the pill scrolls to the top first, then goes to All',

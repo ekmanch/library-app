@@ -159,7 +159,8 @@ Built on 2026-10-15; the decisions are in DESIGN.md section 10 and 10c.
 
 Owner feedback of 2026-10-16 and the canvas revision of the same day (A2, A28, D10, D14).
 
-- [x] A1 The home's header (title, banner, search, chips, segments, count row) scrolls away with the list, like an Android list with a header; the pill and the "+" button stay; a list shorter than the screen does not scroll
+- [x] A1 The home's header scrolls with the list, like an Android list with a header; the pill and the "+" button stay; a list shorter than the screen does not scroll
+- [x] A1 The count row (count, sort, view) pins at the top; the chips, the status segments, the music tabs and a filter's removable chips scroll away (owner's second and third look, 2026-10-17)
 - [x] Library in the pill: pop a pushed screen first, then scroll the home to the top, then return to All (DESIGN.md section 3)
 - [x] Tag categories: Creators split into Authors, Directors and Studios by main role; the data repo's `library.json` and `scripts/library.py` follow (edited in the working tree, to be committed and pushed before the new build is installed)
 - [x] Every tag group listed A to Z by the tag, a leading "the" ignored (A2, D14, S9)
