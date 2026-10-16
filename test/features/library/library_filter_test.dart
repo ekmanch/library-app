@@ -224,6 +224,16 @@ void main() {
       }
     });
 
+    test('newest added: same-day ties keep library order, latest first', () {
+      final day = DateTime(2026, 10, 16);
+      final sorted = sortEntries([
+        mummy.copyWith(id: 'older', title: 'Akira', added: day),
+        mummy.copyWith(id: 'other', title: 'Bleach', added: day),
+        mummy.copyWith(id: 'newest', title: 'Zeta', added: day),
+      ], LibrarySort.newestAdded);
+      expect(sorted.map((e) => e.id), ['newest', 'other', 'older']);
+    });
+
     test('title A to Z ignores case', () {
       final sorted = sortEntries([
         mummy.copyWith(title: 'b'),

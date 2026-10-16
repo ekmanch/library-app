@@ -17,10 +17,19 @@ extension LibrarySortLabel on LibrarySort {
 int _byTitle(Entry a, Entry b) =>
     a.title.toLowerCase().compareTo(b.title.toLowerCase());
 
-int _byAddedDesc(Entry a, Entry b) {
+/// `added` is a date, so entries added on the same day tie; the one later
+/// in the library (added later, since adding appends) goes first. The
+/// position map comes from the input order, which is the library's.
+int Function(Entry, Entry) _byAddedDesc(Map<String, int> position) => (a, b) {
   final c = b.added.compareTo(a.added);
-  return c != 0 ? c : _byTitle(a, b);
-}
+  if (c != 0) return c;
+  final p = position[b.id]!.compareTo(position[a.id]!);
+  return p != 0 ? p : _byTitle(a, b);
+};
+
+Map<String, int> _positions(List<Entry> list) => {
+  for (final (i, e) in list.indexed) e.id: i,
+};
 
 /// Entries without a year go last in both year orders.
 int _byYear(Entry a, Entry b, {required bool newestFirst}) {
@@ -48,7 +57,7 @@ List<Entry> sortEntries(Iterable<Entry> entries, LibrarySort sort) {
   final list = entries.toList();
   switch (sort) {
     case LibrarySort.newestAdded:
-      list.sort(_byAddedDesc);
+      list.sort(_byAddedDesc(_positions(list)));
     case LibrarySort.titleAz:
       list.sort(_byTitle);
     case LibrarySort.yearNewest:
@@ -71,9 +80,10 @@ List<Entry> homeOrder(Iterable<Entry> entries) {
     EntryStatus.dnf => 3,
   };
   final list = entries.toList();
+  final byAdded = _byAddedDesc(_positions(list));
   list.sort((a, b) {
     final c = rank(a.status).compareTo(rank(b.status));
-    return c != 0 ? c : _byAddedDesc(a, b);
+    return c != 0 ? c : byAdded(a, b);
   });
   return list;
 }
