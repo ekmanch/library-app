@@ -22,6 +22,7 @@ import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/shell/app_shell.dart';
 import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/features/sync/sync_state.dart';
+import 'package:library_app/features/library/filter_sheet.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
 
@@ -131,6 +132,7 @@ class _Walk {
   );
 
   Future<void> pickChip(String label) async {
+    await revealHeader(tester);
     final chip = find.widgetWithText(PillChip, label);
     final row = find.byWidgetPredicate(
       (w) => w is ListView && w.scrollDirection == Axis.horizontal,
@@ -165,7 +167,19 @@ Future<void> _walk(_Walk w) async {
   });
   await w.step('a2 and a3', () async {
     await w.tap(find.byTooltip('Filters'));
-    await w.tap(find.widgetWithText(PillChip, '#horror'));
+    final horror = find.widgetWithText(PillChip, '#horror');
+    await tester.scrollUntilVisible(
+      horror,
+      80,
+      scrollable: find
+          .descendant(
+            of: find.byType(FilterSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await w.tap(horror);
     await w.shot('a2-filter-sheet');
     await w.tap(find.textContaining('Show '));
     await w.shot('l5-filtered-short');
@@ -299,6 +313,22 @@ Future<void> _walk(_Walk w) async {
     await w.shot('f7-done');
     await w.tapText('Open Libri');
   });
+}
+
+/// The chip row is part of the home's scroll (A1), so after a list has been
+/// scrolled it may not be built: jump the home back to the top first.
+Future<void> revealHeader(WidgetTester tester) async {
+  final row = find.byWidgetPredicate(
+    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+  );
+  if (row.evaluate().isNotEmpty) return;
+  final vertical = find.byWidgetPredicate(
+    (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+  );
+  for (final element in vertical.evaluate()) {
+    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+  }
+  await tester.pumpAndSettle();
 }
 
 void main() {

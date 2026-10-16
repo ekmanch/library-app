@@ -75,10 +75,10 @@ void main() {
     final added = const AddTag('cozy', TagCategory.mood).apply(library);
     expect(added.tags[TagCategory.mood], ['lighthearted', 'cozy']);
     final newCategory = const AddTag(
-      'ghibli',
-      TagCategory.creators,
+      'studio-ghibli',
+      TagCategory.studios,
     ).apply(library);
-    expect(newCategory.tags[TagCategory.creators], ['ghibli']);
+    expect(newCategory.tags[TagCategory.studios], ['studio-ghibli']);
     expect(
       const AddTag('halloween', TagCategory.other).apply(library),
       library,

@@ -13,6 +13,7 @@ import 'package:library_app/data/library_providers.dart';
 import 'package:library_app/data/repository/fixture_library_repository.dart';
 import 'package:library_app/dev/fake_github_api.dart';
 import 'package:library_app/dev/fake_lookup_overrides.dart';
+import 'package:library_app/dev/long_lists.dart';
 import 'package:library_app/features/entry/new_entry_screen.dart';
 import 'package:library_app/features/first_run/first_run_flow.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
@@ -21,6 +22,8 @@ import 'package:library_app/features/shell/floating_nav_bar.dart';
 import 'package:library_app/features/sync/sync_state.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/chips.dart';
+import 'package:library_app/widgets/tag_group.dart';
+import 'package:library_app/features/library/filter_sheet.dart';
 
 import '../helpers/fonts.dart';
 import '../helpers/package_info.dart';
@@ -138,6 +141,7 @@ class _Audit {
   );
 
   Future<void> pickChip(String label) async {
+    await revealHeader(tester);
     final chip = find.widgetWithText(PillChip, label);
     final row = find.byWidgetPredicate(
       (w) => w is ListView && w.scrollDirection == Axis.horizontal,
@@ -357,6 +361,22 @@ Future<void> _walk(_Audit a, ProviderContainer container) async {
   });
 }
 
+/// The chip row is part of the home's scroll (A1), so after a list has been
+/// scrolled it may not be built: jump the home back to the top first.
+Future<void> revealHeader(WidgetTester tester) async {
+  final row = find.byWidgetPredicate(
+    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+  );
+  if (row.evaluate().isNotEmpty) return;
+  final vertical = find.byWidgetPredicate(
+    (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+  );
+  for (final element in vertical.evaluate()) {
+    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+  }
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(loadAppFonts);
   setUpAll(mockPackageInfo);
@@ -409,6 +429,61 @@ void main() {
       failures.addAll(audit.failures);
     });
   }
+
+  // A28 needs a long tag group, which the fixture has not; the dev padding
+  // gives Authors thirty tags.
+  testWidgets('audit A28 tag list', (tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(360, 780);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final handle = tester.ensureSemantics();
+    final long = padForLongLists(loadFixture());
+    final container = ProviderContainer(
+      overrides: [
+        ...fakeLookupOverrides(),
+        libraryRepositoryProvider.overrideWithValue(
+          FixtureLibraryRepository(loadJson: () async => encodeLibrary(long)),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LibraryApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final audit = _Audit(tester, 'dark');
+    await audit.step('A2 long group and A28', () async {
+      await audit.tap(find.byTooltip('Filters'));
+      final row = find.widgetWithText(TagGroupRow, 'Authors');
+      await tester.scrollUntilVisible(
+        row,
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(FilterSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await audit.check('A2 filter sheet with a long group');
+      await audit.tap(row);
+      await audit.check('A28 tag list');
+      await audit.tapText('Stephen King');
+      await tester.enterText(find.byType(TextField).last, 'le');
+      await tester.pumpAndSettle();
+      await audit.check('A28 tag list, searching');
+    });
+    handle.dispose();
+    report.addAll(audit.findings);
+    failures.addAll(audit.failures);
+  });
 
   tearDownAll(() {
     final text = [

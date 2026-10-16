@@ -166,11 +166,17 @@ class TagChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '#$name',
-            style: theme.textTheme.bodySmall!.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w500,
+          // A long name (#the-brothers-grimm) is cut rather than pushed
+          // past the chip's edge.
+          Flexible(
+            child: Text(
+              '#$name',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall!.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           if (isNew) ...[const SizedBox(width: 6), const ChipBadge('new')],

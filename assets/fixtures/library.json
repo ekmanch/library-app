@@ -43,8 +43,8 @@
       "halloween",
       "christmas"
     ],
-    "Creators": [
-      "ghibli",
+    "Studios": [
+      "studio-ghibli",
       "fromsoftware"
     ],
     "Animation style": [
@@ -778,7 +778,7 @@
       "tags": [
         "2d",
         "fantasy",
-        "ghibli",
+        "studio-ghibli",
         "favorite",
         "classic"
       ],
@@ -800,7 +800,7 @@
         "2d",
         "fantasy",
         "epic",
-        "ghibli"
+        "studio-ghibli"
       ],
       "note": "",
       "description": "",

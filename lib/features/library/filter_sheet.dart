@@ -14,6 +14,8 @@ import '../../widgets/section_heading.dart';
 import '../../widgets/sheet_frame.dart';
 import '../../widgets/tag_group.dart';
 import 'library_filter.dart';
+import 'tag_list_screen.dart';
+import 'tag_sort.dart';
 
 /// Opens the filter sheet (A2). Resolves with the chosen filter, or null
 /// when dismissed.
@@ -206,21 +208,42 @@ class _FilterSheetState extends State<FilterSheet> {
             onChanged: (value) => setState(() => _tagQuery = value),
           ),
           for (final (category, names) in groups)
-            TagGroup(
-              label: category.label,
-              tags: query.isEmpty
-                  ? names
-                  : names
-                        .where((n) => n.toLowerCase().contains(query))
-                        .toList(),
-              selected: _draft.tags,
-              open: query.isNotEmpty || openGroup == category,
-              onToggleOpen: () => setState(
-                () => _openGroup = openGroup == category ? null : category,
+            // A long group is a row that opens A28; a search shows its
+            // matches inline like any other group.
+            if (query.isEmpty && names.length > longTagGroup)
+              TagGroupRow(
+                label: category.label,
+                detail: tagGroupCountLabel(
+                  category,
+                  names.length,
+                  names.where(_draft.tags.contains).length,
+                ),
+                onTap: () => showTagListScreen(
+                  context,
+                  category: category,
+                  tags: names,
+                  selected: _draft.tags,
+                  library: widget.library,
+                  onToggle: (tag) =>
+                      setState(() => _draft = _draft.toggleTag(tag)),
+                ),
+              )
+            else
+              TagGroup(
+                label: category.label,
+                tags: sortedTags(
+                  query.isEmpty
+                      ? names
+                      : names.where((n) => n.toLowerCase().contains(query)),
+                ),
+                selected: _draft.tags,
+                open: query.isNotEmpty || openGroup == category,
+                onToggleOpen: () => setState(
+                  () => _openGroup = openGroup == category ? null : category,
+                ),
+                onToggleTag: (tag) =>
+                    setState(() => _draft = _draft.toggleTag(tag)),
               ),
-              onToggleTag: (tag) =>
-                  setState(() => _draft = _draft.toggleTag(tag)),
-            ),
         ],
       ),
     );

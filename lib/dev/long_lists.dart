@@ -1,14 +1,53 @@
 import '../data/models/entry.dart';
+import '../data/models/entry_id.dart';
 import '../data/models/entry_status.dart';
 import '../data/models/library.dart';
 import '../data/models/media_type.dart';
 import '../data/models/music_kind.dart';
 import '../data/models/released.dart';
+import '../data/models/tag_category.dart';
 
 /// Development only: pads every type with generated entries so that the
 /// long-list rail (A23 to A25) and the grid's fast scroll (A26) can be tried
-/// on a device. Enabled with `--dart-define=LONG_LISTS=true`.
+/// on a device, and the Authors group with enough tags to be a row that
+/// opens the full-screen list (A2, A28). Enabled with
+/// `--dart-define=LONG_LISTS=true`.
 const longListsEnabled = bool.fromEnvironment('LONG_LISTS');
+
+/// Author names spread over the alphabet, one tag each, so the Authors
+/// group is long (over [longTagGroup]) and A28 has letter sections.
+const longListAuthors = [
+  'Isaac Asimov',
+  'Margaret Atwood',
+  'Clive Barker',
+  'Ray Bradbury',
+  'Octavia E. Butler',
+  'Agatha Christie',
+  'Blake Crouch',
+  'Philip K. Dick',
+  'Charles Dickens',
+  'Gillian Flynn',
+  'Neil Gaiman',
+  'Frank Herbert',
+  'Joe Hill',
+  'Shirley Jackson',
+  'Stephen King',
+  'Ursula K. Le Guin',
+  'H. P. Lovecraft',
+  'Richard Matheson',
+  'Cormac McCarthy',
+  'Jo Nesbø',
+  'George Orwell',
+  'Edgar Allan Poe',
+  'Terry Pratchett',
+  'Anne Rice',
+  'Mary Shelley',
+  'Dan Simmons',
+  'Bram Stoker',
+  'The Brothers Grimm',
+  'Kurt Vonnegut',
+  'Andy Weir',
+];
 
 /// [perType] extra entries per type, cloned from that type's first entry,
 /// spread over the decades since 1925 and over the last two years of added
@@ -17,10 +56,12 @@ const longListsEnabled = bool.fromEnvironment('LONG_LISTS');
 /// songs, so the artist list (A14) gets long too.
 Library padForLongLists(Library library, {int perType = 120}) {
   final extra = <Entry>[];
+  final authorTags = [for (final a in longListAuthors) slugify(a)];
   for (final type in MediaType.values) {
     final base = library.entriesOfType(type).firstOrNull;
     if (base == null) continue;
     final music = type == MediaType.music;
+    final books = type == MediaType.books;
     for (var i = 0; i < perType; i++) {
       final kind = !music
           ? null
@@ -38,17 +79,33 @@ Library padForLongLists(Library library, {int perType = 120}) {
           // Every rating from 10 down to 4, and every fourth unrated, so
           // the rating sort's rail has sections to jump to.
           rating: i % 4 == 3 ? null : 10 - (i % 7),
-          tags: const [],
+          // Every generated book is by one of the authors, so each author
+          // tag has entries behind it.
+          tags: books ? [authorTags[i % authorTags.length]] : const [],
           tracks: null,
           seasonalOnly: false,
-          creator: !music ? base.creator : _artistName(i),
+          creator: music
+              ? _artistName(i)
+              : books
+              ? longListAuthors[i % authorTags.length]
+              : base.creator,
           kind: kind ?? base.kind,
           album: kind == MusicKind.song ? 'Album ${i ~/ 4}' : null,
         ),
       );
     }
   }
-  return library.copyWith(entries: [...library.entries, ...extra]);
+  return library.copyWith(
+    tags: {
+      ...library.tags,
+      TagCategory.authors: [
+        ...?library.tags[TagCategory.authors],
+        for (final tag in authorTags)
+          if (!(library.tags[TagCategory.authors]?.contains(tag) ?? false)) tag,
+      ],
+    },
+    entries: [...library.entries, ...extra],
+  );
 }
 
 /// Names spread over the alphabet ("B-Side Project 1", "The C-Side

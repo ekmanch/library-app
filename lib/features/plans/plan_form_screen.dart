@@ -22,6 +22,9 @@ import 'plan_builders.dart';
 import 'plan_dialogs.dart';
 import 'plan_progress.dart';
 import 'plan_season.dart';
+import '../../widgets/tag_group.dart';
+import '../library/tag_list_screen.dart';
+import '../library/tag_sort.dart';
 
 /// What the plan form came back with.
 enum PlanFormOutcome { saved, deleted }
@@ -457,6 +460,10 @@ class _LinkedTagsSheetState extends State<_LinkedTagsSheet> {
   late final List<String> _selected = [...widget.selected];
   String _query = '';
 
+  void _toggle(String tag) => setState(() {
+    if (!_selected.remove(tag)) _selected.add(tag);
+  });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -491,33 +498,53 @@ class _LinkedTagsSheetState extends State<_LinkedTagsSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Every category, A to Z; a long group is a row that opens A28,
+          // like the filter sheet's.
           for (final MapEntry(key: category, value: names)
               in widget.library.tags.entries)
-            if (names.any((n) => q.isEmpty || n.contains(q))) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-                child: Text(
-                  category.label.toUpperCase(),
-                  style: theme.textTheme.labelSmall!.copyWith(fontSize: 12.5),
+            if (names.any((n) => q.isEmpty || n.contains(q)))
+              if (q.isEmpty && names.length > longTagGroup) ...[
+                const SizedBox(height: 8),
+                TagGroupRow(
+                  label: category.label,
+                  detail: tagGroupCountLabel(
+                    category,
+                    names.length,
+                    names.where(_selected.contains).length,
+                  ),
+                  onTap: () => showTagListScreen(
+                    context,
+                    category: category,
+                    tags: names,
+                    selected: _selected.toSet(),
+                    library: widget.library,
+                    onToggle: _toggle,
+                  ),
                 ),
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final tag in names)
-                    if (q.isEmpty || tag.contains(q))
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                  child: Text(
+                    category.label.toUpperCase(),
+                    style: theme.textTheme.labelSmall!.copyWith(fontSize: 12.5),
+                  ),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final tag in sortedTags(
+                      names.where((n) => q.isEmpty || n.contains(q)),
+                    ))
                       PillChip(
                         label: '#$tag',
                         selected: _selected.contains(tag),
                         style: PillChipStyle.accent,
-                        onTap: () => setState(() {
-                          if (!_selected.remove(tag)) _selected.add(tag);
-                        }),
+                        onTap: () => _toggle(tag),
                       ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
           const SizedBox(height: 8),
         ],
       ),

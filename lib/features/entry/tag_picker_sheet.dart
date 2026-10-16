@@ -10,6 +10,9 @@ import '../../widgets/chips.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/search_field.dart';
 import '../../widgets/sheet_frame.dart';
+import '../../widgets/tag_group.dart';
+import '../library/tag_list_screen.dart';
+import '../library/tag_sort.dart';
 import 'similar_tags.dart';
 import 'tag_dialogs.dart';
 
@@ -141,17 +144,22 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final canCreate = query.isNotEmpty && !_allNames.contains(query);
     bool matches(String tag) => query.isEmpty || tag.contains(query);
 
-    // "New on this entry" first, then the library's categories.
-    final groups = <(String, List<String>)>[
+    // "New on this entry" first, then the library's categories, each A to
+    // Z. A long group is a row that opens A28 (D14 note), unless a search
+    // narrows it.
+    final groups = <(TagCategory?, String, List<String>)>[
       if (_created.isNotEmpty)
-        ('New on this entry', _created.keys.where(matches).toList()),
+        (null, 'New on this entry', _created.keys.where(matches).toList()),
       for (final category in TagCategory.values)
         if (query.isNotEmpty || category.offeredFor(widget.type))
           (
+            category,
             category.label,
-            (widget.library.tags[category] ?? const []).where(matches).toList(),
+            sortedTags(
+              (widget.library.tags[category] ?? const []).where(matches),
+            ),
           ),
-    ].where((g) => g.$2.isNotEmpty).toList();
+    ].where((g) => g.$3.isNotEmpty).toList();
 
     return SheetFrame(
       scrollable: true,
@@ -220,29 +228,51 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                 ),
               ),
             ),
-          for (final (name, tags) in groups) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-              child: Text(
-                name.toUpperCase(),
-                style: theme.textTheme.labelSmall!.copyWith(fontSize: 12.5),
+          for (final (category, name, tags) in groups) ...[
+            if (category != null &&
+                query.isEmpty &&
+                tags.length > longTagGroup) ...[
+              const SizedBox(height: 8),
+              TagGroupRow(
+                label: name,
+                detail: tagGroupCountLabel(
+                  category,
+                  tags.length,
+                  tags.where(_selected.contains).length,
+                ),
+                onTap: () => showTagListScreen(
+                  context,
+                  category: category,
+                  tags: tags,
+                  selected: _selected.toSet(),
+                  library: widget.library,
+                  onToggle: _toggle,
+                ),
               ),
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in tags)
-                  PillChip(
-                    label: '#$tag',
-                    selected: _selected.contains(tag),
-                    checked: true,
-                    height: 40,
-                    horizontalPadding: 12,
-                    onTap: () => _toggle(tag),
-                  ),
-              ],
-            ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                child: Text(
+                  name.toUpperCase(),
+                  style: theme.textTheme.labelSmall!.copyWith(fontSize: 12.5),
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final tag in tags)
+                    PillChip(
+                      label: '#$tag',
+                      selected: _selected.contains(tag),
+                      checked: true,
+                      height: 40,
+                      horizontalPadding: 12,
+                      onTap: () => _toggle(tag),
+                    ),
+                ],
+              ),
+            ],
           ],
           if (query.isNotEmpty && groups.isEmpty)
             Padding(

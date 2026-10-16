@@ -36,6 +36,8 @@ import 'package:library_app/features/sync/sync_state.dart';
 import 'package:library_app/main.dart';
 import 'package:library_app/widgets/segmented_control.dart';
 import 'package:library_app/widgets/chips.dart';
+import 'package:library_app/widgets/entry_row.dart';
+import 'package:library_app/widgets/tag_group.dart';
 
 /// Wraps the whole app, including sheets, dialogs and menus in the root
 /// overlay, so a capture shows what the user sees.
@@ -78,8 +80,38 @@ Future<void> capture(WidgetTester tester, String name) async {
   debugPrint('Wrote ${file.absolute.path}');
 }
 
+/// The chip row is part of the home's scroll (A1), so after a list has been
+/// scrolled it may not be built: jump the home back to the top first.
+Future<void> revealHeader(WidgetTester tester) async {
+  final row = find.byWidgetPredicate(
+    (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+  );
+  if (row.evaluate().isNotEmpty) return;
+  final vertical = find.byWidgetPredicate(
+    (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+  );
+  for (final element in vertical.evaluate()) {
+    ((element as StatefulElement).state as ScrollableState).position.jumpTo(0);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// The home's vertical list (the header scrolls with it), for scrolling to
+/// a row.
+Finder homeList() => find
+    .byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    )
+    .first;
+
+/// The filter sheet's own scroll view, not the Released row inside it.
+Finder sheetList() => find
+    .descendant(of: find.byType(FilterSheet), matching: find.byType(Scrollable))
+    .first;
+
 /// Scrolls the chip row (lazy, so a far chip is not built yet) and taps.
 Future<void> pickChip(WidgetTester tester, String label) async {
+  await revealHeader(tester);
   final chip = find.widgetWithText(PillChip, label);
   final row = find.byWidgetPredicate(
     (w) => w is ListView && w.scrollDirection == Axis.horizontal,
@@ -88,6 +120,26 @@ Future<void> pickChip(WidgetTester tester, String label) async {
     chip,
     row,
     Offset(label == 'All' ? 80 : -80, 0),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(chip);
+  await tester.pumpAndSettle();
+}
+
+/// Taps a tag chip in the filter sheet, scrolling the sheet until the chip
+/// is clear of the pinned footer (the groups are A to Z, so #horror is
+/// not at the top).
+Future<void> tapSheetChip(WidgetTester tester, String label) async {
+  final chip = find.widgetWithText(PillChip, label);
+  await tester.scrollUntilVisible(
+    chip,
+    80,
+    scrollable: find
+        .descendant(
+          of: find.byType(FilterSheet),
+          matching: find.byType(Scrollable),
+        )
+        .first,
   );
   await tester.pumpAndSettle();
   await tester.tap(chip);
@@ -165,8 +217,7 @@ void main() {
     await capture(tester, 'd1-sort');
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(PillChip, 'All'));
-    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
 
     // A2 and L5: filter to shows tagged horror.
     await tester.tap(find.byTooltip('Filters'));
@@ -177,8 +228,7 @@ void main() {
         matching: find.widgetWithText(PillChip, 'Shows'),
       ),
     );
-    await tester.tap(find.widgetWithText(PillChip, '#horror'));
-    await tester.pumpAndSettle();
+    await tapSheetChip(tester, '#horror');
     await capture(tester, 'a2-filter-sheet');
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
@@ -245,8 +295,7 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await closeSheet(tester);
-    await tester.tap(find.widgetWithText(PillChip, 'All'));
-    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
 
     // A13: a new entry, picking a match.
     await tester.tap(find.byType(AddButton));
@@ -549,13 +598,14 @@ void main() {
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
     await capture(tester, 'large-text-a11-movies-done');
+    await revealHeader(tester);
     await tester.ensureVisible(segment('All'));
     await tester.tap(segment('All'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('The Mummy'),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: homeList(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('The Mummy').last);
@@ -936,12 +986,10 @@ void main() {
     await pickView(tester, 'List with covers');
     await shot('a20-movies-list-covers');
     await pickView(tester, 'Text');
-    await tester.tap(find.widgetWithText(PillChip, 'All'));
-    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
     await tester.tap(find.byTooltip('Filters'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(PillChip, '#horror'));
-    await tester.pumpAndSettle();
+    await tapSheetChip(tester, '#horror');
     await shot('a2-filter-sheet');
     await tester.tap(find.textContaining('Show '));
     await tester.pumpAndSettle();
@@ -979,8 +1027,7 @@ void main() {
     await tester.pumpAndSettle();
     await back();
     await closeSheet(tester);
-    await tester.tap(find.widgetWithText(PillChip, 'All'));
-    await tester.pumpAndSettle();
+    await pickChip(tester, 'All');
     await tester.tap(find.byType(AddButton));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'The Last of Us');
@@ -1274,8 +1321,42 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'l2-rail-newest-added');
 
+    // The header scrolls away with the list; Library in the pill brings
+    // it back (A1, DESIGN.md section 3).
+    await tester.drag(find.byType(EntryRow).first, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a4-movies-scrolled');
+    await tester.tap(find.widgetWithText(FloatingNavBar, 'Library'));
+    await tester.pumpAndSettle();
+    expect(find.text('Newest added'), findsOneWidget);
+
+    // A2 with a long group as a row, and A28 behind it. From All: the
+    // authors are on books, so Movies alone would hide the group (A2).
+    await pickChip(tester, 'All');
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    final authorsRow = find.widgetWithText(TagGroupRow, 'Authors');
+    await tester.scrollUntilVisible(authorsRow, 200, scrollable: sheetList());
+    await tester.pumpAndSettle();
+    await capture(tester, 'a2-filter-long-group');
+    await tester.tap(authorsRow);
+    await tester.pumpAndSettle();
+    await capture(tester, 'a28-tag-list');
+    await tester.tap(find.text('Agatha Christie'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'le');
+    await tester.pumpAndSettle();
+    await capture(tester, 'a28-tag-list-search');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'a2-filter-long-group-picked');
+    await closeSheet(tester);
+    await pickChip(tester, 'Movies');
+
+    await revealHeader(tester);
     await tester.tap(find.text('Newest added'));
     await tester.pumpAndSettle();
+    await revealHeader(tester);
     await tester.tap(find.text('Year, newest first'));
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
@@ -1283,20 +1364,25 @@ void main() {
     await tester.pumpAndSettle();
     await capture(tester, 'l1-rail-year');
 
+    await revealHeader(tester);
     await tester.tap(find.text('Year, newest first'));
     await tester.pumpAndSettle();
+    await revealHeader(tester);
     await tester.tap(find.text('Rating, highest first'));
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('10'));
     await tester.pumpAndSettle();
     await capture(tester, 'l1-rail-rating');
+    await revealHeader(tester);
     await tester.tap(find.text('Rating, highest first'));
     await tester.pumpAndSettle();
+    await revealHeader(tester);
     await tester.tap(find.text('Year, newest first'));
     await tester.tap(find.widgetWithText(FilledButton, 'Done'));
     await tester.pumpAndSettle();
 
+    await revealHeader(tester);
     await tester.tap(find.byTooltip('Change view'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Grid with covers'));
@@ -1348,6 +1434,47 @@ void main() {
     await tester.tap(find.text('M'));
     await tester.pumpAndSettle();
     await capture(tester, 'l3-rail-artists');
+  });
+
+  testWidgets('the long tag group and A28 at a larger text size', (
+    tester,
+  ) async {
+    final long = padForLongLists(
+      decodeLibrary(
+        await File(FixtureLibraryRepository.assetPath).readAsString(),
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ...fakeLookupOverrides(),
+          libraryRepositoryProvider.overrideWithValue(
+            FixtureLibraryRepository(loadJson: () async => encodeLibrary(long)),
+          ),
+        ],
+        child: RepaintBoundary(
+          key: _root,
+          child: MediaQuery(
+            data: MediaQueryData.fromView(tester.view)
+                .copyWith(textScaler: const TextScaler.linear(1.3)),
+            child: const LibraryApp(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters'));
+    await tester.pumpAndSettle();
+    final authorsRow = find.widgetWithText(TagGroupRow, 'Authors');
+    await tester.scrollUntilVisible(authorsRow, 200, scrollable: sheetList());
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-a2-filter-long-group');
+    await tester.tap(authorsRow);
+    await tester.pumpAndSettle();
+    await capture(tester, 'large-text-a28-tag-list');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+    await closeSheet(tester);
   });
 
   testWidgets('A13 lookup states: looking up, offline, not set up', (

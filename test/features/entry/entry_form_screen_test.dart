@@ -378,7 +378,9 @@ void main() {
       expect(find.widgetWithText(TagChip, '#adventure'), findsOneWidget);
       expect(find.bySemanticsLabel('Add #post-apocalyptic'), findsOneWidget);
       expect(find.bySemanticsLabel('Add #horror'), findsNothing);
-      expect(find.text('new'), findsNWidgets(4));
+      // The studio from the creator field is suggested too, as new.
+      expect(find.bySemanticsLabel('Add #naughty-dog'), findsOneWidget);
+      expect(find.text('new'), findsNWidgets(5));
     });
 
     testWidgets('a near miss counts as the existing tag', (tester) async {
@@ -391,7 +393,9 @@ void main() {
       // "sci-fi" from the lookup is the library's "scifi".
       expect(find.widgetWithText(TagChip, '#scifi'), findsOneWidget);
       expect(find.widgetWithText(TagChip, '#epic'), findsOneWidget);
-      expect(find.text('Suggested · tap to add'), findsNothing);
+      // Only the author is left to suggest.
+      expect(find.bySemanticsLabel('Add #frank-herbert'), findsOneWidget);
+      expect(find.text('new'), findsOneWidget);
     });
 
     testWidgets('an album match gets suggestions too', (tester) async {
@@ -426,6 +430,7 @@ void main() {
         find.text('It will be added to your tag list under Game genres.'),
         findsOneWidget,
       );
+      await tester.ensureVisible(find.text('Create tag'));
       await tester.tap(find.text('Create tag'));
       await tester.pumpAndSettle();
       expect(find.widgetWithText(TagChip, '#stealth'), findsOneWidget);
@@ -524,6 +529,85 @@ void main() {
     );
   });
 
+  group('the creator field suggests its tag', () {
+    testWidgets('an author typed by hand is offered once the field is left', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        const EntryFormScreen.create(type: MediaType.books),
+      );
+      await tester.enterText(field('Title'), 'Hell House');
+      await tester.enterText(field('Optional').first, 'Richard Matheson');
+      await tester.pump();
+      // Half-typed names are not tags: nothing while the field has focus.
+      expect(find.bySemanticsLabel('Add #richard-matheson'), findsNothing);
+      await tester.tap(field('Title'));
+      await tester.pumpAndSettle();
+      await scrollTo(tester, find.bySemanticsLabel('Add #richard-matheson'));
+      expect(find.text('new'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Add #richard-matheson'));
+      await tester.pumpAndSettle();
+      expect(find.text('Create a new tag?'), findsOneWidget);
+      expect(
+        find.text('It will be added to your tag list under Authors.'),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text('Create tag'));
+      await tester.tap(find.text('Create tag'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TagChip, '#richard-matheson'), findsOneWidget);
+    });
+
+    testWidgets('a Pixar film suggests #pixar, not its director', (
+      tester,
+    ) async {
+      final match = FakeLookupSource.catalogSearch(
+        'soul',
+        type: MediaType.movies,
+      ).single;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.text('Suggested · tap to add'));
+      expect(find.bySemanticsLabel('Add #pixar'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #pete-docter'), findsNothing);
+    });
+
+    testWidgets('an existing studio tag goes on at once, like a genre', (
+      tester,
+    ) async {
+      final match = FakeLookupSource.catalogSearch(
+        'spirited',
+        type: MediaType.anime,
+      ).single;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.text('Tags'));
+      expect(find.widgetWithText(TagChip, '#studio-ghibli'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add #studio-ghibli'), findsNothing);
+      // Removed, it comes back as a suggestion without the "new" badge.
+      await tester.tap(find.widgetWithText(TagChip, '#studio-ghibli'));
+      await tester.pumpAndSettle();
+      final chip = find.widgetWithText(PillChip, '#studio-ghibli');
+      await tester.scrollUntilVisible(
+        chip,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Add #studio-ghibli'), findsOneWidget);
+    });
+
+    testWidgets('an album suggests no artist tag', (tester) async {
+      final match = FakeLookupSource.catalogSearch('hounds').single;
+      await pumpApp(tester, EntryFormScreen.create(match: match));
+      await scrollTo(tester, find.text('Suggested · tap to add'));
+      expect(find.bySemanticsLabel('Add #kate-bush'), findsNothing);
+    });
+  });
+
   group('tag picker', () {
     Future<ProviderContainer> openPicker(WidgetTester tester) async {
       final container = await pumpApp(
@@ -577,6 +661,56 @@ void main() {
       expect(repo(container).current!.entries.last.tags, ['horror', 'dark']);
     });
 
+    testWidgets('groups are A to Z; a long one is a row that opens A28', (
+      tester,
+    ) async {
+      final authors = [
+        for (var i = 0; i < 25; i++) 'author-${String.fromCharCode(0x61 + i)}',
+      ];
+      final fixture = loadFixture();
+      final library = fixture.copyWith(
+        tags: {...fixture.tags, TagCategory.authors: authors},
+        entries: [
+          ...fixture.entries,
+          fixture.entries.first.copyWith(id: 'books/x', tags: authors),
+        ],
+      );
+      await pumpApp(
+        tester,
+        const EntryFormScreen.create(type: MediaType.books),
+        library: library,
+      );
+      await scrollTo(tester, find.text('Choose from your tags'));
+      await tester.tap(find.text('Choose from your tags'));
+      await tester.pumpAndSettle();
+      final adventure = tester.getTopLeft(
+        find.widgetWithText(PillChip, '#adventure'),
+      );
+      final horror = tester.getTopLeft(
+        find.widgetWithText(PillChip, '#horror'),
+      );
+      expect(adventure.dy <= horror.dy, isTrue);
+      final row = find.bySemanticsLabel('Authors, 25 authors');
+      await tester.scrollUntilVisible(
+        row,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Author C'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsLabel('Authors, 25 authors · 1 selected'),
+        findsOneWidget,
+      );
+      await done(tester);
+      expect(find.widgetWithText(TagChip, '#author-c'), findsOneWidget);
+    });
+
     testWidgets('game and music genres show only for their type (D14)', (
       tester,
     ) async {
@@ -624,12 +758,14 @@ void main() {
         find.text('It will be added to your tag list under Genres.'),
         findsOneWidget,
       );
+      await tester.ensureVisible(find.widgetWithText(PillChip, 'Mood'));
       await tester.tap(find.widgetWithText(PillChip, 'Mood'));
       await tester.pumpAndSettle();
       expect(
         find.text('It will be added to your tag list under Mood.'),
         findsOneWidget,
       );
+      await tester.ensureVisible(find.text('Create tag'));
       await tester.tap(find.text('Create tag'));
       await tester.pumpAndSettle();
       expect(find.text('NEW ON THIS ENTRY'), findsOneWidget);
@@ -653,6 +789,7 @@ void main() {
       await tester.tap(find.text('Create #horrors anyway'));
       await tester.pumpAndSettle();
       expect(find.text('Create a new tag?'), findsOneWidget);
+      await tester.ensureVisible(find.text('Create tag'));
       await tester.tap(find.text('Create tag'));
       await tester.pumpAndSettle();
       // Unpick it again: it must not be created.
@@ -671,6 +808,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.bySemanticsLabel('Create #cosy'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Cancel'));
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(find.text('A similar tag exists'), findsNothing);
@@ -681,6 +819,7 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Create #moody'));
       await tester.pumpAndSettle();
       expect(find.text('Create a new tag?'), findsOneWidget);
+      await tester.ensureVisible(find.text('Cancel'));
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(find.widgetWithText(PillChip, '#moody'), findsNothing);

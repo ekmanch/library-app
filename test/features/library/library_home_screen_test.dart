@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/models/entry_status.dart';
 import 'package:library_app/data/models/media_type.dart';
@@ -14,6 +15,8 @@ import 'package:library_app/features/library/library_filter.dart';
 import 'package:library_app/features/library/library_filter_provider.dart';
 import 'package:library_app/features/library/library_home_screen.dart';
 import 'package:library_app/features/library/library_sort.dart';
+import 'package:library_app/features/library/tag_list_screen.dart';
+import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/features/settings/display_preferences.dart';
 import 'package:library_app/features/settings/entry_view.dart';
 import 'package:library_app/widgets/chips.dart';
@@ -172,6 +175,87 @@ void main() {
       expect(find.text('2 of 8 done'), findsOneWidget);
     },
   );
+
+  group('the header scrolls with the list', () {
+    Future<ProviderContainer> pumpLong(WidgetTester tester) => pumpApp(
+      tester,
+      const LibraryHomeScreen(),
+      library: padForLongLists(fixture, perType: 60),
+    );
+
+    testWidgets('the title, search box, chips and segments scroll away', (
+      tester,
+    ) async {
+      await pumpLong(tester);
+      await pickChip(tester, 'Movies');
+      expect(find.text('Library'), findsOneWidget);
+      expect(find.byType(StatusSegmentedControl), findsOneWidget);
+      await tester.drag(find.byType(EntryRow).first, const Offset(0, -700));
+      await tester.pumpAndSettle();
+      expect(find.text('Library'), findsNothing);
+      expect(find.text('Search movies'), findsNothing);
+      expect(find.byType(PillChip), findsNothing);
+      expect(find.byType(StatusSegmentedControl), findsNothing);
+      // The rail is there, starting at the top now that the header is gone.
+      expect(find.byKey(EntryListBody.railKey), findsOneWidget);
+      expect(tester.getTopLeft(find.byKey(EntryListBody.railKey)).dy, 0);
+    });
+
+    testWidgets(
+      'Library in the pill scrolls to the top first, then goes to All',
+      (tester) async {
+        final container = await pumpLong(tester);
+        await pickChip(tester, 'Movies');
+        final rail = find.byKey(EntryListBody.railKey);
+        final railTopBefore = tester.getTopLeft(rail).dy;
+        expect(railTopBefore, greaterThan(200));
+        await tester.drag(find.byType(EntryRow).first, const Offset(0, -700));
+        await tester.pumpAndSettle();
+        expect(find.text('Library'), findsNothing);
+
+        container.read(homeReturnProvider.notifier).goHome();
+        await tester.pumpAndSettle();
+        // Back at the top, still on Movies.
+        expect(find.text('Library'), findsOneWidget);
+        expect(container.read(homeTypeProvider), MediaType.movies);
+        expect(find.byType(StatusSegmentedControl), findsOneWidget);
+        expect(tester.getTopLeft(rail).dy, railTopBefore);
+
+        container.read(homeReturnProvider.notifier).goHome();
+        await tester.pumpAndSettle();
+        expect(container.read(homeTypeProvider), isNull);
+        expect(find.byType(StatusSegmentedControl), findsNothing);
+      },
+    );
+
+    testWidgets('a short list leaves the header where it is', (tester) async {
+      await pumpApp(tester, const LibraryHomeScreen());
+      await pickChip(tester, 'Books');
+      await tester.drag(find.byType(EntryRow).first, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      // Three books and the header fit on one screen: nothing to scroll.
+      expect(find.text('Library'), findsOneWidget);
+      expect(find.byType(StatusSegmentedControl), findsOneWidget);
+    });
+
+    testWidgets('a rail jump lands with the header out of the way', (
+      tester,
+    ) async {
+      await pumpLong(tester);
+      await pickChip(tester, 'Movies');
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byKey(EntryListBody.railKey),
+              matching: find.text('Oct'),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Library'), findsNothing);
+      expect(find.text('OCTOBER 2026'), findsOneWidget);
+    });
+  });
 
   testWidgets('a type heading opens that type, like its chip', (tester) async {
     final container = await pumpApp(tester, const LibraryHomeScreen());
@@ -353,6 +437,86 @@ void main() {
     expect(container.read(libraryFilterProvider), LibraryFilter.none);
     expect(find.text('ACTIVE PLAN'), findsOneWidget);
   });
+
+  testWidgets(
+    'the filter sheet lists tags A to Z; a long group is a row that opens A28',
+    (tester) async {
+      // Twenty-five authors make a long group; genres stay inline chips.
+      final authors = [
+        for (var i = 0; i < 25; i++) 'author-${String.fromCharCode(0x61 + i)}',
+      ];
+      final library = fixture.copyWith(
+        tags: {...fixture.tags, TagCategory.authors: authors},
+        entries: [
+          ...fixture.entries,
+          for (final (i, tag) in authors.indexed)
+            fixture.entries.first.copyWith(
+              id: 'books/author-$i',
+              type: MediaType.books,
+              title: 'Book $i',
+              tags: [tag],
+            ),
+        ],
+      );
+      final container = await pumpApp(
+        tester,
+        const LibraryHomeScreen(),
+        library: library,
+      );
+      await tester.tap(find.byTooltip('Filters'));
+      await tester.pumpAndSettle();
+      // Genres are inline, A to Z (the fixture stores them unsorted).
+      await tester.scrollUntilVisible(
+        find.text('Genres'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      final adventure = tester.getTopLeft(
+        find.widgetWithText(PillChip, '#adventure'),
+      );
+      final horror = tester.getTopLeft(
+        find.widgetWithText(PillChip, '#horror'),
+      );
+      expect(adventure.dy <= horror.dy, isTrue);
+      expect(find.widgetWithText(PillChip, '#author-a'), findsNothing);
+      final row = find.bySemanticsLabel('Authors, 25 authors');
+      await tester.scrollUntilVisible(
+        row,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      expect(find.byType(TagListScreen), findsOneWidget);
+      expect(find.text('25 authors'), findsOneWidget);
+      await tester.tap(find.text('Author B'));
+      await tester.pumpAndSettle();
+      expect(find.text('25 authors · 1 selected'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await tester.pumpAndSettle();
+      // Back on the sheet, the row and the count know about the pick.
+      expect(
+        find.bySemanticsLabel('Authors, 25 authors · 1 selected'),
+        findsOneWidget,
+      );
+      expect(find.text('Show 1 entry'), findsOneWidget);
+      await tester.tap(find.text('Show 1 entry'));
+      await tester.pumpAndSettle();
+      expect(container.read(libraryFilterProvider).tags, {'author-b'});
+      // A search shows a long group's matches inline.
+      await tester.tap(find.byTooltip('Filters'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'author-c');
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(PillChip, '#author-c'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Authors, 25 authors · 1 selected'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('a filter nothing matches shows the empty state', (tester) async {
     final container = await pumpApp(tester, const LibraryHomeScreen());
@@ -662,11 +826,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'ghib');
     await tester.pumpAndSettle();
-    expect(find.text('#ghibli'), findsOneWidget);
-    expect(find.text('Tagged #ghibli'.toUpperCase()), findsOneWidget);
-    await tester.tap(find.text('#ghibli'));
+    expect(find.text('#studio-ghibli'), findsOneWidget);
+    expect(find.text('Tagged #studio-ghibli'.toUpperCase()), findsOneWidget);
+    await tester.tap(find.text('#studio-ghibli'));
     await tester.pumpAndSettle();
-    expect(container.read(libraryFilterProvider).tags, {'ghibli'});
+    expect(container.read(libraryFilterProvider).tags, {'studio-ghibli'});
     expect(find.text('ANIME'), findsOneWidget);
   });
 
@@ -680,7 +844,7 @@ void main() {
     expect(find.text('Search movies'), findsOneWidget); // The field's hint.
     await tester.enterText(find.byType(TextField), 'ghib');
     await tester.pumpAndSettle();
-    expect(find.text('#ghibli'), findsNothing); // Only anime has it.
+    expect(find.text('#studio-ghibli'), findsNothing); // Only anime has it.
     expect(find.text('No results for "ghib"'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'hallow');

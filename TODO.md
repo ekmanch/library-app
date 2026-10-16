@@ -155,6 +155,21 @@ Built on 2026-10-15; the decisions are in DESIGN.md section 10 and 10c.
 - [x] "Look up again" from A8: A13 as a picker on the entry's type and title; a pick sets `source`, fills only the empty fields and replaces the device-matched cover
 - [x] Opt-in live test against the real providers (`LIBRI_LIVE_LOOKUPS=1`)
 
+## Phase 6: After the first week on the phone
+
+Owner feedback of 2026-10-16 and the canvas revision of the same day (A2, A28, D10, D14).
+
+- [x] A1 The home's header (title, banner, search, chips, segments, count row) scrolls away with the list, like an Android list with a header; the pill and the "+" button stay; a list shorter than the screen does not scroll
+- [x] Library in the pill: pop a pushed screen first, then scroll the home to the top, then return to All (DESIGN.md section 3)
+- [x] Tag categories: Creators split into Authors, Directors and Studios by main role; the data repo's `library.json` and `scripts/library.py` follow (edited in the working tree, to be committed and pushed before the new build is installed)
+- [x] Every tag group listed A to Z by the tag, a leading "the" ignored (A2, D14, S9)
+- [x] A2, D14, S9: a group over 24 tags is a row ("Authors · 64 authors · 1 selected ›") that opens A28
+- [x] A28 One long tag group, full screen: search, letter headers, the index rail, a check per row, live toggles into the sheet underneath
+- [x] A8 The creator field suggests its tag (#stephen-king, #naughty-dog), in its creator group; studios whose name is the brand (Studio Ghibli, Pixar, Disney, DreamWorks) are suggested instead of the director, from the lookup's companies
+- [x] `LONG_LISTS` pads the Authors group too, so A28 can be tried on a device; captures of the scrolled home, the long group row and A28 at 360 and at 1.3; A28 in the accessibility audit
+- [ ] D10 with ten category chips is tall; check it on the phone at text scale 1.3 and consider two rows of shorter chips if it scrolls
+- [ ] The accessibility audit's text scale 1.3 walk stops at its "details" step ("Bad state: No element", `test/accessibility/a11y_audit_test.dart`) and skips the five steps after it; it did so before phase 6 too. Make the walk reach every screen at 1.3 again.
+
 ## Later
 
 - [ ] Revisit whether entry details show the cover whenever a title is opened, not only in a photo view (decision 19 of the 1g audit: keep the current behavior for now)

@@ -94,3 +94,87 @@ class TagGroup extends StatelessWidget {
     );
   }
 }
+
+/// A long group as one row (A2, D14, S9): the label, then "64 authors · 1
+/// selected" and a chevron, muted. Opens the full-screen list (A28).
+class TagGroupRow extends StatelessWidget {
+  const TagGroupRow({
+    super.key,
+    required this.label,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final String label;
+  final String detail;
+  final VoidCallback onTap;
+
+  /// Room the label keeps however long the count is ("Game genres").
+  static const _minLabelWidth = 96.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = LibraryColors.of(context);
+    return Semantics(
+      button: true,
+      label: '$label, $detail',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: colors.divider)),
+          ),
+          // The count and the chevron sit flush right like a collapsible
+          // group's chevron and get the room first; the label takes the
+          // rest, at least [_minLabelWidth], and either text gives way
+          // with an ellipsis.
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: (constraints.maxWidth - 12 - _minLabelWidth)
+                        .clamp(0.0, double.infinity),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall!.copyWith(
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      StrokeIcon(
+                        AppIcons.chevronRight,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

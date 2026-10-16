@@ -192,7 +192,13 @@ void main() {
     ];
 
     test('follow the tags the chosen types use', () {
-      expect(groups(LibraryFilter.none), TagCategory.values);
+      // Every group the library has (the fixture has no authors or
+      // directors), in category order.
+      expect(groups(LibraryFilter.none), [
+        for (final c in TagCategory.values)
+          if (fixture.tags.containsKey(c)) c,
+      ]);
+      expect(groups(LibraryFilter.none), contains(TagCategory.studios));
       final music = groups(const LibraryFilter(types: {MediaType.music}));
       expect(music, contains(TagCategory.musicGenre));
       expect(music, isNot(contains(TagCategory.genre)));
