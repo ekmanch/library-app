@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:library_app/data/library_codec.dart';
+import 'package:library_app/data/models/tag_category.dart';
 import 'package:library_app/data/operations/operations.dart';
 
 void main() {
@@ -47,6 +48,52 @@ void main() {
     expect(diffs, [
       ('      "source": null', '      "source": "tmdb:movie:564"'),
     ]);
+  });
+
+  test('tag categories out of order in the file are written in order', () {
+    // The app once appended a new category at the end of the map, so a
+    // saved file could have Studios after Other; the data repo's
+    // library.py rejects that. Decoding sorts the groups and encoding
+    // writes them in TagCategory order, Studios right after Directors.
+    const text = '''
+{
+  "version": 2,
+  "tags": {
+    "Genres": [
+      "adventure"
+    ],
+    "Directors": [
+      "mike-flanagan"
+    ],
+    "Other": [
+      "favorite"
+    ],
+    "Studios": [
+      "pixar"
+    ]
+  },
+  "entries": [],
+  "plans": []
+}
+''';
+    final library = decodeLibrary(text);
+    expect(library.tags.keys.toList(), [
+      TagCategory.genre,
+      TagCategory.directors,
+      TagCategory.studios,
+      TagCategory.other,
+    ]);
+    final lines = encodeLibrary(library).split('\n');
+    final groups = [
+      for (final line in lines)
+        if (line.startsWith('    "'))
+          line.trim().replaceAll(RegExp(r'[":\[]'), '').trim(),
+    ];
+    expect(groups, ['Genres', 'Directors', 'Studios', 'Other']);
+    expect(
+      encodeLibrary(decodeLibrary(encodeLibrary(library))),
+      encodeLibrary(library),
+    );
   });
 
   test('the data repo layout with source after added re-encodes the same', () {

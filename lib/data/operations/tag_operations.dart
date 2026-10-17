@@ -27,7 +27,8 @@ class AddTag extends LibraryOperation {
       for (final MapEntry(key: k, value: v) in library.tags.entries) k: [...v],
     };
     tags.putIfAbsent(category, () => []).add(name);
-    return library.copyWith(tags: tags);
+    // A new category goes in its place, not at the end of the map.
+    return library.copyWith(tags: Library.tagsInCategoryOrder(tags));
   }
 
   @override

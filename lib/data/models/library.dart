@@ -49,6 +49,16 @@ abstract class Library with _$Library {
     for (final plan in plans) ...plan.tags,
   };
 
+  /// The tag map with its categories in [TagCategory] declaration order,
+  /// which is the order `library.json` and the data repo's `library.py`
+  /// expect. Order within a category is kept. A Dart map keeps insertion
+  /// order, so without this a category added after the file was first
+  /// written ("Studios" on a file from before the Creators split) would
+  /// land at the end.
+  static Map<TagCategory, List<String>> tagsInCategoryOrder(
+    Map<TagCategory, List<String>> tags,
+  ) => {for (final category in TagCategory.values) category: ?tags[category]};
+
   /// Drops tags no entry and no plan uses, and categories left empty.
   /// Order within a category is kept.
   Library withUnusedTagsRemoved() {

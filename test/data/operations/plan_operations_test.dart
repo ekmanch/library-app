@@ -79,6 +79,21 @@ void main() {
       TagCategory.studios,
     ).apply(library);
     expect(newCategory.tags[TagCategory.studios], ['studio-ghibli']);
+    // A new category sits in declaration order, not at the end of the
+    // map where a Dart map would put it: Studios lands before Other even
+    // when Other was added first.
+    final withOther = const AddTag('rewatch', TagCategory.other).apply(library);
+    final studiosLast = const AddTag(
+      'pixar',
+      TagCategory.studios,
+    ).apply(withOther);
+    expect(studiosLast.tags.keys.toList(), [
+      TagCategory.genre,
+      TagCategory.mood,
+      TagCategory.season,
+      TagCategory.studios,
+      TagCategory.other,
+    ]);
     expect(
       const AddTag('halloween', TagCategory.other).apply(library),
       library,

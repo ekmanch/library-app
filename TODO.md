@@ -169,6 +169,7 @@ Owner feedback of 2026-10-16 and the canvas revision of the same day (A2, A28, D
 - [x] A8 The creator field suggests its tag (#stephen-king, #naughty-dog), in its creator group; studios whose name is the brand (Studio Ghibli, Pixar, Disney, DreamWorks) are suggested instead of the director, from the lookup's companies
 - [x] `LONG_LISTS` pads the Authors group too, so A28 can be tried on a device; captures of the scrolled home, the long group row and A28 at 360 and at 1.3; A28 in the accessibility audit
 - [x] D10 with ten category chips is tall; checked at text scale 1.3: the dialog still fits the 780 dp screen without scrolling, so the chips stay; its "Create tag" button wrapped onto two lines, so button labels now shrink a step instead of wrapping
+- [x] `library.json` written by the app had Studios after Other: a new tag category was appended to the map instead of placed in `TagCategory` order, which the data repo's `library.py` rejects. The codec and `AddTag` now keep the categories in declaration order, and a file saved with the old order comes back in order on its next save (owner's report, 2026-10-17)
 - [ ] The accessibility audit's text scale 1.3 walk stops at its "details" step ("Bad state: No element", `test/accessibility/a11y_audit_test.dart`) and skips the five steps after it; it did so before phase 6 too. Make the walk reach every screen at 1.3 again.
 
 ## Later
