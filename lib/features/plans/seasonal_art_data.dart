@@ -1,5 +1,6 @@
 // GENERATED from the seasonal artboards S11 and S12 in design/canvas.html
-// by a one-off script; do not edit by hand. Each shape is drawn in the
+// by a one-off script (the Halloween ghost and title pumpkin were ported
+// by hand the same way); do not edit by hand otherwise. Each shape is drawn in the
 // artboard's own coordinates and the painter scales the whole picture.
 
 import 'package:flutter/painting.dart' show Color;
@@ -112,6 +113,39 @@ const halloweenStrip = SeasonalArt(
       fill: Color(0xFF1D1F22),
     ),
     ArtShape.path(
+      'M5 38C2.5 37 2.5 33.5 6 32.5C7 24 7.5 15 11.5 9C15 3.5 20.5 1.5 25.5 2.5C32 4 35.5 10 35.8 17C36.3 25 37 32 38.5 38C39.3 41.5 36.8 43.5 34.5 42.2C32.5 44.6 29.3 44.8 27.6 42.6C25.6 45.2 22.2 45.2 20.6 42.6C18.6 44.8 15.4 44.6 14.2 42.4C11.8 43.6 9.2 42.6 9 40.6C7.5 40.4 6 39.6 5 38Z',
+      fill: Color(0xFFEEF0F2),
+      stroke: Color(0xFF131416),
+      strokeWidth: 1.6,
+      transform: [0.5942, -0.0835, 0.0835, 0.5942, 139.5212, 48.0508],
+    ),
+    ArtShape.path(
+      'M12.5 40C12 33 13 27 15.5 22.5C14.5 28 14.5 34 15.5 40.5zM31 40.5C31.5 35 31.2 30 30 26C32.5 30 33.5 35 33.5 40z',
+      fill: Color(0xFFC9CED4),
+      transform: [0.5942, -0.0835, 0.0835, 0.5942, 139.5212, 48.0508],
+    ),
+    ArtShape.ellipse(
+      19.5,
+      15,
+      2.3,
+      3.1,
+      fill: Color(0xFF131416),
+      transform: [0.5942, -0.0835, 0.0835, 0.5942, 139.5212, 48.0508],
+    ),
+    ArtShape.ellipse(
+      28.5,
+      15,
+      2.3,
+      3.1,
+      fill: Color(0xFF131416),
+      transform: [0.5942, -0.0835, 0.0835, 0.5942, 139.5212, 48.0508],
+    ),
+    ArtShape.path(
+      'M20.5 21.2C22 25.2 27 25.2 28.6 21C26 22.3 23 22.4 20.5 21.2Z',
+      fill: Color(0xFF131416),
+      transform: [0.5942, -0.0835, 0.0835, 0.5942, 139.5212, 48.0508],
+    ),
+    ArtShape.path(
       'M30 98V58a12 12 0 0 1 24 0v40z',
       fill: Color(0xFF4A4F57),
       transform: [0.9925, -0.1219, 0.1219, 0.9925, -9.4365, 5.7148],
@@ -216,18 +250,30 @@ const halloweenIcon = SeasonalArt(
   height: 32,
   shapes: [
     ArtShape.path(
-      'M15 10.5c0-3 1-5 3.6-5.6l.9 2c-1.3.5-1.8 1.8-1.8 3.6z',
-      fill: Color(0xFF5E8C4A),
+      'M14.6 9.5C14.7 6.2 15.6 3.8 17.6 2.2L19.2 3.6C17.5 5 17 7 17.3 9.5Z',
+      fill: Color(0xFF8A6232),
     ),
-    ArtShape.ellipse(16, 19, 12, 9.5, fill: Color(0xFFF08A3C)),
+    ArtShape.ellipse(8.8, 19.2, 7.3, 8.8, fill: Color(0xFFD9722A)),
+    ArtShape.ellipse(23.2, 19.2, 7.3, 8.8, fill: Color(0xFFD9722A)),
+    ArtShape.ellipse(12.3, 19, 7, 10, fill: Color(0xFFE8813A)),
+    ArtShape.ellipse(19.7, 19, 7, 10, fill: Color(0xFFE8813A)),
+    ArtShape.ellipse(16, 18.8, 6, 10.4, fill: Color(0xFFF59447)),
     ArtShape.path(
-      'M16 9.5c-5 1-5 18 0 19M16 9.5c5 1 5 18 0 19',
-      stroke: Color(0xFFC96A22),
+      'M8.6 13.2C7.6 15 7.4 17.2 7.8 19.4',
+      stroke: Color(0xFFF7AC66),
       strokeWidth: 1.2,
     ),
     ArtShape.path(
-      'M9.3 18.5l2.4-3.8 2.1 3.8zM18.2 18.5l2.1-3.8 2.4 3.8zM8.5 21.3c2 4.3 13 4.3 15 0l-2.2.5-1.4 1.7-1.7-1.5-1.7 1.6-1.9-1.6-1.6 1.5-1.4-1.7z',
+      'M8.6 18.2L11.4 13.9L13.6 18.2ZM18.4 18.2L20.6 13.9L23.4 18.2ZM15 20.6L16 18.9L17 20.6Z',
       fill: Color(0xFF131416),
+    ),
+    ArtShape.path(
+      'M8 21.5Q16 24 24 21.5Q16 30 8 21.5Z',
+      fill: Color(0xFF131416),
+    ),
+    ArtShape.path(
+      'M17.4 22.3h2v1.9h-2zM12.6 24.1h2v1.6h-2z',
+      fill: Color(0xFFF59447),
     ),
   ],
 );
